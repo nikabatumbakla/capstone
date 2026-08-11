@@ -163,9 +163,10 @@
 
 .nav-link-custom.active {
     background: rgba(255, 255, 255, 0.05);
-    color: #fff !important;
     border-left: 3px solid var(--accent-glow);
-    box-shadow: inset 10px 0 20px rgba(255, 60, 65, 0.05);
+    color: #fff !important;
+    box-shadow: inset 10px 0 20px rgba(255, 60, 65, 0.1);
+    opacity: 1 !important;
 }
 
 
@@ -190,6 +191,23 @@
 .sub-menu-glass a:hover {
     color: #fff;
     padding-left: 50px;
+}
+
+.sub-menu-glass a.text-white.fw-bold {
+    color: #fff !important;
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.active-sub {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    font-weight: 800 !important;
+    border-radius: 10px;
+    margin: 2px 10px;
+    padding-left: 50px !important;
+    /* Push text to the right slightly */
+    box-shadow: inset 5px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 

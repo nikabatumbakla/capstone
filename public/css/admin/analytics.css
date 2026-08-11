@@ -1,0 +1,48 @@
+.report-card {
+    transition: 0.3s;
+    border-radius: 20px !important;
+}
+
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+.bg-soft-success {
+    background: rgba(39, 174, 96, 0.1);
+}
+
+.bg-soft-primary {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.btn-export-pdf {
+    background: #0d2e4f;
+    color: white;
+    border: none;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.btn-export-csv {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ddd;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.btn-export-pdf:hover,
+.btn-export-csv:hover {
+    opacity: 0.8;
+    color: white;
+}
+
+.info-label {
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #888;
+    letter-spacing: 0.5px;
+}

@@ -1,0 +1,59 @@
+/* BULLETIN BOARD */
+
+.post-card {
+    transition: 0.3s;
+    border: 1px solid #f0f0f0 !important;
+}
+
+.post-card:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+    border-color: #ddd !important;
+}
+
+.bg-soft-success {
+    background: rgba(39, 174, 96, 0.1);
+}
+
+.bg-soft-primary {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+
+/* ENGAGEMENT */
+
+.bg-soft-success {
+    background: rgba(39, 174, 96, 0.1);
+}
+
+
+/* Remove Blue Outlines */
+
+button:focus,
+.nav-link:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.eng-summary-card {
+    background: #fff;
+    border-radius: 25px;
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: 0.3s;
+}
+
+.eng-summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.nav-pills .nav-link {
+    color: #666;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #0d2e4f !important;
+    color: #fff;
+}
