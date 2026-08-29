@@ -4,18 +4,12 @@
     <div id="content">
         <?= view('partials/admin/header') ?>
 
-        <div class="container-fluid p-4">
-            <!-- 1. Header Banner -->
-            <div class="dashboard-banner mb-3 p-3">
-                <h5 class="fw-bold mb-1">Admin Dashboard — Overview</h5>
-                <p class="small mb-0 opacity-75">Today: <?= date('F d, Y') ?> - Iriga City, Camarines Sur</p>
+        <div class="container-fluid p-4" style="font-size: 11px;">
+           
+            <div class="dashboard-banner mb-4 p-3 text-white shadow-sm">
+                <h6 class="fw-bold mb-1">Admin Dashboard — Overview</h6>
+                <p class="mb-0 opacity-75" style="font-size: 10px;">Today: <?= date('F d, Y') ?> - Iriga City, Camarines Sur</p>
             </div>
-
-            <!-- 2. Yellow Alert Banner (FIGMA) -->
-            <!-- <div class="alert-banner mb-4 p-2 px-3 small">
-                <i class="fas fa-exclamation-triangle me-2"></i> 
-                3 products near expiry | 2 low-stock alerts | 1 PO pending approval
-            </div> -->
 
             <!-- 3. KPI STAT CARDS (WITH ICONS) -->
             <div class="row g-3 mb-4">

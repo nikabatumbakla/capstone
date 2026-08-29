@@ -352,19 +352,23 @@ input:focus {
 }
 
 
-
-
 /* Sidebar Nav Container - Enable Scrolling */
+
 .sidebar-nav-container {
     flex-grow: 1;
     overflow-y: auto !important;
-    scrollbar-width: none; /* Firefox */
-}
-.sidebar-nav-container::-webkit-scrollbar {
-    width: 0px; /* Chrome/Safari */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
+.sidebar-nav-container::-webkit-scrollbar {
+    width: 0px;
+    /* Chrome/Safari */
+}
+
+
 /* Parent Link Highlight */
+
 .nav-link-custom.active {
     background: rgba(255, 255, 255, 0.05) !important;
     border-left: 4px solid var(--accent-glow) !important;
@@ -372,18 +376,23 @@ input:focus {
     opacity: 1 !important;
 }
 
+
 /* Sub-menu Link Highlight (The Page you are on) */
+
 .sub-menu-glass a.active-sub {
     color: #fff !important;
     background: rgba(255, 255, 255, 0.15) !important;
     font-weight: 800 !important;
     border-radius: 10px;
     margin: 2px 10px;
-    padding-left: 50px !important; /* Indents the text nicely */
-    box-shadow: inset 5px 0 10px rgba(0,0,0,0.1);
+    padding-left: 50px !important;
+    /* Indents the text nicely */
+    box-shadow: inset 5px 0 10px rgba(0, 0, 0, 0.1);
 }
 
+
 /* Hover Effect for sub-menu */
+
 .sub-menu-glass a:hover {
     color: #fff !important;
     background: rgba(255, 255, 255, 0.05);

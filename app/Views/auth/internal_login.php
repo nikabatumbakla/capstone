@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PharMediSync</title>
     <link rel="stylesheet" href="<?= base_url('public/css/bootstrap.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('public/css/auth/login.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('public/css/auth/internallogin.css') ?>">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
             <h4 id="role-title">Admin</h4>
             <p id="role-desc" class="role-desc">Full System Control</p>
 
-            <form action="<?= base_url('auth/login') ?>" method="POST">
+            <form action="<?= base_url('auth/login/internal') ?>" method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="role" id="input-role" value="admin">
                 

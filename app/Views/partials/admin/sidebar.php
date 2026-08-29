@@ -102,7 +102,7 @@
                 <span class="user-display-name"><?= $fullname ?></span>
                 <span class="user-display-role">Administrator</span>
             </div>
-            <a href="<?= base_url('auth/logout') ?>" class="logout-minimal"><i class="fas fa-power-off"></i></a>
+            <a href="<?= base_url('logout') ?>" class="logout-minimal"><i class="fas fa-power-off"></i></a>
         </div>
     </div>
 </nav>
