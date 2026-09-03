@@ -14,9 +14,5 @@
             <i class="far fa-bell"></i>
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="padding: 3px; border: 2px solid white;"> </span>
         </button>
-
-        <button class="icon-btn me-3">
-            <i class="far fa-envelope"></i>
-        </button>
     </div>
 </nav>

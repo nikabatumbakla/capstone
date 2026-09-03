@@ -1,39 +1,64 @@
 <?php
 
 namespace App\Controllers\Staff\Info;
+
 use App\Controllers\BaseController;
+use App\Models\Staff\Info\AlertsModel;
 
 class Alerts extends BaseController
 {
-    public function index()
+    protected $alertsModel;
+
+    public function __construct()
     {
-        $db = \Config\Database::connect();
-        $session = session();
-        $userId = $session->get('user_id');
-
-        // Fetch unresolved alerts assigned to ME or to ALL
-        $data['alerts'] = $db->table('alerts')
-            ->where('is_resolved', 0)
-            ->groupStart()
-                ->where('assigned_to', $userId)
-                ->orWhere('assigned_to', null)
-            ->groupEnd()
-            ->orderBy('created_at', 'DESC')
-            ->get()->getResultArray();
-
-        // Stats for tiles
-        $data['unread_count'] = $db->table('alerts')->where(['assigned_to' => $userId, 'is_read' => 0])->countAllResults();
-
-        $data['title'] = "My Alert Intelligence";
-        $data['fullname'] = $session->get('full_name');
-        $data['page_name'] = "alerts";
-        return view('pages/staff/info/alerts', $data);
+        $this->alertsModel = new AlertsModel();
     }
+
+    public function index()
+{
+    $userId = session()->get('user_id');
+    $type = $this->request->getGet('type') ?: '';
+    $status = $this->request->getGet('status') ?: 'active';
+    $priority = $this->request->getGet('priority') ?: '';
+    $unread = $this->request->getGet('unread') ?: '';
+    $page = (int) ($this->request->getGet('page') ?? 1);
+
+    $result = $this->alertsModel->getFeed($userId, $type, $status, $priority, $unread, $page, 10);
+    $counts = $this->alertsModel->getCounts($userId);
+
+    $data['alerts'] = $result['data'];
+    $data['total_pages'] = $result['total_pages'];
+    $data['current_page'] = $page;
+    $data['type_filter'] = $type;
+    $data['status_filter'] = $status;
+    $data['priority_filter'] = $priority;
+    $data['unread_filter'] = $unread;
+
+    $data['total_active'] = $counts['total_active'];
+    $data['high_priority'] = $counts['high_priority'];
+    $data['unread_count'] = $counts['unread'];
+
+    $data['title'] = "My Alert Intelligence";
+    $data['fullname'] = session()->get('full_name');
+    $data['page_name'] = "alerts";
+    return view('pages/staff/info/alerts', $data);
+}
 
     public function mark_as_read($id)
     {
-        $db = \Config\Database::connect();
-        $db->table('alerts')->where('alert_id', $id)->update(['is_read' => 1]);
-        return redirect()->back();
+        $this->alertsModel->markAsRead((int) $id);
+        return redirect()->back()->with('success', 'Marked as read.');
     }
+
+    public function complete_task($id)
+    {
+        $success = $this->alertsModel->completeTask((int) $id, session()->get('user_id'));
+        return redirect()->back()->with($success ? 'success' : 'error', $success ? 'Task marked complete.' : 'You can only complete tasks assigned directly to you.');
+    }
+
+    public function header_notifications()
+{
+    $data = $this->alertsModel->getHeaderNotifications(session()->get('user_id'), 8);
+    return $this->response->setJSON($data);
+}
 }

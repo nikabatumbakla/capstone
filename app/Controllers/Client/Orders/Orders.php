@@ -1,20 +1,40 @@
 <?php
 
 namespace App\Controllers\Client\Orders;
+
 use App\Controllers\BaseController;
+use App\Models\Client\Orders\OrdersModel;
+use App\Models\Client\Orders\ProductsModel;
 
 class Orders extends BaseController
 {
-    protected $db;
-    public function __construct() { $this->db = \Config\Database::connect(); }
+    protected $ordersModel;
+    protected $productsModel;
 
-    // 1. MY ORDERS LIST
+    public function __construct()
+    {
+        $this->ordersModel = new OrdersModel();
+        $this->productsModel = new ProductsModel();
+    }
+
     public function index()
     {
         $clientId = session()->get('client_id');
-        $data['orders'] = $this->db->table('sales_orders')
-            ->where('client_id', $clientId)
-            ->orderBy('created_at', 'DESC')->get()->getResultArray();
+        $status = $this->request->getGet('status') ?: '';
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
+
+        $result = $this->ordersModel->getMyOrders($clientId, $status, $search, $page, 10);
+        $kpis = $this->ordersModel->getKpis($clientId);
+
+        $data['orders'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
+        $data['status_filter'] = $status;
+        $data['search'] = $search;
+        $data['count_active'] = $kpis['active'];
+        $data['count_ytd'] = $kpis['ytd'];
+        $data['count_unpaid'] = $kpis['unpaid'];
 
         $data['title'] = "My Order History";
         $data['fullname'] = session()->get('full_name');
@@ -22,14 +42,29 @@ class Orders extends BaseController
         return view('pages/client/orders/my_orders', $data);
     }
 
-    // 2. PLACE ORDER FORM
+    public function get_order_details($orderId)
+    {
+        $clientId = session()->get('client_id');
+        $result = $this->ordersModel->getOrderDetails((int) $orderId, $clientId);
+        if (!$result) return $this->response->setStatusCode(404)->setJSON(['error' => 'Order not found']);
+
+        $result['store_info'] = $this->ordersModel->getStoreInfo();
+        return $this->response->setJSON($result);
+    }
+
     public function place_order_view()
     {
-        // Fetch products that have stock
-        $data['products'] = $this->db->table('inventory_batches as ib')
-            ->select('ib.batch_id, ib.sell_price, ib.quantity_avail, p.name, p.sku, p.product_id')
-            ->join('products as p', 'p.product_id = ib.product_id')
-            ->where('ib.quantity_avail >', 0)->get()->getResultArray();
+        $cart = session()->get('client_cart') ?? [];
+        $cartProducts = $this->productsModel->getProductsByIds(array_keys($cart));
+
+        $cartItems = [];
+        foreach ($cartProducts as $p) {
+            $cartItems[] = array_merge($p, ['qty' => $cart[$p['product_id']]]);
+        }
+
+        $data['cart_items'] = $cartItems;
+        $data['categories'] = $this->productsModel->getCategories();
+        $data['all_products'] = $this->productsModel->getProducts('', '', 1, 500)['data']; // for the "add another item" dropdown
 
         $data['title'] = "Place New Sales Order";
         $data['fullname'] = session()->get('full_name');
@@ -37,41 +72,62 @@ class Orders extends BaseController
         return view('pages/client/orders/place_order', $data);
     }
 
-    // 3. SAVE ORDER (1 Form 1 Process)
-    public function save_order()
+    public function update_cart_qty()
     {
-        $clientId = session()->get('client_id');
-        $items = $this->request->getPost('items');
-        $qtys = $this->request->getPost('qtys');
-        
-        $this->db->transStart();
-        
-        // Header
-        $orderData = [
-            'client_id' => $clientId,
-            'order_number' => 'SO-' . time(),
-            'status' => 'pending',
-            'total' => $this->request->getPost('grand_total_hidden'),
-            'payment_status' => 'unpaid',
-            'created_by' => session()->get('user_id')
-        ];
-        $this->db->table('sales_orders')->insert($orderData);
-        $order_id = $this->db->insertID();
+        $productId = (int) $this->request->getPost('product_id');
+        $qty = (int) $this->request->getPost('qty');
+        $cart = session()->get('client_cart') ?? [];
 
-        // Items
-        foreach($items as $index => $batch_id) {
-            $batch = $this->db->table('inventory_batches')->where('batch_id', $batch_id)->get()->getRow();
-            $this->db->table('sales_order_items')->insert([
-                'order_id' => $order_id,
-                'product_id' => $batch->product_id,
-                'batch_id' => $batch_id,
-                'quantity' => $qtys[$index],
-                'unit_price' => $batch->sell_price,
-                'subtotal' => $batch->sell_price * $qtys[$index]
-            ]);
+        if ($qty <= 0) {
+            unset($cart[$productId]);
+        } else {
+            $cart[$productId] = $qty;
         }
-
-        $this->db->transComplete();
-        return redirect()->to('client/orders/my-orders')->with('success', 'Order Placed Successfully.');
+        session()->set('client_cart', $cart);
+        return $this->response->setJSON(['status' => 'ok']);
     }
+
+    public function remove_from_cart($productId)
+    {
+        $cart = session()->get('client_cart') ?? [];
+        unset($cart[(int) $productId]);
+        session()->set('client_cart', $cart);
+        return redirect()->back()->with('success', 'Item removed from cart.');
+    }
+
+    public function save_order()
+{
+    $clientId = session()->get('client_id');
+    $productIds = $this->request->getPost('product_ids');
+    $qtys = $this->request->getPost('qtys');
+    $fulfillmentType = $this->request->getPost('fulfillment_type') ?: 'delivery';
+    $deliveryAddress = trim((string) $this->request->getPost('delivery_address'));
+    $paymentMethod = $this->request->getPost('payment_method') ?: 'check';
+    $notes = trim((string) $this->request->getPost('order_notes'));
+
+    if (empty($productIds)) {
+        return redirect()->back()->withInput()->with('error', 'Your cart is empty.');
+    }
+
+    if ($fulfillmentType === 'delivery' && $deliveryAddress === '') {
+        return redirect()->back()->withInput()->with('error', 'Please provide a delivery address, or select Pickup instead.');
+    }
+
+    $result = $this->ordersModel->saveOrder(
+        $clientId, $productIds, $qtys, $fulfillmentType, $deliveryAddress, $paymentMethod, $notes, session()->get('user_id')
+    );
+
+    if (!$result['success']) {
+        return redirect()->back()->withInput()->with('error', $result['message']);
+    }
+
+    foreach ($result['products_ordered'] as $pid) {
+        \App\Libraries\AutoReorder::check($pid);
+    }
+
+    session()->remove('client_cart');
+
+    $msg = 'Order placed successfully.' . ($result['capped'] > 0 ? " Note: {$result['capped']} item(s) were reduced to match available stock." : '');
+    return redirect()->to('client/orders/my-orders')->with('success', $msg);
+}
 }

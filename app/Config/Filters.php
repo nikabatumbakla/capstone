@@ -18,12 +18,12 @@ class Filters extends BaseConfig
      * make reading things nicer and simpler.
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
+        'csrf'          => \CodeIgniter\Filters\CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'auth'          => AuthGuard::class, // Your Capstone Security Filter
+        'auth'          => \App\Filters\AuthGuard::class, // Your Capstone Security Filter
         'forcehttps'    => ForceHTTPS::class, // FIXED: Added this missing alias
     ];
 

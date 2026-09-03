@@ -1,72 +1,105 @@
 <?php
 
 namespace App\Controllers\Staff\Inventory;
+
 use App\Controllers\BaseController;
+use App\Models\Staff\Inventory\StockModel;
 
 class Stock extends BaseController
 {
-    public function index()
+    protected $stockModel;
+
+    public function __construct()
     {
-        $db = \Config\Database::connect();
-        $request = \Config\Services::request();
+        $this->stockModel = new StockModel();
+    }
 
-        // 1. Capture Filters
-        $search = $request->getGet('search');
-        $catID  = $request->getGet('category');
+    public function index()
+{
+    $search = trim((string) ($this->request->getGet('search') ?? ''));
+    $catId = $this->request->getGet('category') ?: '';
+    $status = $this->request->getGet('status') ?: '';
+    $page = (int) ($this->request->getGet('page') ?? 1);
 
-        // 2. Fetch Categories for Filter
-        $data['categories'] = $db->table('categories')->get()->getResultArray();
+    $result = $this->stockModel->getInventory($search, $catId, $status, $page, 10);
+    $kpis = $this->stockModel->getKpis($search, $catId);
 
-        // 3. Build Inventory Query
-        $builder = $db->table('inventory_batches as ib');
-        $builder->select('ib.*, p.name as product_name, p.sku, p.barcode_value, p.unit, c.name as cat_name');
-        $builder->join('products as p', 'p.product_id = ib.product_id');
-        $builder->join('categories as c', 'c.category_id = p.category_id');
+    $data['categories'] = $this->stockModel->getCategories();
+    $data['inventory'] = $result['data'];
+    $data['total_pages'] = $result['total_pages'];
+    $data['current_page'] = $page;
+    $data['search'] = $search;
+    $data['category_filter'] = $catId;
+    $data['status_filter'] = $status;
 
-        if ($search) $builder->like('p.name', $search)->orLike('p.sku', $search);
-        if ($catID) $builder->where('p.category_id', $catID);
+    $data['total_items'] = $kpis['total_items'];
+    $data['low_stock'] = $kpis['low_stock'];
+    $data['no_stock'] = $kpis['no_stock'];
+    $data['has_stock'] = $kpis['has_stock'];
+    $data['near_expiry'] = $kpis['near_expiry'];
 
-        $data['inventory'] = $builder->orderBy('ib.quantity_avail', 'ASC')->get()->getResultArray();
+    $data['title'] = "Inventory Stock View";
+    $data['fullname'] = session()->get('full_name');
+    $data['page_name'] = "stock";
 
-        // 4. KPI Aggregations
-        $data['total_items'] = $db->table('products')->countAllResults();
-        $data['low_stock'] = $db->table('inventory_batches')->where('quantity_avail <= reorder_level')->countAllResults();
-        $data['near_expiry'] = $db->table('inventory_batches')->where('expires_at <=', date('Y-m-d', strtotime('+6 months')))->countAllResults();
+    return view('pages/staff/inventory/stock_view', $data);
+}
 
-        $data['title'] = "Inventory Stock View";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "stock"; // Matches sidebar highlight logic
-
-        return view('pages/staff/inventory/stock_view', $data);
+    public function get_details($batchId)
+    {
+        $row = $this->stockModel->getBatchDetails((int) $batchId);
+        if (!$row) return $this->response->setStatusCode(404)->setJSON(['error' => 'Batch not found']);
+        return $this->response->setJSON($row);
     }
 
     public function adjust_stock()
     {
-        $db = \Config\Database::connect();
-        $session = session();
+        $batchId = (int) $this->request->getPost('batch_id');
+        $productId = (int) $this->request->getPost('product_id');
+        $qtyBefore = (int) $this->request->getPost('qty_before');
+        $qtyAfter = (int) $this->request->getPost('qty_after');
+        $reason = $this->request->getPost('reason');
+        $notes = $this->request->getPost('notes');
+        $staffUserId = session()->get('user_id');
 
-        $batch_id = $this->request->getPost('batch_id');
-        $qty_after = $this->request->getPost('qty_after');
+        if ($qtyAfter < 0) {
+            return redirect()->back()->with('error', 'Quantity cannot be negative.');
+        }
 
-        $db->transStart();
+        $this->stockModel->adjustStock($batchId, $productId, $qtyBefore, $qtyAfter, $reason, $notes, $staffUserId);
 
-        // 1. Update Inventory
-        $db->table('inventory_batches')->where('batch_id', $batch_id)->update(['quantity_avail' => $qty_after]);
+        // Same hook used by admin inventory/sales/POS — a staff-triggered adjustment
+        // that drops stock below reorder level should trip auto-reorder too.
+        \App\Libraries\AutoReorder::check($productId);
 
-        // 2. Create Audit Log
-        $db->table('stock_adjustment_logs')->insert([
-            'product_id'  => $this->request->getPost('product_id'), 
-            'batch_id'    => $batch_id,
-            'adjusted_by' => $session->get('user_id'),
-            'qty_before'  => $this->request->getPost('qty_before'),
-            'qty_after'   => $qty_after,
-            'reason'      => $this->request->getPost('reason'),
-            'notes'       => $this->request->getPost('notes'),
-            'adjusted_at' => date('Y-m-d H:i:s')
-        ]);
-
-        $db->transComplete();
-
-        return redirect()->to('staff/inventory/stock')->with('success', 'Adjustment Processed.');
+        return redirect()->to('staff/inventory/logs')->with('success', 'Adjustment processed and logged.');
     }
+
+    public function create_batch()
+{
+    $productId = (int) $this->request->getPost('product_id');
+    $batchNumber = trim((string) $this->request->getPost('batch_number'));
+    $quantity = (int) $this->request->getPost('quantity');
+    $costPrice = (float) $this->request->getPost('cost_price');
+    $sellPrice = (float) $this->request->getPost('sell_price');
+    $reorderLevel = (int) ($this->request->getPost('reorder_level') ?: 5);
+    $expiresAt = $this->request->getPost('expires_at');
+
+    if ($batchNumber === '' || $quantity <= 0 || $sellPrice <= 0) {
+        return redirect()->back()->with('error', 'Please provide a batch number, quantity, and sell price.');
+    }
+
+    $this->stockModel->createBatch($productId, $batchNumber, $quantity, $costPrice, $sellPrice, $reorderLevel, $expiresAt, session()->get('user_id'));
+    return redirect()->to('staff/inventory/stock')->with('success', 'New batch recorded successfully.');
+}
+
+public function get_product_info($productId)
+{
+    $row = $this->stockModel->getProductInfo((int) $productId);
+    if (!$row) return $this->response->setStatusCode(404)->setJSON(['error' => 'Product not found']);
+
+    $row->image_path = $this->stockModel->getProductImage((int) $productId);
+    return $this->response->setJSON($row);
+}
+
 }

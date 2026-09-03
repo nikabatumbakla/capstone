@@ -3,6 +3,7 @@
 namespace App\Controllers\Auth;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Libraries\TermsAgreementService;
 
 class External extends BaseController
 {
@@ -14,43 +15,102 @@ class External extends BaseController
     public function login()
     {
         $session = session();
-        $model = new \App\Models\UserModel();
+        $model = new UserModel();
         $email = $this->request->getVar('email');
         $password = $this->request->getVar('password');
-        $role = $this->request->getVar('role'); // institutional_client or supplier
 
         $user = $model->where('email', $email)->first();
 
-        if ($user && password_verify($password, $user['password_hash'])) {
-            // SECURITY: Ensure the role chosen on the card matches the database role
-            if ($user['role'] !== $role) {
-                return redirect()->back()->with('error', "Unauthorized: Account is " . strtoupper($user['role']));
-            }
-            
-            $db = \Config\Database::connect();
-            $sessionData = [
-                'user_id'     => $user['user_id'],
-                'role'        => $user['role'],
-                'isLoggedIn'  => true
-            ];
-
-            // FIXED: Fetch the correct ID and Name based on the role
-            if ($user['role'] === 'supplier') {
-                $supplier = $db->table('suppliers')->where('user_id', $user['user_id'])->get()->getRow();
-                $sessionData['supplier_id'] = $supplier->supplier_id ?? null;
-                $sessionData['full_name']   = $supplier->name ?? $user['full_name'];
-            } else if ($user['role'] === 'institutional_client') {
-                $client = $db->table('institutional_clients')->where('user_id', $user['user_id'])->get()->getRow();
-                $sessionData['client_id'] = $client->client_id ?? null;
-                $sessionData['full_name'] = $client->organization ?? $user['full_name'];
-            }
-
-            $session->set($sessionData);
-
-            // FIXED: Use the redirect helper instead of a hardcoded link
-            return $this->_redirectUser($user['role']);
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            return redirect()->back()->withInput()->with('error', 'The email or password you entered is incorrect.');
         }
-        return redirect()->back()->with('error', 'Invalid Credentials.');
+
+        if (!in_array($user['role'], ['supplier', 'institutional_client'])) {
+            return redirect()->back()->withInput()->with('error', 'The email or password you entered is incorrect.');
+        }
+        if (!$user['is_active']) {
+            return redirect()->back()->withInput()->with('error', 'This account has been disabled. Please contact Robin Rose Trading.');
+        }
+        if (!$user['is_verified']) {
+            return redirect()->back()->withInput()->with('error', 'Your account is pending verification. We will notify you once approved.');
+        }
+
+        if (!TermsAgreementService::hasAgreedToCurrent($user)) {
+            if (!$this->request->getVar('agree_terms')) {
+                return redirect()->back()->withInput()->with('error', 'You must agree to the Terms & Conditions and Privacy Policy to continue.')->with('require_terms', true);
+            }
+            TermsAgreementService::recordAgreement(
+                $user['user_id'],
+                $this->request->getIPAddress(),
+                (string) $this->request->getUserAgent()
+            );
+        }
+
+        $db = \Config\Database::connect();
+        $sessionData = [
+            'user_id'     => $user['user_id'],
+            'role'        => $user['role'],
+            'isLoggedIn'  => true,
+            'avatar_path' => $user['avatar_path'] ?? null,
+        ];
+
+        if ($user['role'] === 'supplier') {
+            $supplier = $db->table('suppliers')->where('user_id', $user['user_id'])->get()->getRow();
+            $sessionData['supplier_id'] = $supplier->supplier_id ?? null;
+            $sessionData['full_name']   = $supplier->name ?? $user['full_name'];
+        } else if ($user['role'] === 'institutional_client') {
+            $client = $db->table('institutional_clients')->where('user_id', $user['user_id'])->get()->getRow();
+            $sessionData['client_id'] = $client->client_id ?? null;
+            $sessionData['full_name'] = $client->organization ?? $user['full_name'];
+        }
+
+        $session->set($sessionData);
+        return $this->_redirectUser($user['role']);
+    }
+
+    public function forgot_password_send()
+    {
+        \App\Libraries\PasswordResetService::requestReset($this->request->getPost('email'));
+        return redirect()->to('partner-gateway')->with('info', 'If that email is registered, a verification code has been sent.')->with('show_reset_form', true);
+    }
+
+    public function forgot_password_verify()
+    {
+        $result = \App\Libraries\PasswordResetService::verifyCode(
+            $this->request->getPost('email'),
+            trim((string) $this->request->getPost('code'))
+        );
+
+        if (!$result['success']) {
+            return redirect()->to('partner-gateway')->withInput()->with('error', $result['message'])->with('show_reset_form', true);
+        }
+
+        $user = $result['user'];
+
+        if (!TermsAgreementService::hasAgreedToCurrent($user)) {
+            TermsAgreementService::recordAgreement(
+                $user['user_id'],
+                $this->request->getIPAddress(),
+                (string) $this->request->getUserAgent()
+            );
+        }
+
+        $db = \Config\Database::connect();
+        $sessionData = ['user_id' => $user['user_id'], 'role' => $user['role'], 'isLoggedIn' => true, 'avatar_path' => $user['avatar_path'] ?? null];
+
+        if ($user['role'] === 'supplier') {
+            $supplier = $db->table('suppliers')->where('user_id', $user['user_id'])->get()->getRow();
+            $sessionData['supplier_id'] = $supplier->supplier_id ?? null;
+            $sessionData['full_name']   = $supplier->name ?? $user['full_name'];
+        } else if ($user['role'] === 'institutional_client') {
+            $client = $db->table('institutional_clients')->where('user_id', $user['user_id'])->get()->getRow();
+            $sessionData['client_id'] = $client->client_id ?? null;
+            $sessionData['full_name'] = $client->organization ?? $user['full_name'];
+        }
+
+        $session = session();
+        $session->set($sessionData);
+        return $this->_redirectUser($user['role'])->with('info', 'Verified successfully. You can update your password anytime from your account settings.');
     }
 
     private function _redirectUser($role) {

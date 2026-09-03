@@ -1,51 +1,81 @@
 document.addEventListener("DOMContentLoaded", function() {
-    const editBtns = document.querySelectorAll('.btn-edit-user');
-    const drawerEl = document.getElementById('userDrawer');
-    const drawer = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
-    const form = document.getElementById('userForm');
+    const roleSelect = document.getElementById('form_role');
+    const roleFieldMap = {
+        staff: 'staffFields',
+        customer: 'customerFields',
+        supplier: 'supplierFields',
+        institutional_client: 'clientFields',
+    };
 
-    // 1. SEARCH LOGIC (Automatic as you type)
-    const searchInput = document.getElementById('userSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            let filter = this.value.toLowerCase();
-            document.querySelectorAll('#userTableBody tr').forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(filter) ? "" : "none";
-            });
-        });
+    function toggleRoleFields() {
+        Object.values(roleFieldMap).forEach(id => document.getElementById(id).style.display = 'none');
+        if (roleFieldMap[roleSelect.value]) document.getElementById(roleFieldMap[roleSelect.value]).style.display = 'block';
     }
+    roleSelect.addEventListener('change', toggleRoleFields);
 
-    // 2. EDIT USER (AJAX Population)
-    editBtns.forEach(btn => {
+    // ============ PASSWORD CONFIRMATION CHECK ============
+    const createForm = document.getElementById('userForm');
+    const pwInput = document.getElementById('form_password');
+    const confirmInput = document.getElementById('form_confirm_password');
+    const mismatchError = document.getElementById('passwordMismatchError');
+
+    function validatePasswords() {
+        const matches = pwInput.value === confirmInput.value;
+        mismatchError.style.display = matches ? 'none' : 'block';
+        return matches;
+    }
+    confirmInput.addEventListener('input', validatePasswords);
+    pwInput.addEventListener('input', validatePasswords);
+
+    createForm.addEventListener('submit', function(e) {
+        if (!validatePasswords()) {
+            e.preventDefault();
+            confirmInput.focus();
+        }
+    });
+
+    // ============ SEARCH / FILTER ============
+    const filterForm = document.getElementById('filterForm');
+    filterForm.querySelector('select[name="role"]').addEventListener('change', () => filterForm.submit());
+    let typingTimer;
+    document.getElementById('userSearch').addEventListener('input', function() {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => filterForm.submit(), 600);
+    });
+
+    // ============ MANAGE ACCESS DRAWER ============
+    const accessDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('accessDrawer'));
+
+    document.querySelectorAll('.btn-manage-access').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
-            document.getElementById('drawerTitle').innerText = "Edit Identity Specifications";
-            document.getElementById('btnSubmit').innerText = "✓ UPDATE IDENTITY";
 
             fetch(`${BASE_URL}/admin/management/users/edit/${id}`)
                 .then(res => res.json())
                 .then(data => {
-                    document.getElementById('form_user_id').value = data.user_id;
-                    document.getElementById('form_name').value = data.full_name;
-                    document.getElementById('form_email').value = data.email;
-                    document.getElementById('form_phone').value = data.phone;
-                    document.getElementById('form_role').value = data.role;
-                    document.getElementById('form_active').checked = (parseInt(data.is_active) === 1);
-                    drawer.show();
+                    if (data.error) { alert(data.error); return; }
+
+                    document.getElementById('access_user_id').value = data.user_id;
+                    document.getElementById('access_display_name').textContent = data.full_name;
+                    document.getElementById('access_display_email').textContent = data.email;
+                    document.getElementById('access_active').checked = (parseInt(data.is_active) === 1);
+                    document.getElementById('access_verified').checked = (parseInt(data.is_verified) === 1);
+                    document.getElementById('access_notes').value = data.verification_notes || '';
+
+                    accessDrawer.show();
                 })
-                .catch(err => alert("Failed to fetch user data. Check route configuration."));
+                .catch(err => {
+                    console.error(err);
+                    alert("Failed to fetch account data.");
+                });
         });
     });
 
-    // 3. RESET FORM FOR NEW PROVISIONING
-    const btnAdd = document.getElementById('btnAddNewUser');
-    if (btnAdd) {
-        btnAdd.addEventListener('click', () => {
-            form.reset();
-            document.getElementById('form_user_id').value = '';
-            document.getElementById('drawerTitle').innerText = "Provision New Account";
-            document.getElementById('btnSubmit').innerText = "✓ SAVE NEW IDENTITY";
-        });
-    }
+    // ============ NEW ACCOUNT RESET ============
+    document.getElementById('btnAddNewUser').addEventListener('click', () => {
+        createForm.reset();
+        document.getElementById('form_user_id').value = '';
+        mismatchError.style.display = 'none';
+        toggleRoleFields();
+    });
 });

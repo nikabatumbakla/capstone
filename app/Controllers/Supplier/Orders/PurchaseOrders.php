@@ -1,102 +1,100 @@
 <?php
 
 namespace App\Controllers\Supplier\Orders;
+
 use App\Controllers\BaseController;
+use App\Models\Supplier\Orders\PurchaseOrdersModel;
 
 class PurchaseOrders extends BaseController
 {
-    protected $db;
+    protected $poModel;
 
     public function __construct()
     {
-        $this->db = \Config\Database::connect();
+        $this->poModel = new PurchaseOrdersModel();
     }
 
     public function index()
     {
-        $db = \Config\Database::connect();
         $supplierId = session()->get('supplier_id');
-        $status = $this->request->getGet('tab') ?? 'open';
+        $tab = $this->request->getGet('tab') ?: 'pending';
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
 
-        $builder = $db->table('purchase_orders as po');
-        $builder->select('po.*, (SELECT SUM(qty_ordered) FROM purchase_order_items WHERE po_id = po.po_id) as total_qty');
-        $builder->where('supplier_id', $supplierId);
+        $result = $this->poModel->getInbox($supplierId, $tab, $search, $page, 10);
+        $kpis = $this->poModel->getKpis($supplierId);
 
-        if ($status == 'history') {
-            $builder->whereIn('po.status', ['received', 'cancelled']);
-        } else {
-            $builder->whereIn('po.status', ['sent', 'approved', 'partial']);
-        }
+        $data['pos'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
+        $data['active_tab'] = $tab;
+        $data['search'] = $search;
+        $data['count_pending'] = $kpis['pending_ack'];
+        $data['count_in_progress'] = $kpis['in_progress'];
+        $data['count_completed'] = $kpis['completed'];
 
-        $data['pos'] = $builder->orderBy('created_at', 'DESC')->get()->getResultArray();
-        
         $data['title'] = "Purchase Order Inbox";
         $data['fullname'] = session()->get('full_name');
         $data['page_name'] = "po_inbox";
-        $data['active_tab'] = $status;
-
         return view('pages/supplier/orders/po_inbox', $data);
     }
 
-    public function acknowledge($id)
+    public function get_po_details($id)
     {
-        $db = \Config\Database::connect();
-        $db->table('purchase_orders')->where('po_id', $id)->update(['status' => 'approved']);
-        return redirect()->back()->with('success', 'PO Acknowledged. Robin Rose Trading has been notified.');
-    }
-
-    // --- ACKNOWLEDGE PO VIEW ---
-    public function view_acknowledge($id) {
-        $data['po'] = $this->db->table('purchase_orders')->where('po_id', $id)->get()->getRow();
-        $data['items'] = $this->db->table('purchase_order_items as poi')
-            ->select('poi.*, p.name, p.sku')
-            ->join('products as p', 'p.product_id = poi.product_id')
-            ->where('poi.po_id', $id)->get()->getResultArray();
-
-        $data['title'] = "Acknowledge PO";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "po_inbox";
-        return view('pages/supplier/orders/acknowledge', $data);
+        $supplierId = session()->get('supplier_id');
+        $result = $this->poModel->getPoDetails((int) $id, $supplierId);
+        if (!$result) return $this->response->setStatusCode(404)->setJSON(['error' => 'PO not found']);
+        return $this->response->setJSON($result);
     }
 
     public function process_acknowledge()
     {
-        $db = \Config\Database::connect();
-        $po_id = $this->request->getPost('po_id');
-        
-        $data = [
-            'status'        => 'approved', // Moves from 'sent' to 'approved'
-            'expected_date' => $this->request->getPost('confirmed_date'), // Updates based on supplier capacity
-            'notes'         => $this->request->getPost('notes'),
-            'updated_at'    => date('Y-m-d H:i:s')
-        ];
+        $supplierId = session()->get('supplier_id');
+        $poId = (int) $this->request->getPost('po_id');
+        $confirmedDate = $this->request->getPost('confirmed_date');
+        $notes = $this->request->getPost('notes');
 
-        $db->table('purchase_orders')->where('po_id', $po_id)->update($data);
+        if (empty($confirmedDate)) {
+            return redirect()->back()->with('error', 'Please confirm an expected delivery date.');
+        }
 
-        return redirect()->to('supplier/orders/inbox')->with('success', 'Order acknowledged and confirmed.');
+        $success = $this->poModel->acknowledgePo($poId, $supplierId, $confirmedDate, $notes);
+        return redirect()->to('supplier/orders/inbox')->with($success ? 'success' : 'error',
+            $success ? 'Order acknowledged and confirmed.' : 'Unable to acknowledge — this order may already be processed.');
     }
 
-
-    // --- DELIVERY UPDATES VIEW ---
-    public function delivery_updates() {
+    public function delivery()
+    {
         $supplierId = session()->get('supplier_id');
-        $data['orders'] = $this->db->table('purchase_orders')
-            ->where('supplier_id', $supplierId)
-            ->whereIn('status', ['approved', 'sent', 'partial'])
-            ->get()->getResultArray();
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
 
-        $data['title'] = "Delivery Logistics";
+        $result = $this->poModel->getDeliveryQueue($supplierId, $search, $page, 10);
+
+        $data['orders'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
+        $data['search'] = $search;
+
+        $data['title'] = "Delivery Updates";
         $data['fullname'] = session()->get('full_name');
         $data['page_name'] = "delivery";
         return view('pages/supplier/orders/delivery', $data);
     }
 
-    public function update_delivery() {
-        $id = $this->request->getPost('po_id');
-        $this->db->table('purchase_orders')->where('po_id', $id)->update([
-            'status' => 'sent', // Marks as "In-Transit"
-            'notes' => $this->request->getPost('tracking_ref')
-        ]);
-        return redirect()->to('supplier/orders/delivery')->with('success', 'Delivery status updated.');
+    public function update_delivery()
+    {
+        $supplierId = session()->get('supplier_id');
+        $poId = (int) $this->request->getPost('po_id');
+        $drNumber = trim((string) $this->request->getPost('dr_number'));
+        $dispatchDate = $this->request->getPost('dispatch_date');
+
+        if (empty($drNumber)) {
+            return redirect()->back()->with('error', 'Please provide a delivery reference / DR number.');
+        }
+
+        $success = $this->poModel->markDispatched($poId, $supplierId, $drNumber, $dispatchDate);
+        return redirect()->to('supplier/orders/delivery')->with($success ? 'success' : 'error',
+            $success ? 'Marked as in-transit. Robin Rose Trading has been notified.' : 'Unable to update — this order must be acknowledged first.');
     }
 }

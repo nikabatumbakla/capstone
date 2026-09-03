@@ -1,21 +1,33 @@
 <?php
+
 namespace App\Controllers\Client\Support;
+
 use App\Controllers\BaseController;
+use App\Models\Client\Support\AnnouncementsModel;
 
-class Announcements extends BaseController {
-    public function index() {
-        $db = \Config\Database::connect();
-        // Fetch posts for 'all' or 'clients'
-        $data['posts'] = $db->table('bulletin_posts')
-            ->where('is_published', 1)
-            ->whereIn('target_audience', ['all', 'clients'])
-            ->orderBy('is_pinned', 'DESC')
-            ->orderBy('created_at', 'DESC')
-            ->get()->getResultArray();
+class Announcements extends BaseController
+{
+    protected $announcementsModel;
 
-        $data['title'] = "Bulletin Board";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "announcements";
-        return view('pages/client/support/announcements', $data);
+    public function __construct()
+    {
+        $this->announcementsModel = new AnnouncementsModel();
     }
+
+    public function index()
+{
+    $search = trim((string) ($this->request->getGet('search') ?? ''));
+    $page = (int) ($this->request->getGet('page') ?? 1);
+    $result = $this->announcementsModel->getActivePosts($search, $page, 8);
+
+    $data['posts'] = $result['data'];
+    $data['total_pages'] = $result['total_pages'];
+    $data['current_page'] = $page;
+    $data['search'] = $search;
+
+    $data['title'] = "Announcements";
+    $data['fullname'] = session()->get('full_name');
+    $data['page_name'] = "announcements";
+    return view('pages/client/support/announcements', $data);
+}
 }

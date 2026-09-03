@@ -28,22 +28,21 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="<?= base_url('client/orders/place-order') ?>" class="nav-link-custom <?= ($page_name == 'place') ? 'active' : '' ?>">
-                    <i class="fas fa-plus-circle"></i> <span>Place Order</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="<?= base_url('client/orders/my-orders') ?>" class="nav-link-custom <?= ($page_name == 'orders') ? 'active' : '' ?>">
-                    <i class="fas fa-list-ul"></i> <span>My Orders</span>
-                </a>
-            </li>
+    <a href="<?= base_url('client/orders/place-order') ?>" class="nav-link-custom <?= ($page_name == 'place') ? 'active' : '' ?>">
+        <i class="fas fa-shopping-cart"></i> <span>My Cart / Place Order</span>
+    </a>
+</li>
+
+<li class="nav-item">
+    <a href="<?= base_url('client/orders/my-orders') ?>" class="nav-link-custom <?= ($page_name == 'orders') ? 'active' : '' ?>">
+        <i class="fas fa-receipt"></i> <span>My Orders</span>
+    </a>
+</li>
 
             <li class="nav-label">ACCOUNT</li>
-            <li class="nav-item"><a href="<?= base_url('client/account/payment') ?>" class="nav-link-custom"><i class="fas fa-credit-card"></i> <span>Payment</span></a></li>
             <li class="nav-item"><a href="<?= base_url('client/account/invoices') ?>" class="nav-link-custom"><i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span></a></li>
 
             <li class="nav-label">SUPPORT</li>
-            <li class="nav-item"><a href="<?= base_url('client/support/chatbot') ?>" class="nav-link-custom"><i class="fas fa-comment-dots"></i> <span>ChatBot Support</span></a></li>
             <li class="nav-item"><a href="<?= base_url('client/support/announcements') ?>" class="nav-link-custom"><i class="fas fa-bullhorn"></i> <span>Announcements</span></a></li>
             <li class="nav-item"><a href="<?= base_url('client/support/profile') ?>" class="nav-link-custom"><i class="fas fa-user-circle"></i> <span>My Profile</span></a></li>
         </ul>

@@ -1,31 +1,38 @@
 <?php
 
 namespace App\Controllers\Client\Main;
+
 use App\Controllers\BaseController;
+use App\Models\Client\DashboardModel;
 
 class Dashboard extends BaseController
 {
+    protected $dashboardModel;
+
+    public function __construct()
+    {
+        $this->dashboardModel = new DashboardModel();
+    }
+
     public function index()
     {
-        $db = \Config\Database::connect();
         $clientId = session()->get('client_id');
 
-        // 1. Fetch Client Profile (For Balance/Credit)
-        $data['client'] = $db->table('institutional_clients')->where('client_id', $clientId)->get()->getRow();
+        $data['client'] = $this->dashboardModel->getClientProfile($clientId);
 
-        // 2. Fetch Stats
-        $data['active_orders'] = $db->table('sales_orders')->where(['client_id' => $clientId, 'status !=' => 'delivered'])->countAllResults();
-        $data['total_orders_ytd'] = $db->table('sales_orders')->where('client_id', $clientId)->countAllResults();
+        $kpis = $this->dashboardModel->getKpis($clientId);
+        $data['active_orders'] = $kpis['active_orders'];
+        $data['total_orders_ytd'] = $kpis['total_orders_ytd'];
+        $data['pending_payment'] = $kpis['pending_payment'];
+        $data['total_spend_ytd'] = $kpis['total_spend_ytd'];
 
-        // 3. Fetch Recent Orders
-        $data['recent_orders'] = $db->table('sales_orders')
-            ->where('client_id', $clientId)
-            ->orderBy('created_at', 'DESC')
-            ->limit(5)->get()->getResultArray();
+        $data['recent_orders'] = $this->dashboardModel->getRecentOrders($clientId, 5);
+        $data['pending_clearance'] = $this->dashboardModel->getPendingClearance($clientId, 5);
+        $data['announcements'] = $this->dashboardModel->getActiveAnnouncements(3);
 
         $data['title'] = "Client Dashboard";
         $data['fullname'] = session()->get('full_name');
         $data['page_name'] = "dashboard";
-        return view('pages/client/main/dashboard', $data); 
+        return view('pages/client/main/dashboard', $data);
     }
 }

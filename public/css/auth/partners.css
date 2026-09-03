@@ -425,6 +425,6 @@ textarea:focus {
 }
 
 .form-check-input:checked {
-    background-color: #3498db;
-    border-color: #3498db;
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }

@@ -1,37 +1,43 @@
 <?php
 
 namespace App\Controllers\Staff\Inventory;
+
 use App\Controllers\BaseController;
+use App\Models\Staff\Inventory\LogsModel;
 
 class Logs extends BaseController
 {
+    protected $logsModel;
+
+    public function __construct()
+    {
+        $this->logsModel = new LogsModel();
+    }
 
     public function logs()
-{
-    $db = \Config\Database::connect();
-    $session = session();
+    {
+        $staffUserId = session()->get('user_id');
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $reason = $this->request->getGet('reason') ?: '';
+        $page = (int) ($this->request->getGet('page') ?? 1);
 
-    // 1. Fetch ALL Adjustment Logs from Database (Joining products for names)
-    $builder = $db->table('stock_adjustment_logs as sal');
-    $builder->select('sal.*, p.name as product_name, u.full_name as staff_name');
-    $builder->join('products as p', 'p.product_id = sal.product_id');
-    $builder->join('users as u', 'u.user_id = sal.adjusted_by');
-    $builder->orderBy('sal.adjusted_at', 'DESC');
-    
-    $data['logs'] = $builder->get()->getResultArray();
+        $result = $this->logsModel->getLogs($staffUserId, $search, $reason, $page, 10);
+        $summary = $this->logsModel->getSummary($staffUserId);
 
-    // 2. Fetch Active Product Batches for the "New Adjustment" Drawer
-    $data['available_stocks'] = $db->table('inventory_batches as ib')
-        ->select('ib.batch_id, ib.batch_number, p.name, ib.quantity_avail')
-        ->join('products as p', 'p.product_id = ib.product_id')
-        ->where('ib.quantity_avail >', 0)
-        ->get()->getResultArray();
+        $data['logs'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
+        $data['search'] = $search;
+        $data['reason_filter'] = $reason;
 
-    $data['title'] = "Stock Adjustment History";
-    $data['fullname'] = $session->get('full_name');
-    $data['page_name'] = "logs";
+        $data['total_adjustments'] = $summary['total'];
+        $data['today_adjustments'] = $summary['today'];
+        $data['damage_expired_count'] = $summary['damage_or_expired'];
 
-    return view('pages/staff/inventory/logs', $data);
-}
+        $data['title'] = "Stock Adjustment History";
+        $data['fullname'] = session()->get('full_name');
+        $data['page_name'] = "logs";
 
+        return view('pages/staff/inventory/logs', $data);
+    }
 }

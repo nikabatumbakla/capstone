@@ -61,7 +61,7 @@
             <textarea name="complete_address" class="formal-input" rows="2" placeholder="Full street address, City, Province" required></textarea>
         </div>
 
-        <button type="submit" class="btn-pg-primary shadow-lg">Next: Contact Details</button>
+        <button type="submit" class="btn-pg-primary shadow-lg"> Contact Details <i class="fas fa-arrow-right"></i> </button>
     </form>
 </div>
 

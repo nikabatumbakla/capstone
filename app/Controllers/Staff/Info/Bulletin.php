@@ -1,26 +1,27 @@
 <?php
 
 namespace App\Controllers\Staff\Info;
+
 use App\Controllers\BaseController;
+use App\Models\Staff\Info\BulletinModel;
 
 class Bulletin extends BaseController
 {
+    protected $bulletinModel;
+
+    public function __construct()
+    {
+        $this->bulletinModel = new BulletinModel();
+    }
+
     public function index()
     {
-        $db = \Config\Database::connect();
-        
-        // Fetch published posts for staff or all
-        $data['posts'] = $db->table('bulletin_posts as bp')
-            ->select('bp.*, u.full_name as author')
-            ->join('users as u', 'u.user_id = bp.created_by', 'left')
-            ->where('bp.is_published', 1)
-            ->groupStart()
-                ->where('bp.target_audience', 'staff')
-                ->orWhere('bp.target_audience', 'all')
-            ->groupEnd()
-            ->orderBy('bp.is_pinned', 'DESC')
-            ->orderBy('bp.created_at', 'DESC')
-            ->get()->getResultArray();
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $result = $this->bulletinModel->getActivePosts($page, 10);
+
+        $data['posts'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
 
         $data['title'] = "Staff Bulletin Board";
         $data['fullname'] = session()->get('full_name');

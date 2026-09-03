@@ -63,8 +63,6 @@
 </div>
 <?php endif; ?>
 
-            <!-- 4. Table and Filter Section -->
-            <!-- THE SPECIFIC SECTION TO RESIZE -->
 <div class="custom-table-container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h6 class="fw-bold mb-0" style="font-size: 14px;"><i class="fas fa-list me-2 text-maroon"></i>Current Stock Inventory</h6>
@@ -117,11 +115,20 @@
     <?php endif; ?>
 </td>
 <td class="fw-bold text-maroon" style="font-size: 14px;"><?= $item['quantity_avail'] ?></td>
+
 <td>
+    <?php
+        $isLowStock   = $item['batch_id'] && $item['quantity_avail'] <= $item['reorder_level'];
+        $isNearExpiry = $item['batch_id'] && $item['expires_at']
+                        && strtotime($item['expires_at']) >= strtotime('today')
+                        && strtotime($item['expires_at']) <= strtotime('+6 months');
+    ?>
     <?php if(!$item['batch_id']): ?>
         <span class="badge bg-secondary">No Stock</span>
-    <?php elseif($item['quantity_avail'] <= $item['reorder_level']): ?>
-        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i> Low Stock</span>
+    <?php elseif($isLowStock): ?>
+        <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> Low Stock</span>
+    <?php elseif($isNearExpiry): ?>
+        <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half me-1"></i> Near Expiry</span>
     <?php else: ?>
         <span class="badge bg-success px-4" style="border-radius: 20px;">Available</span>
     <?php endif; ?>
@@ -226,14 +233,18 @@
     </div>
 
             <div class="mb-3">
-                <label class="info-label">Product Category *</label>
-                <select name="category_id" class="form-select form-select-sm" required>
-                    <option value="" selected disabled>Select category</option>
-                    <?php foreach($categories as $cat): ?>
-                        <option value="<?= $cat['category_id'] ?>"><?= $cat['name'] ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+    <label class="info-label">Product Category *</label>
+    <select name="category_id" id="categorySelect" class="form-select form-select-sm" required>
+        <option value="" selected disabled>Select category</option>
+        <?php foreach($categories as $cat): ?>
+            <option value="<?= $cat['category_id'] ?>"><?= $cat['name'] ?></option>
+        <?php endforeach; ?>
+        <option value="__new__">+ Add New Category</option>
+    </select>
+    <div id="newCategoryWrap" class="mt-2" style="display:none;">
+        <input type="text" name="new_category_name" id="newCategoryName" class="form-control form-control-sm" placeholder="e.g. Orthopedic Supports">
+    </div>
+</div>
 
             <div class="mb-3">
                 <label class="info-label">Supplier (optional)</label>
@@ -301,10 +312,46 @@
             </div>
 
         <hr class="my-4">
+<h6 class="fw-bold text-maroon mb-3" style="font-size: 12px;"><i class="fas fa-boxes me-2"></i>Initial Stock (optional)</h6>
+<p class="helper-text mb-3">Fill this in to add opening stock right away. Leave blank to add the product with no stock — you can use "Add Stock" later.</p>
+
+<div class="mb-3">
+    <label class="info-label">Batch Number</label>
+    <input type="text" name="batch_number" class="form-control form-control-sm" placeholder="e.g. B2026-05">
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-6">
+        <label class="info-label">Quantity</label>
+        <input type="number" name="quantity" class="form-control form-control-sm" placeholder="e.g. 50" min="1">
+    </div>
+    <div class="col-6">
+        <label class="info-label">Reorder Level</label>
+        <input type="number" name="reorder_level" class="form-control form-control-sm" placeholder="e.g. 5" value="5">
+    </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-6">
+        <label class="info-label">Cost Price (per unit)</label>
+        <input type="number" step="0.01" name="cost_price" class="form-control form-control-sm" placeholder="e.g. 600.00">
+    </div>
+    <div class="col-6">
+        <label class="info-label">Sell Price (per unit)</label>
+        <input type="number" step="0.01" name="sell_price" class="form-control form-control-sm" placeholder="e.g. 850.00">
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="info-label">Expiry Date</label>
+    <input type="date" name="expires_at" class="form-control form-control-sm">
+</div>
+
+<hr class="my-4">
     <h6 class="fw-bold text-maroon mb-3" style="font-size: 12px;"><i class="fas fa-book-medical me-2"></i>Educational Content (optional)</h6>
     
    <div class="mb-3"><label class="formal-label">Video (Google Drive link)</label>
-    <input type="text" name="video_url" class="formal-input" placeholder="e.g. https://drive.google.com/file/d/xxxxxxxxx/view?usp=sharing" value="${c.video_url ?? ''}">
+    <input type="text" name="video_url" class="formal-input" placeholder="e.g. https://drive.google.com/file/d/xxxxxxxxx/view?usp=sharing" value="">
     <p class="helper-text">Paste the normal Drive share link — it will convert automatically.</p>
 </div>
 

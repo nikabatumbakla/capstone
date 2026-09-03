@@ -3,6 +3,7 @@
 namespace App\Controllers\Auth;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Libraries\TermsAgreementService;
 
 class Internal extends BaseController
 {
@@ -16,18 +17,83 @@ class Internal extends BaseController
         $model = new UserModel();
         $email = $this->request->getVar('email');
         $password = $this->request->getVar('password');
-        $role = $this->request->getVar('role'); // admin or staff
 
         $user = $model->where('email', $email)->first();
 
-        if ($user && password_verify($password, $user['password_hash'])) {
-            if (!in_array($user['role'], ['admin', 'staff']) || $user['role'] !== $role) {
-                return redirect()->back()->with('error', "Invalid access for this portal.");
-            }
-            $session->set(['user_id'=>$user['user_id'],'full_name'=>$user['full_name'],'role'=>$user['role'],'isLoggedIn'=>true]);
-            return $this->_redirectUser($user['role']);
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            return redirect()->back()->withInput()->with('error', 'The email or password you entered is incorrect.');
         }
-        return redirect()->back()->with('error', 'Invalid Credentials.');
+
+        if (!in_array($user['role'], ['admin', 'staff'])) {
+            return redirect()->back()->withInput()->with('error', 'The email or password you entered is incorrect.');
+        }
+        if (!$user['is_active']) {
+            return redirect()->back()->withInput()->with('error', 'This account has been disabled. Please contact the system administrator.');
+        }
+        if (!$user['is_verified']) {
+            return redirect()->back()->withInput()->with('error', 'Your account is pending verification. Please contact the system administrator.');
+        }
+
+        // Credentials are valid — but if they haven't agreed to the CURRENT terms version,
+        // require it now before granting a session, regardless of whether the checkbox was ticked.
+        if (!TermsAgreementService::hasAgreedToCurrent($user)) {
+            if (!$this->request->getVar('agree_terms')) {
+                return redirect()->back()->withInput()->with('error', 'You must agree to the Terms & Conditions and Privacy Policy to continue.')->with('require_terms', true);
+            }
+            TermsAgreementService::recordAgreement(
+                $user['user_id'],
+                $this->request->getIPAddress(),
+                (string) $this->request->getUserAgent()
+            );
+        }
+
+        $session->set([
+            'user_id'     => $user['user_id'],
+            'full_name'   => $user['full_name'],
+            'role'        => $user['role'],
+            'avatar_path' => $user['avatar_path'] ?? null,
+            'isLoggedIn'  => true,
+        ]);
+        return $this->_redirectUser($user['role']);
+    }
+
+    public function forgot_password_send()
+    {
+        \App\Libraries\PasswordResetService::requestReset($this->request->getPost('email'));
+        return redirect()->to('portal')->with('info', 'If that email is registered, a verification code has been sent.')->with('show_reset_form', true);
+    }
+
+    public function forgot_password_verify()
+    {
+        $result = \App\Libraries\PasswordResetService::verifyCode(
+            $this->request->getPost('email'),
+            trim((string) $this->request->getPost('code'))
+        );
+
+        if (!$result['success']) {
+            return redirect()->to('portal')->withInput()->with('error', $result['message'])->with('show_reset_form', true);
+        }
+
+        $user = $result['user'];
+
+        // Same rule applies coming in through password reset — an old-version agreement doesn't count.
+        if (!TermsAgreementService::hasAgreedToCurrent($user)) {
+            TermsAgreementService::recordAgreement(
+                $user['user_id'],
+                $this->request->getIPAddress(),
+                (string) $this->request->getUserAgent()
+            );
+        }
+
+        session()->set([
+            'user_id'     => $user['user_id'],
+            'full_name'   => $user['full_name'],
+            'role'        => $user['role'],
+            'avatar_path' => $user['avatar_path'] ?? null,
+            'isLoggedIn'  => true,
+        ]);
+
+        return $this->_redirectUser($user['role'])->with('info', 'Verified successfully. You can update your password anytime from your account settings.');
     }
 
     private function _redirectUser($role) {
@@ -35,19 +101,15 @@ class Internal extends BaseController
     }
 
     public function logout()
-{
-    $session = session();
-    $role = $session->get('role'); // Get role BEFORE destroying the session
+    {
+        $session = session();
+        $role = $session->get('role');
+        $session->destroy();
 
-    $session->destroy();
-
-    // Determine direction based on role group
-    if (in_array($role, ['admin', 'staff'])) {
-        // Employees go back to the Internal Portal
-        return redirect()->to('portal')->with('info', 'Logged out from System Terminal.');
-    } else {
-        // Partners go back to the Partner Gateway
-        return redirect()->to('partner-gateway')->with('info', 'Secure session ended.');
+        if (in_array($role, ['admin', 'staff'])) {
+            return redirect()->to('portal')->with('info', 'Logged out from System Terminal.');
+        } else {
+            return redirect()->to('partner-gateway')->with('info', 'Secure session ended.');
+        }
     }
-}
 }

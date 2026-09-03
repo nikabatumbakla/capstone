@@ -6,8 +6,29 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = '';
-    public string $fromName   = '';
+    public string $fromEmail = 'pharmedisync@gmail.com';
+public string $fromName  = 'PharMediSync';
+
+public string $protocol   = 'smtp';
+public string $SMTPHost   = 'smtp.gmail.com';
+public string $SMTPUser   = 'pharmedisync@gmail.com';
+public string $SMTPPass   = 'wsavchtqkwuxrmaq';
+public int    $SMTPPort   = 587;
+public string $SMTPCrypto = 'tls';
+public bool   $SMTPKeepAlive = false;
+
+public string $mailType = 'text';
+public string $charset  = 'UTF-8';
+public bool   $wordWrap = true;
+
+public array $SMTPCryptoOpts = [
+    'ssl' => [
+        'verify_peer'       => false,
+        'verify_peer_name'  => false,
+        'allow_self_signed' => true,
+    ],
+];
+
     public string $recipients = '';
 
     /**
@@ -16,78 +37,29 @@ class Email extends BaseConfig
     public string $userAgent = 'CodeIgniter';
 
     /**
-     * The mail sending protocol: mail, sendmail, smtp
-     */
-    public string $protocol = 'mail';
-
-    /**
      * The server path to Sendmail.
      */
     public string $mailPath = '/usr/sbin/sendmail';
 
-    /**
-     * SMTP Server Hostname
-     */
-    public string $SMTPHost = '';
 
     /**
      * Which SMTP authentication method to use: login, plain
      */
     public string $SMTPAuthMethod = 'login';
 
-    /**
-     * SMTP Username
-     */
-    public string $SMTPUser = '';
 
-    /**
-     * SMTP Password
-     */
-    public string $SMTPPass = '';
-
-    /**
-     * SMTP Port
-     */
-    public int $SMTPPort = 25;
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 30;
 
-    /**
-     * Enable persistent SMTP connections
-     */
-    public bool $SMTPKeepAlive = false;
-
-    /**
-     * SMTP Encryption.
-     *
-     * @var string '', 'tls' or 'ssl'. 'tls' will issue a STARTTLS command
-     *             to the server. 'ssl' means implicit SSL. Connection on port
-     *             465 should set this to ''.
-     */
-    public string $SMTPCrypto = 'tls';
-
-    /**
-     * Enable word-wrap
-     */
-    public bool $wordWrap = true;
 
     /**
      * Character count to wrap at
      */
     public int $wrapChars = 76;
 
-    /**
-     * Type of mail, either 'text' or 'html'
-     */
-    public string $mailType = 'text';
-
-    /**
-     * Character set (utf-8, iso-8859-1, etc.)
-     */
-    public string $charset = 'UTF-8';
 
     /**
      * Whether to validate the email address

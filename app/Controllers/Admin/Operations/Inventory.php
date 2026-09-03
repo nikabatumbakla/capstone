@@ -64,8 +64,20 @@ class Inventory extends BaseController
     $data['inventory'] = $builder->get()->getResultArray();
 
     $data['total_products'] = $db->table('products')->where('is_active', 1)->countAllResults();
-    $data['low_stock']   = $db->table('inventory_batches')->where('quantity_avail <= reorder_level')->countAllResults();
-    $data['near_expiry'] = $db->table('inventory_batches')->where('expires_at <=', date('Y-m-d', strtotime('+6 months')))->countAllResults();
+    
+    $data['low_stock'] = $db->table('inventory_batches as ib')
+    ->join('products as p', 'p.product_id = ib.product_id')
+    ->where('p.is_active', 1)
+    ->where('ib.quantity_avail <= ib.reorder_level', null, false)
+    ->countAllResults();
+
+    $data['near_expiry'] = $db->table('inventory_batches as ib')
+    ->join('products as p', 'p.product_id = ib.product_id')
+    ->where('p.is_active', 1)
+    ->where('ib.expires_at IS NOT NULL', null, false)
+    ->where('ib.expires_at <=', date('Y-m-d', strtotime('+6 months')))
+    ->where('ib.expires_at >=', date('Y-m-d'))
+    ->countAllResults();
 
     $data['current_page'] = $page;
     $data['per_page']     = $perPage;
@@ -89,8 +101,26 @@ class Inventory extends BaseController
     $sku     = trim((string) $this->request->getPost('sku'));
     $barcode = trim((string) $this->request->getPost('barcode'));
 
+    // --- Category: use existing, or create one on the fly ---
+    $categoryId      = $this->request->getPost('category_id');
+    $newCategoryName = trim((string) $this->request->getPost('new_category_name'));
+
+    if ($categoryId === '__new__') {
+        if ($newCategoryName === '') {
+            return redirect()->back()->withInput()->with('error', 'Please enter a name for the new category.');
+        }
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $newCategoryName), '-'));
+        $existingCat = $db->table('categories')->where('slug', $slug)->get()->getRow();
+        $categoryId = $existingCat
+            ? $existingCat->category_id
+            : (function() use ($db, $newCategoryName, $slug) {
+                $db->table('categories')->insert(['name' => $newCategoryName, 'slug' => $slug]);
+                return $db->insertID();
+            })();
+    }
+
     $data = [
-        'category_id'    => $this->request->getPost('category_id'),
+        'category_id'    => $categoryId,
         'supplier_id'    => $this->request->getPost('supplier_id') ?: null,
         'name'           => $this->request->getPost('name'),
         'description'    => $this->request->getPost('description'),
@@ -113,10 +143,29 @@ class Inventory extends BaseController
 
     $productId = $db->insertID();
 
-    // Handle product image upload (optional)
-    $this->handleImageUpload($productId);
+    // --- Optional opening stock batch (cost price / sell price live here) ---
+    $quantity    = $this->request->getPost('quantity');
+    $sellPrice   = $this->request->getPost('sell_price');
+    $batchNumber = trim((string) $this->request->getPost('batch_number'));
 
-    // Handle educational content (optional)
+    if ($quantity !== null && $quantity !== '' && $sellPrice !== null && $sellPrice !== '') {
+        if ($batchNumber === '') {
+            return redirect()->to('admin/inventory/stock-management')
+                ->with('error', 'Product was added, but Batch Number is required to record stock. Use "Add Stock" to add it.');
+        }
+        $db->table('inventory_batches')->insert([
+            'product_id'     => $productId,
+            'batch_number'   => $batchNumber,
+            'quantity_in'    => $quantity,
+            'quantity_avail' => $quantity,
+            'reorder_level'  => $this->request->getPost('reorder_level') ?: 5,
+            'cost_price'     => $this->request->getPost('cost_price') ?: 0,
+            'sell_price'     => $sellPrice,
+            'expires_at'     => $this->request->getPost('expires_at') ?: null,
+        ]);
+    }
+
+    $this->handleImageUpload($productId);
     $this->saveProductInfoContent($productId);
 
     return redirect()->to('admin/inventory/stock-management')->with('success', 'New product added successfully!');
@@ -256,17 +305,23 @@ class Inventory extends BaseController
     }
 
     public function update_product()
-    {
-        $db = \Config\Database::connect();
-        $batch_id = $this->request->getPost('batch_id');
-        $data = [
-            'quantity_avail' => $this->request->getPost('stock'),
-            'sell_price'     => $this->request->getPost('price'),
-            'expires_at'     => $this->request->getPost('expiry')
-        ];
-        $db->table('inventory_batches')->where('batch_id', $batch_id)->update($data);
-        return redirect()->to('admin/inventory/stock-management')->with('success', 'Record Updated.');
+{
+    $db = \Config\Database::connect();
+    $batch_id = $this->request->getPost('batch_id');
+    $data = [
+        'quantity_avail' => $this->request->getPost('stock'),
+        'sell_price'     => $this->request->getPost('price'),
+        'expires_at'     => $this->request->getPost('expiry')
+    ];
+    $db->table('inventory_batches')->where('batch_id', $batch_id)->update($data);
+
+    $batch = $db->table('inventory_batches')->where('batch_id', $batch_id)->get()->getRow();
+    if ($batch) {
+        \App\Libraries\AutoReorder::check($product_id);
     }
+
+    return redirect()->to('admin/inventory/stock-management')->with('success', 'Record Updated.');
+}
 
     public function adjustment_logs()
 {
@@ -404,6 +459,8 @@ class Inventory extends BaseController
         ]);
 
         $db->transComplete();
+
+        \App\Libraries\AutoReorder::check($product_id);
 
         return redirect()->to('admin/inventory/adjustment-logs')->with('success', 'Adjustment Complete.');
     }

@@ -1,11 +1,5 @@
 <?php include APPPATH . 'Views/shared/pg_header.php'; ?>
 
- <!-- LOGIN/REGISTER TOGGLE -->
-    <div class="btn-group bg-dark bg-opacity-25 rounded-pill p-1 mb-4">
-        <a href="<?= base_url('partner-gateway') ?>" class="btn btn-sm text-white rounded-pill px-4 fw-bold opacity-50 text-decoration-none">LOGIN</a>
-        <button class="btn btn-sm btn-dark rounded-pill px-4 fw-bold">REGISTER</button>
-    </div>
-
 <div class="glass-card" style="max-width: 650px;">
 
     <!-- PROGRESS STEPS (Step 2 is Active) -->
@@ -52,7 +46,7 @@
         <!-- BUTTONS: Back and Next -->
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold" onclick="history.back()" style="font-size: 11px;">Back</button>
-            <button type="submit" class="btn-pg-primary shadow-lg">Next: Account Setup</button>
+            <button type="submit" class="btn-pg-primary shadow-lg">Account Setup <i class="fas fa-arrow-right"></i></button>
         </div>
     </form>
 </div>

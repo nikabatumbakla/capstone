@@ -1,163 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root {
+    --primary-maroon: #7b1113;
+    --dark-maroon: #4a0000;
+    --text-dark: #1a1a1a;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+}
+
 body {
-    background: linear-gradient(rgba(123, 17, 19, 0.3), rgba(123, 17, 19, 0.3)), url('../../images/adminstaff.avif') no-repeat center center fixed;
+    background: linear-gradient(rgba(26, 5, 5, 0.5), rgba(26, 5, 5, 0.5)), url('../../images/adminstaff.avif') no-repeat center center fixed;
     background-size: cover;
     font-family: 'Inter', sans-serif;
-    /* Cleaner desktop font */
     min-height: 100vh;
     margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px 0;
-    overflow-y: auto;
-    /* Allows scrolling if screen is small */
 }
 
+
+/* Natural Floating Card */
+
 .glass-card {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 40px;
-    padding: 30px 40px;
-    width: 420px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.921);
+    border-radius: 44px;
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     text-align: center;
 }
 
 
-/* Header Styles */
+/* Header Section Spacing */
 
 .access-pill {
-    background: #7b1113;
+    background: var(--primary-maroon);
     color: white;
     font-size: 9px;
     font-weight: 700;
     display: inline-block;
-    padding: 4px 15px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
-    margin-bottom: 10px;
+    padding: 5px 16px;
+    border-radius: 50px;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
 }
 
 .company-name {
     font-size: 13px;
-    color: #4a0000;
-    margin: 0;
+    color: var(--text-muted);
     font-weight: 500;
+    margin: 0;
 }
 
 .system-title {
     font-size: 32px;
-    font-weight: 900;
-    color: #000;
+    font-weight: 800;
+    color: var(--text-dark);
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
 }
 
 .system-subtitle {
-    font-size: 10px;
-    color: #333;
-    margin-top: 2px;
-    margin-bottom: 20px;
-}
-
-
-/* Toggle Styles */
-
-.role-toggle-group {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 50px;
-    display: inline-flex;
-    padding: 4px;
-    margin-bottom: 20px;
-}
-
-.btn-role {
-    border: none;
-    background: transparent;
-    padding: 6px 25px;
-    border-radius: 50px;
-    font-weight: 700;
     font-size: 11px;
-    color: #fff;
-    transition: 0.3s;
-}
-
-.btn-role.active {
-    background: #4a0000;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 35px;
 }
 
 
-/* Form Styles */
-
-.login-form-box {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 20px;
-    border-radius: 25px;
-}
-
-.icon-box {
-    background: rgba(255, 255, 255, 0.4);
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 5px;
-    border-radius: 12px;
-}
-
-#role-title {
-    color: #7b1113;
-    font-size: 18px;
-    font-weight: 800;
-    margin: 0;
-}
-
-.role-desc {
-    font-size: 10px;
-    color: #555;
-    margin-bottom: 15px;
-}
+/* Natural Form Inputs */
 
 .custom-input {
     width: 100%;
-    padding: 10px 15px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.6);
-    margin-bottom: 10px;
-    font-size: 13px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+    outline: none !important;
+}
+
+.custom-input:focus {
+    border-color: var(--primary-maroon);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(245, 217, 217, 0.1);
+}
+
+.custom-input::placeholder {
+    color: #9ca3af;
 }
 
 .forgot-link {
-    font-size: 9px;
-    color: #333;
+    font-size: 11px;
+    color: var(--primary-maroon);
     text-decoration: none;
     font-weight: 600;
+    transition: 0.2s;
 }
 
+.forgot-link:hover {
+    color: var(--dark-maroon);
+    text-decoration: underline;
+}
+
+
+/* Professional Maroon Button */
+
 .btn-maroon {
-    background: #4a0000;
+    background: var(--primary-maroon);
     color: white;
     border: none;
     width: 100%;
-    padding: 12px;
-    border-radius: 10px;
+    padding: 14px;
+    border-radius: 12px;
     font-weight: 700;
-    font-size: 12px;
-    transition: 0.3s;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    margin-top: 10px;
 }
 
 .btn-maroon:hover {
-    background: #2e0000;
+    background: var(--dark-maroon);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(123, 17, 19, 0.2);
 }
 
 .footer-section {
-    margin-top: 20px;
-    font-size: 9px;
-    color: #333;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 10px;
+    color: var(--text-muted);
     font-weight: 500;
+}
+
+
+/* Modal Styling */
+
+.modal-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 35px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+#loadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 5, 5, 0.65);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+#loadingOverlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #fff;
+}
+
+#loadingOverlay p {
+    color: #fff;
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+.modal-backdrop-custom {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1050;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px;
+    width: 420px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
 }

@@ -19,32 +19,29 @@
             <p class="system-subtitle">Operation & Management Command Center</p>
         </div>
 
-        <!-- Role Toggle -->
-        <div class="role-toggle-group">
-            <button type="button" class="btn-role active" id="btn-admin" onclick="switchRole('admin')">ADMIN</button>
-            <button type="button" class="btn-role" id="btn-staff" onclick="switchRole('staff')">STAFF</button>
-        </div>
-
         <!-- Login Form -->
         <div class="login-form-box">
-            <!-- Display Error Messages -->
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="alert alert-danger py-1 small text-center" style="font-size: 10px;">
-        <?= session()->getFlashdata('error') ?>
-    </div>
-<?php endif; ?>
-            <div class="icon-box">
-                <img id="role-icon" src="<?= base_url('public/images/briefcase.png') ?>" alt="icon" width="30">
-            </div>
-            <h4 id="role-title">Admin</h4>
-            <p id="role-desc" class="role-desc">Full System Control</p>
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-1 small text-center" style="font-size: 10px;">
+                    <?= session()->getFlashdata('error') ?>
+                </div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('info')): ?>
+                <div class="alert alert-info py-1 small text-center" style="font-size: 10px;">
+                    <?= session()->getFlashdata('info') ?>
+                </div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-1 small text-center" style="font-size: 10px;">
+                    <?= session()->getFlashdata('success') ?>
+                </div>
+            <?php endif; ?>
 
-            <form action="<?= base_url('auth/login/internal') ?>" method="POST">
+            <form action="<?= base_url('auth/login/internal') ?>" method="POST" id="loginForm">
                 <?= csrf_field() ?>
-                <input type="hidden" name="role" id="input-role" value="admin">
-                
+
                 <div class="input-wrapper">
-                    <input type="email" name="email" class="custom-input" placeholder="Email" required>
+                    <input type="email" name="email" class="custom-input" placeholder="Email" value="<?= old('email') ?>" required>
                 </div>
 
                 <div class="input-wrapper">
@@ -55,7 +52,7 @@
                     <a href="#" class="forgot-link" id="forgot-link">Forgot Password?</a>
                 </div>
 
-                <button type="submit" class="btn-maroon">ENTER DASHBOARD</button>
+                <button type="submit" class="btn-maroon">LOGIN</button>
             </form>
         </div>
 
@@ -65,6 +62,50 @@
         </div>
     </div>
 
+    <!-- Forgot Password: Step 1 -->
+    <div class="modal-backdrop-custom" id="forgotModal">
+        <div class="modal-card">
+            <h5 class="fw-bold mb-3">Reset Password</h5>
+            <p class="small text-muted mb-3">Enter your account email — we'll send a 6-digit verification code.</p>
+            <form action="<?= base_url('auth/forgot-password/send-internal') ?>" method="POST">
+                <?= csrf_field() ?>
+                <input type="email" name="email" class="custom-input mb-3" placeholder="Your email" required>
+                <button type="submit" class="btn-maroon w-100">Send Code</button>
+            </form>
+            <button type="button" class="btn btn-link btn-sm mt-2 w-100 text-muted" id="closeForgotModal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Forgot Password: Step 2 -->
+    <?php if(session()->getFlashdata('show_reset_form')): ?>
+    <div class="modal-backdrop-custom" style="display:flex;">
+        <div class="modal-card">
+            <h5 class="fw-bold mb-3">Enter Verification Code</h5>
+            <p class="small text-muted mb-3">Check your email for the 6-digit code. Verifying will log you in directly.</p>
+            <form action="<?= base_url('auth/forgot-password/verify-internal') ?>" method="POST">
+                <?= csrf_field() ?>
+                <input type="email" name="email" class="custom-input mb-2" placeholder="Your email" value="<?= old('email') ?>" required>
+                <input type="text" name="code" class="custom-input mb-3" placeholder="6-digit code" maxlength="6" required>
+                <button type="submit" class="btn-maroon w-100">Verify & Log In</button>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <script src="<?= base_url('public/js/login.js') ?>"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        });
+
+        const forgotModal = document.getElementById('forgotModal');
+        document.getElementById('forgot-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            forgotModal.style.display = 'flex';
+        });
+        document.getElementById('closeForgotModal').addEventListener('click', function() {
+            forgotModal.style.display = 'none';
+        });
+    </script>
 </body>
 </html>

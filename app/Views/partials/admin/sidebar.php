@@ -48,6 +48,7 @@
                     <li><a href="<?= base_url('admin/procurement/suppliers') ?>" class="<?= ($page_name == 'suppliers') ? 'active-sub' : '' ?>">Suppliers</a></li>
                     <li><a href="<?= base_url('admin/procurement/purchase-orders') ?>" class="<?= ($page_name == 'purchase-orders') ? 'active-sub' : '' ?>">Purchase Orders</a></li>
                     <li><a href="<?= base_url('admin/procurement/goods-receipt') ?>" class="<?= ($page_name == 'goods-receipt') ? 'active-sub' : '' ?>">Goods Receipt (GRR)</a></li>
+                    <li><a href="<?= base_url('admin/sales/supplier-returns') ?>" class="<?= ($page_name == 'supplier-returns') ? 'active-sub' : '' ?>">Supplier Returns</a></li>
                 </ul>
             </li>
 
@@ -61,7 +62,7 @@
                     <li><a href="<?= base_url('admin/sales/institutional-clients') ?>" class="<?= ($page_name == 'institutional-clients') ? 'active-sub' : '' ?>">Institutional Clients</a></li>
                     <li><a href="<?= base_url('admin/sales/sales-orders') ?>" class="<?= ($page_name == 'sales-orders') ? 'active-sub' : '' ?>">Sales Orders</a></li>
                     <li><a href="<?= base_url('admin/sales/sales-returns') ?>" class="<?= ($page_name == 'sales-returns') ? 'active-sub' : '' ?>">Sales Returns</a></li>
-                    <li><a href="<?= base_url('admin/sales/pos') ?>" class="<?= ($page_name == 'pos') ? 'active-sub' : '' ?>">Point of Sale</a></li>
+                    <li><a href="<?= base_url('admin/pos-terminal') ?>" target="_blank" class="<?= ($page_name == 'pos') ? 'active-sub' : '' ?>">Point of Sale</a></li>
                 </ul>
             </li>
 
@@ -87,7 +88,7 @@
 
             <li class="nav-label">MANAGEMENT</li>
             <li class="nav-item"><a href="<?= base_url('admin/management/alerts-tasks') ?>" class="nav-link-custom <?= ($page_name == 'alerts') ? 'active' : '' ?>"><i class="fas fa-tasks"></i> <span>Alerts & Tasks</span></a></li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/bulletin-board') ?>" class="nav-link-custom <?= ($page_name == 'bulletin') ? 'active' : '' ?>"><i class="fas fa-chalkboard"></i> <span>Bulletin Board</span></a></li>
+            <li class="nav-item"><a href="<?= base_url('admin/management/bulletin-board') ?>" class="nav-link-custom <?= ($page_name == 'bulletin') ? 'active' : '' ?>"><i class="fas fa-chalkboard"></i> <span>Announcements</span></a></li>
             <li class="nav-item"><a href="<?= base_url('admin/management/user-management') ?>" class="nav-link-custom <?= ($page_name == 'users') ? 'active' : '' ?>"><i class="fas fa-user-shield"></i> <span>User Management</span></a></li>
             <li class="nav-item"><a href="<?= base_url('admin/management/chatbot') ?>" class="nav-link-custom <?= ($page_name == 'chatbot') ? 'active' : '' ?>"><i class="fas fa-comment-dots"></i> <span>ChatBot</span></a></li>
             <li class="nav-item"><a href="<?= base_url('admin/management/customer-engagement') ?>" class="nav-link-custom <?= ($page_name == 'engagement') ? 'active' : '' ?>"><i class="fas fa-heart"></i> <span>Customer Engagement</span></a></li>
@@ -96,13 +97,20 @@
 
     <!-- User Footer -->
     <div class="sidebar-user-section">
-        <div class="user-glass-pill">
-            <div class="user-profile-img"><?= substr($fullname, 0, 1) ?></div>
-            <div class="user-meta">
-                <span class="user-display-name"><?= $fullname ?></span>
-                <span class="user-display-role">Administrator</span>
-            </div>
-            <a href="<?= base_url('logout') ?>" class="logout-minimal"><i class="fas fa-power-off"></i></a>
-        </div>
+    <div class="user-glass-pill">
+        <button type="button" class="btn-profile-trigger" data-bs-toggle="offcanvas" data-bs-target="#myProfileDrawer" id="btnOpenMyProfile" style="background:none; border:none; padding:0; display:flex; align-items:center; cursor:pointer;">
+    <?php $avatar = session()->get('avatar_path'); ?>
+    <?php if($avatar): ?>
+        <img src="<?= base_url($avatar) ?>" class="user-profile-img rounded-circle" style="width:36px; height:36px; object-fit:cover;">
+    <?php else: ?>
+        <div class="user-profile-img"><?= substr($fullname, 0, 1) ?></div>
+    <?php endif; ?>
+    <div class="user-meta">
+        <span class="user-display-name"><?= $fullname ?></span>
+        <span class="user-display-role">Administrator</span>
     </div>
+</button>
+<a href="<?= base_url('logout') ?>" class="logout-minimal"><i class="fas fa-power-off"></i></a>
+    </div>
+</div>
 </nav>

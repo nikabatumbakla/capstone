@@ -19,6 +19,22 @@ document.addEventListener("DOMContentLoaded", function() {
             const educationDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('educationDrawer'));
             const educationContent = document.getElementById('educationContent');
 
+            // ============ ADD PRODUCT: New Category toggle ============
+            const categorySelect = document.getElementById('categorySelect');
+            const newCategoryWrap = document.getElementById('newCategoryWrap');
+            const newCategoryInput = document.getElementById('newCategoryName');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function() {
+                    if (this.value === '__new__') {
+                        newCategoryWrap.style.display = 'block';
+                        newCategoryInput.setAttribute('required', 'required');
+                    } else {
+                        newCategoryWrap.style.display = 'none';
+                        newCategoryInput.removeAttribute('required');
+                    }
+                });
+            }
+
             function toGDrivePreview(url) {
                 if (!url) return null;
                 // Matches /d/FILE_ID/ pattern from any Google Drive share link
@@ -223,9 +239,7 @@ document.addEventListener("DOMContentLoaded", function() {
             viewButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
-                    const headerBg = data.image_path ?
-                        `background-image: linear-gradient(rgba(26,5,5,0.55), rgba(26,5,5,0.75)), url('${BASE_URL}/${data.image_path}'); background-size: cover; background-position: center;` :
-                        `background: #1a0505;`;
+            
                     productDrawer.show();
                     drawerContent.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
 
@@ -236,6 +250,10 @@ document.addEventListener("DOMContentLoaded", function() {
                                 drawerContent.innerHTML = `<div class="text-center text-danger p-5">${data.error}</div>`;
                                 return;
                             }
+
+                            const headerBg = data.image_path ?
+                        `background-image: linear-gradient(rgba(26,5,5,0.55), rgba(26,5,5,0.75)), url('${BASE_URL}/${data.image_path}'); background-size: cover; background-position: center;` :
+                        `background: #1a0505;`;
 
                             drawerContent.innerHTML = `
                     <div class="p-4 rounded-4 text-center mb-4" style="${headerBg} color: #fff;">
@@ -268,7 +286,7 @@ document.addEventListener("DOMContentLoaded", function() {
     <button type="button" id="btnGoToAdjust" class="btn btn-warning py-3 fw-bold rounded-3 shadow-sm">
         <i class="fas fa-adjust me-2"></i>ADJUST STOCK LEVELS
     </button>
-    <button type="button" id="btnGoToEdit" class="btn btn-outline-dark py-2">EDIT PRODUCT INFO</button>
+    
     <button type="button" id="btnGoToEducation" class="btn btn-outline-primary py-2">
         <i class="fas fa-book-medical me-2"></i>VIEW EDUCATIONAL CONTENT
     </button>
@@ -277,10 +295,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             document.getElementById('btnGoToAdjust').addEventListener('click', function() {
                                 productDrawer.hide();
                                 openAdjustmentForm(data);
-                            });
-                            document.getElementById('btnGoToEdit').addEventListener('click', function() {
-                                productDrawer.hide();
-                                openEditForm(data);
                             });
                             document.getElementById('btnGoToEducation').addEventListener('click', function() {
                                 productDrawer.hide();
@@ -412,8 +426,10 @@ document.addEventListener("DOMContentLoaded", function() {
         <hr class="my-4">
         <h6 class="fw-bold text-maroon mb-3" style="font-size: 12px;"><i class="fas fa-book-medical me-2"></i>Educational Content (iScan / Customer View)</h6>
 
-        <div class="mb-3"><label class="formal-label">Video URL (YouTube embed link)</label>
-            <input type="text" name="video_url" class="formal-input" placeholder="e.g. https://www.youtube.com/embed/xxxxx" value=""></div>
+        <div class="mb-3"><label class="formal-label">Video (Google Drive link)</label>
+    <input type="text" name="video_url" class="formal-input" placeholder="e.g. https://drive.google.com/file/d/xxxxxxxxx/view?usp=sharing" value="${c.video_url ?? ''}">
+    <p class="helper-text">Paste the normal Drive share link — it will convert automatically.</p>
+</div>
         <div class="mb-3"><label class="formal-label">Medical Description</label>
             <textarea name="medical_description" class="formal-input" rows="2">${c.medical_description ?? ''}</textarea></div>
         <div class="mb-3"><label class="formal-label">Usage Purpose</label>

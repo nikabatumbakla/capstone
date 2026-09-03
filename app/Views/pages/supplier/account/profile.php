@@ -1,52 +1,84 @@
-<?= view('partials/client/head') ?>
+<?= view('partials/supplier/head') ?>
+<link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
+
 <div class="wrapper">
     <?= view('partials/supplier/sidebar') ?>
     <div id="content">
-        <?= view('partials/client/header') ?>
+        <?= view('partials/supplier/header') ?>
 
-        <div class="container-fluid p-4">
+        <div class="container-fluid p-4" style="font-size: 11px;">
             <div class="d-flex align-items-center mb-4">
-                <button class="btn btn-sm btn-white shadow-sm rounded-pill px-3 me-3" onclick="history.back()">
-                    <i class="fas fa-arrow-left me-2"></i> Back
-                </button>
+                <button class="btn btn-sm btn-white shadow-sm rounded-pill px-3 me-3" onclick="history.back()"><i class="fas fa-arrow-left me-2"></i> Back</button>
                 <h5 class="fw-bold mb-0">Profile Settings</h5>
             </div>
-           
+
             <div class="dashboard-banner mb-4 p-3 text-white shadow-sm">
-                <h6 class="fw-bold mb-1"><i class="fas fa-university me-2"></i>Profile Settings</h6>
-                <p class="mb-0 opacity-75" style="font-size: 10px;">Update your company informations</p>
+                <h6 class="fw-bold mb-1"><i class="fas fa-truck-loading me-2"></i>Supplier Profile</h6>
+                <p class="mb-0 opacity-75" style="font-size: 10px;">Update your company information and password</p>
             </div>
-            
+
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
+
             <div class="row g-4">
-                <!-- Company Info -->
-                <div class="col-lg-7">
-                    <div class="custom-table-container p-4 border-0 shadow-sm" style="border-radius:20px;">
-                        <h6 class="fw-bold mb-4"><i class="fas fa-building me-2 text-maroon"></i> Company Info</h6>
-                        <form action="<?= base_url('supplier/account/profile/update') ?>" method="POST">
-                            <div class="mb-3"><label class="formal-label">Company Name</label><input type="text" name="name" class="formal-input" value="<?= $profile->name ?>"></div>
-                            <div class="mb-3"><label class="formal-label">Contact Person</label><input type="text" name="contact" class="formal-input" value="<?= $profile->contact_person ?>"></div>
-                            <div class="row g-2">
-                                <div class="col-6 mb-3"><label class="formal-label">Phone</label><input type="text" name="phone" class="formal-input" value="<?= $profile->phone ?>"></div>
-                                <div class="col-6 mb-3"><label class="formal-label">Email</label><input type="text" name="email" class="formal-input" value="<?= $profile->email ?>"></div>
+                <div class="col-lg-8">
+                    <div class="custom-table-container">
+                        <form action="<?= base_url('supplier/account/profile/update') ?>" method="POST" enctype="multipart/form-data">
+                            <div class="text-center mb-4">
+                                <img src="<?= $profile->avatar_path ? base_url($profile->avatar_path) : base_url('public/images/default-avatar.png') ?>" class="rounded-circle mb-2" style="width:90px; height:90px; object-fit:cover; border:3px solid #eee;">
+                                <div>
+                                    <label class="btn btn-xs btn-outline-dark rounded-pill px-3" style="cursor:pointer;">
+                                        <i class="fas fa-camera me-1"></i>Change Logo/Photo
+                                        <input type="file" name="avatar" accept="image/*" style="display:none;">
+                                    </label>
+                                </div>
                             </div>
-                            <div class="mb-3"><label class="formal-label">Address</label><textarea name="address" class="formal-input" rows="2"><?= $profile->address ?></textarea></div>
-                            <button type="submit" class="btn btn-dark px-4 py-2 fw-bold rounded-pill">Save Changes</button>
+
+                            <p class="fw-bold mb-3" style="font-size:12px;">Company Information</p>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-8"><label class="formal-label">Company Name *</label><input type="text" name="name" class="formal-input" value="<?= esc($profile->name) ?>" required></div>
+                                <div class="col-md-4"><label class="formal-label">Reference #</label><input type="text" class="formal-input read-only-input" value="<?= esc($profile->registration_ref ?: 'N/A') ?>" readonly></div>
+                                <div class="col-md-6"><label class="formal-label">Contact Person *</label><input type="text" name="contact" class="formal-input" value="<?= esc($profile->contact_person) ?>" required></div>
+                                <div class="col-md-6"><label class="formal-label">Login Email *</label><input type="email" name="email" class="formal-input" value="<?= esc($profile->login_email) ?>" required></div>
+                                <div class="col-md-6"><label class="formal-label">Phone *</label><input type="text" name="phone" class="formal-input" value="<?= esc($profile->phone) ?>" required></div>
+                                <div class="col-md-6"><label class="formal-label">Product Categories</label><input type="text" class="formal-input read-only-input" value="<?= esc($profile->product_categories ?: 'N/A') ?>" readonly></div>
+                                <div class="col-md-12"><label class="formal-label">Business Address</label><textarea name="address" class="formal-input" rows="2"><?= esc($profile->address) ?></textarea></div>
+                            </div>
+
+                            <hr>
+                            <p class="fw-bold mb-3 mt-3" style="font-size:12px;">Change Password (optional)</p>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6"><label class="formal-label">New Password</label><input type="password" name="password" class="formal-input" placeholder="Leave blank to keep current" minlength="8"></div>
+                                <div class="col-md-6"><label class="formal-label">Confirm New Password</label><input type="password" name="confirm_password" class="formal-input" minlength="8"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-dark px-3 py-2 fw-bold rounded-pill shadow">✓ SAVE CHANGES</button>
                         </form>
                     </div>
                 </div>
-                <!-- Security -->
-                <div class="col-lg-5">
-                    <div class="custom-table-container p-4 border-0 shadow-sm" style="border-radius:20px;">
-                        <h6 class="fw-bold mb-4"><i class="fas fa-key me-2 text-warning"></i> Change Password</h6>
-                        <form action="#">
-                            <div class="mb-3"><label class="formal-label">Current Password</label><input type="password" class="formal-input"></div>
-                            <div class="mb-3"><label class="formal-label">New Password</label><input type="password" class="formal-input"></div>
-                            <button type="submit" class="btn btn-outline-dark w-100 py-2 fw-bold rounded-pill">Update Password</button>
-                        </form>
+
+                <div class="col-lg-4">
+                    <div class="d-flex flex-column gap-3 h-50">
+                        <div class="inventory-kpi-card flex-grow-1 d-flex flex-column justify-content-center">
+                            <small class="text-muted fw-bold d-block mb-1">TOTAL POS RECEIVED</small>
+                            <h3 class="fw-bold mb-0"><?= $profile->registration_ref ? '—' : '—' ?></h3>
+                        </div>
+                        <div class="inventory-kpi-card flex-grow-1 d-flex flex-column justify-content-center">
+                            <small class="text-muted fw-bold d-block mb-1">PARTNER SINCE</small>
+                            <h3 class="fw-bold mb-0"><?= $profile->created_at ? date('M Y', strtotime($profile->created_at)) : 'N/A' ?></h3>
+                        </div>
+                        <div class="inventory-kpi-card flex-grow-1 d-flex flex-column justify-content-center">
+                            <small class="text-muted fw-bold d-block mb-1">ACCOUNT STATUS</small>
+                            <h3 class="fw-bold mb-0 <?= $profile->is_active ? 'text-success' : 'text-danger' ?>"><?= $profile->is_active ? 'ACTIVE' : 'INACTIVE' ?></h3>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<?= view('partials/client/footer') ?>
+<?= view('partials/supplier/footer') ?>

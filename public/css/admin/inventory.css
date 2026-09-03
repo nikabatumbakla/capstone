@@ -397,3 +397,90 @@ input:focus {
     color: #fff !important;
     background: rgba(255, 255, 255, 0.05);
 }
+
+
+/* Formal action buttons — consistent style + hover state across all drawers */
+
+.btn-save-adj {
+    background: #1a2a6c;
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-save-adj:hover,
+.btn-save-adj:focus {
+    background: #121e52;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(26, 42, 108, 0.35);
+}
+
+.btn-save-adj:active {
+    background: #0d1640;
+    color: #fff;
+}
+
+.btn-cancel-adj {
+    background: #f1f1f1;
+    color: #444;
+    border: 1px solid #ddd;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-cancel-adj:hover,
+.btn-cancel-adj:focus {
+    background: #e2e2e2;
+    color: #222;
+    border-color: #ccc;
+}
+
+.btn-cancel-adj:active {
+    background: #d5d5d5;
+    color: #111;
+}
+
+.kpi-filter-link .inventory-kpi-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-filter-link:hover .inventory-kpi-card {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-filter-link .kpi-filter-icon {
+    opacity: 0.4;
+}
+
+.kpi-filter-link:hover .kpi-filter-icon {
+    opacity: 0.8;
+}
+
+.kpi-filter-link .kpi-hint {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.kpi-filter-link:hover .kpi-hint {
+    opacity: 1;
+}
+
+.offcanvas-body,
+.container-fluid {
+    font-size: 11px !important;
+}
+
+.offcanvas-body h4,
+.offcanvas-body h5,
+.offcanvas-body h6,
+.container-fluid h4,
+.container-fluid h5,
+.container-fluid h6 {
+    font-size: 13px !important;
+    /* headings stay slightly larger for hierarchy */
+}

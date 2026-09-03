@@ -1,78 +1,148 @@
 <?php
 
 namespace App\Controllers\Admin\Management;
+
 use App\Controllers\BaseController;
+use App\Models\Admin\Management\BulletinModel;
 
 class Bulletin extends BaseController
 {
+    protected $bulletinModel;
+
+    public function __construct()
+    {
+        $this->bulletinModel = new BulletinModel();
+    }
+
     public function index()
     {
-        $db = \Config\Database::connect();
-        
-        // Fetch all posts, ordered by Pinned first, then newest
-        $data['posts'] = $db->table('bulletin_posts as bp')
-            ->select('bp.*, u.full_name as author')
-            ->join('users as u', 'u.user_id = bp.created_by', 'left')
-            ->orderBy('bp.is_pinned', 'DESC')
-            ->orderBy('bp.created_at', 'DESC')
-            
-            ->get()->getResultArray();
+        $this->bulletinModel->archiveExpiredPosts();
+
+        $audience = $this->request->getGet('audience') ?: '';
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
+
+        $feed = $this->bulletinModel->getFeed($audience, $search, $page, 8);
+
+        foreach ($feed['data'] as &$post) {
+            $post['status'] = $this->bulletinModel->getStatus($post);
+        }
+
+        $data['posts'] = $feed['data'];
+        $data['total_pages'] = $feed['total_pages'];
+        $data['current_page'] = $page;
+        $data['audience_filter'] = $audience;
+        $data['search'] = $search;
+        $data['counts'] = $this->bulletinModel->getCounts();
 
         $data['title'] = "Bulletin Board Management";
         $data['fullname'] = session()->get('full_name');
         $data['page_name'] = "bulletin";
-        
         return view('pages/admin/management/bulletin_board', $data);
     }
 
-    // THE EDIT & SAVE PROCESS (1 Form 1 Process)
     public function save()
-    {
-        $db = \Config\Database::connect();
-        $id = $this->request->getPost('post_id'); // Hidden field from form
+{
+    $id = $this->request->getPost('post_id');
+    $startsAt = $this->request->getPost('starts_at');
+    $endsAt = $this->request->getPost('ends_at');
 
-        $payload = [
-            'title'           => $this->request->getPost('title'),
-            'content'         => $this->request->getPost('content'),
-            'target_audience' => $this->request->getPost('audience'),
-            'is_pinned'       => $this->request->getPost('is_pinned') ? 1 : 0,
-            'is_published'    => $this->request->getPost('is_published') ? 1 : 0,
-            'starts_at'       => $this->request->getPost('starts_at') ?: null,
-            'ends_at'         => $this->request->getPost('ends_at') ?: null,
-            'updated_at'      => date('Y-m-d H:i:s')
-        ];
-
-        if ($id) {
-            // EDIT FUNCTION: Update existing record
-            $db->table('bulletin_posts')->where('post_id', $id)->update($payload);
-            $msg = "Announcement intelligence updated.";
-        } else {
-            // CREATE FUNCTION: Insert new record
-            $payload['created_by'] = session()->get('user_id') ?? 1;
-            $payload['created_at'] = date('Y-m-d H:i:s');
-            $db->table('bulletin_posts')->insert($payload);
-            $msg = "New announcement published.";
-        }
-
-        return redirect()->to('admin/management/bulletin-board')->with('success', $msg);
+    if (empty($startsAt) || empty($endsAt)) {
+        return redirect()->back()->withInput()->with('error', 'Display start and end times are required.');
+    }
+    if (strtotime($endsAt) <= strtotime($startsAt)) {
+        return redirect()->back()->withInput()->with('error', 'End time must be after the start time.');
+    }
+    if (strtotime($endsAt) <= time()) {
+        return redirect()->back()->withInput()->with('error', 'End time must be in the future...');
     }
 
-    // THE AJAX FETCH: Fetches data for the Edit drawer
+
+    $payload = [
+        'title'           => $this->request->getPost('title'),
+        'content'         => $this->request->getPost('content'),
+        'target_audience' => $this->request->getPost('audience'),
+        'is_pinned'       => $this->request->getPost('is_pinned') ? 1 : 0,
+        'is_published'    => $this->request->getPost('is_published') ? 1 : 0,
+        'starts_at'       => $startsAt,
+        'ends_at'         => $endsAt,
+        'updated_at'      => date('Y-m-d H:i:s'),
+    ];
+
+    $file = $this->request->getFile('image');
+    if ($file && $file->isValid() && !$file->hasMoved()) {
+        $newName = $file->getRandomName();
+        $file->move(FCPATH . 'public/uploads/bulletin', $newName);
+        $payload['image_path'] = 'public/uploads/bulletin/' . $newName;
+    }
+
+    if ($id) {
+        $this->bulletinModel->savePost($payload, (int) $id);
+        $msg = "Announcement updated.";
+    } else {
+        $payload['created_by'] = session()->get('user_id') ?? 1;
+        $payload['created_at'] = date('Y-m-d H:i:s');
+        $this->bulletinModel->savePost($payload);
+        $msg = "New announcement published.";
+    }
+
+    return redirect()->to('admin/management/bulletin-board')->with('success', $msg);
+}
+
     public function get_details($id)
     {
-        $db = \Config\Database::connect();
-        $row = $db->table('bulletin_posts')->where('post_id', $id)->get()->getRow();
-        
-        if (!$row) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Post not found']);
-        }
+        $row = $this->bulletinModel->getById($id);
+        if (!$row) return $this->response->setStatusCode(404)->setJSON(['error' => 'Post not found']);
         return $this->response->setJSON($row);
     }
 
     public function delete($id)
-    {
-        $db = \Config\Database::connect();
-        $db->table('bulletin_posts')->where('post_id', $id)->delete();
-        return redirect()->to('admin/management/bulletin-board')->with('success', 'Post removed.');
+{
+    $this->bulletinModel->archivePost((int) $id);
+    return redirect()->to('admin/management/bulletin-board')->with('success', 'Announcement archived.');
+}
+
+public function get_archive()
+{
+    $this->bulletinModel->archiveExpiredPosts();
+    $search = trim((string) ($this->request->getGet('search') ?? ''));
+    $page = (int) ($this->request->getGet('page') ?? 1);
+    $result = $this->bulletinModel->getArchive($search, $page, 10);
+    return $this->response->setJSON($result);
+}
+
+public function repost()
+{
+    $archiveId = (int) $this->request->getPost('archive_id');
+    $startsAt = $this->request->getPost('starts_at');
+    $endsAt = $this->request->getPost('ends_at');
+    $newTitle = trim((string) $this->request->getPost('title'));
+    $newContent = trim((string) $this->request->getPost('content'));
+
+    if (empty($startsAt) || empty($endsAt)) {
+        return redirect()->back()->with('error', 'Please provide both a start and end time.');
     }
+    if (strtotime($endsAt) <= strtotime($startsAt)) {
+        return redirect()->back()->with('error', 'End time must be after the start time.');
+    }
+    if (strtotime($endsAt) <= strtotime('-5 minutes')) {
+        return redirect()->back()->with('error', 'End time must be in the future.');
+    }
+
+    $newId = $this->bulletinModel->repost($archiveId, $startsAt, $endsAt, $newTitle ?: null, $newContent ?: null);
+
+    if ($newId) {
+        $this->bulletinModel->removeArchivedPost($archiveId);
+        return redirect()->to('admin/management/bulletin-board')->with('success', 'Announcement reposted and now live.');
+    }
+
+    return redirect()->to('admin/management/bulletin-board')->with('error', 'Failed to repost — original not found.');
+}
+
+public function delete_archived($archiveId)
+{
+    $this->bulletinModel->removeArchivedPost((int) $archiveId);
+    return $this->response->setJSON(['status' => 'success']);
+}
+
 }

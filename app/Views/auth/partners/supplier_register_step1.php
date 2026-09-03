@@ -4,10 +4,6 @@
     include APPPATH . 'Views/shared/pg_header.php'; 
 ?>
 
-<div class="btn-group bg-dark bg-opacity-25 rounded-pill p-1 mb-4">
-        <a href="<?= base_url('partner-gateway') ?>" class="btn btn-sm text-white rounded-pill px-4 fw-bold opacity-50 text-decoration-none">LOGIN</a>
-        <button class="btn btn-sm btn-dark rounded-pill px-4 fw-bold">REGISTER</button>
-    </div>
 
 <div class="glass-card" style="max-width: 650px;">
 
@@ -49,7 +45,7 @@
             <div class="col-6"><label class="formal-label">BUSINESS EMAIL *</label><input type="email" name="biz_email" class="formal-input" required></div>
         </div>
 
-        <button type="submit" class="btn-pg-primary shadow-lg">Next: Product Details</button>
+        <button type="submit" class="btn-pg-primary shadow-lg">Product Details <i class="fas fa-arrow-right"></i></button>
     </form>
 </div>
 
