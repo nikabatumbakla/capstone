@@ -6,16 +6,76 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
+$routes->group('m', ['namespace' => 'App\Controllers\Mobile'], function($routes) {
+    $routes->get('/', 'Auth\MobileAuth::index');
+    $routes->get('login/staff', 'Auth\MobileAuth::staff_login_view');
+    $routes->post('login/staff', 'Auth\MobileAuth::staff_login');
+    $routes->get('login/walkin', 'Auth\MobileAuth::walkin_view');
+    $routes->post('login/walkin', 'Auth\MobileAuth::walkin_submit');
+    $routes->get('logout', 'Auth\MobileAuth::logout');
+
+    $routes->group('staff', ['filter' => 'auth'], function($routes) {
+        $routes->get('home', 'Staff\MobileDashboard::index');
+        $routes->get('profile', 'Staff\MobileProfile::index');
+        $routes->get('tasks', 'Staff\MobileDashboard::tasks');
+        $routes->get('tasks/complete/(:num)', 'Staff\MobileAlerts::complete/$1');
+        $routes->get('alerts', 'Staff\MobileAlerts::index');
+        $routes->get('alerts/complete/(:num)', 'Staff\MobileAlerts::complete/$1');
+        $routes->get('scan', 'Staff\MobileScan::index');
+        $routes->post('scan/lookup', 'Staff\MobileScan::lookup');
+        $routes->post('scan/create-product', 'Staff\MobileScan::create_product');
+        $routes->get('scan/supplier-products/(:num)', 'Staff\MobileScan::get_supplier_products/$1');
+        $routes->get('scan/po-items/(:num)', 'Staff\MobileScan::get_po_items/$1');
+        $routes->get('scan/so-items/(:num)', 'Staff\MobileScan::get_so_items/$1');
+        $routes->post('scan/submit-inbound', 'Staff\MobileScan::submit_inbound');
+        $routes->post('scan/submit-outbound', 'Staff\MobileScan::submit_outbound');
+        $routes->post('scan/submit-grr', 'Staff\MobileScan::submit_grr');
+    });
+    // ← removed the nested m/customer block from here
+});
+
+// Sibling group, top-level — NOT nested inside the 'm' group above
+$routes->group('m/customer', ['namespace' => 'App\Controllers\Mobile\Customer'], function($routes) {
+    $routes->get('home', 'MobileHome::index');
+    $routes->get('scan', 'MobileScan::index');
+    $routes->post('scan/lookup', 'MobileScan::lookup');
+
+    $routes->get('product/(:num)', 'MobileProduct::show/$1');
+    $routes->post('product/(:num)/review', 'MobileProduct::submit_review/$1');
+    $routes->get('browse', 'MobileBrowse::index');
+    $routes->get('cart', 'MobileCart::index');
+
+    $routes->get('chatbot', 'MobileChatbot::index');
+    $routes->post('chatbot/ask', 'MobileChatbot::ask');
+    $routes->get('chatbot/history', 'MobileChatbot::history');
+
+    $routes->get('profile', 'MobileProfile::index');
+    $routes->post('profile/rate-store', 'MobileProfile::rate_store');
+});
+
 
 // --- SECURED PARTNER AREA (Suppliers & Clients) ---
 $routes->group('client', ['namespace' => 'App\Controllers\Client', 'filter' => 'auth'], function($routes) {
     $routes->get('dashboard', 'Main\Dashboard::index'); 
     $routes->post('chatbot/ask', 'ChatbotWidget::ask');
     $routes->get('chatbot/history', 'ChatbotWidget::history');
+    $routes->get('notifications/header-data', 'Notifications::header_data');
+    $routes->get('notifications/mark-read', 'Notifications::mark_read');
 
     $routes->group('orders', ['namespace' => 'App\Controllers\Client\Orders'], function($routes) {
         $routes->get('browse', 'Products::index');
         $routes->post('add-to-cart', 'Products::add_to_cart');
+
+        $routes->get('get-confirm-receipt-info/(:num)', 'Orders::get_confirm_receipt_info/$1');
+        $routes->post('process-confirm-receipt', 'Orders::process_confirm_receipt');
+
+        $routes->get('get-payment-info/(:num)', 'Orders::get_payment_info/$1');
+        $routes->post('process-submit-payment', 'Orders::process_submit_payment');
+
+        $routes->get('returns', 'Returns::index');
+
+        $routes->get('get-issue-report-info/(:num)', 'Orders::get_issue_report_info/$1');
+        $routes->post('process-report-issue', 'Orders::process_report_issue');
 
         $routes->get('my-orders', 'Orders::index');
         $routes->get('get-order-details/(:num)', 'Orders::get_order_details/$1');
@@ -24,36 +84,42 @@ $routes->group('client', ['namespace' => 'App\Controllers\Client', 'filter' => '
         $routes->get('remove-from-cart/(:num)', 'Orders::remove_from_cart/$1');
         $routes->post('save-order', 'Orders::save_order');
         $routes->get('get-product-details/(:num)', 'Products::get_product_details/$1');
+
+        $routes->get('cart-count', 'Orders::get_cart_count');
     });
     $routes->group('account', ['namespace' => 'App\Controllers\Client\Account'], function($routes) {
-        $routes->get('invoices', 'Invoices::index');
-        $routes->get('invoices', 'Invoices::index');
-        $routes->get('invoices/get-details/(:num)', 'Invoices::get_invoice_details/$1');
-        $routes->post('invoices/submit-payment', 'Invoices::submit_payment');
-    });
+    $routes->get('invoices', 'Invoices::index');
+    $routes->get('get-invoice-details/(:num)', 'Invoices::get_invoice_details/$1');
+});
     $routes->group('support', ['namespace' => 'App\Controllers\Client\Support'], function($routes) {
-        $routes->get('chatbot', 'Chatbot::index');
-        $routes->get('announcements', 'Announcements::index');
-        $routes->get('profile', 'Profile::index');
-        $routes->post('profile/update', 'Profile::update');
-        $routes->post('profile/update', 'Profile::update');
-    });
+    $routes->get('chatbot', 'Chatbot::index');
+    $routes->get('announcements', 'Announcements::index');
+    $routes->get('profile', 'Profile::index');
+    $routes->post('profile/update', 'Profile::update');
+});
 });
 
 $routes->group('supplier', ['namespace' => 'App\Controllers\Supplier', 'filter' => 'auth'], function($routes) {
     $routes->get('dashboard', 'Main\Dashboard::index');
+    $routes->get('orders/returns', 'Orders\Returns::index');
+    $routes->get('orders/returns/confirm-received/(:num)', 'Orders\Returns::confirm_received/$1');
+    $routes->get('orders/returns/get-details/(:num)', 'Orders\Returns::get_details/$1');
+    $routes->get('notifications/header-data', 'Notifications::header_data');
+    $routes->get('notifications/mark-read', 'Notifications::mark_read');
 
     $routes->group('orders', ['namespace' => 'App\Controllers\Supplier\Orders'], function($routes) {
         $routes->get('inbox', 'PurchaseOrders::index');
         $routes->get('get-po-details/(:num)', 'PurchaseOrders::get_po_details/$1');
         $routes->post('process-acknowledge', 'PurchaseOrders::process_acknowledge');
+        $routes->get('acknowledge/(:num)', 'PurchaseOrders::acknowledge_form/$1');
         $routes->post('update-delivery', 'PurchaseOrders::update_delivery');
         $routes->get('delivery', 'PurchaseOrders::delivery');
+        $routes->post('process-decline', 'PurchaseOrders::process_decline');
+        $routes->get('payments', 'PurchaseOrders::payments');
     });
 
     $routes->group('inventory', ['namespace' => 'App\Controllers\Supplier\Inventory'], function($routes) {
         $routes->get('catalog', 'Catalog::index');
-        $routes->post('catalog/save', 'Catalog::save');
         $routes->post('catalog/add', 'Catalog::add');
         $routes->get('catalog/get-entry/(:num)', 'Catalog::get_entry/$1');
         $routes->post('catalog/update', 'Catalog::update');
@@ -63,7 +129,7 @@ $routes->group('supplier', ['namespace' => 'App\Controllers\Supplier', 'filter' 
     $routes->group('account', ['namespace' => 'App\Controllers\Supplier\Account'], function($routes) {
         $routes->get('scorecard', 'Account::scorecard');
         $routes->get('profile', 'Account::profile');
-        $routes->post('profile/update', 'Account::update_profile');
+        $routes->post('profile/update', 'Account::update');
     });
 });
 
@@ -85,8 +151,10 @@ $routes->post('auth/forgot-password/verify-external', 'Auth\External::forgot_pas
 $routes->post('auth/login/external', 'Auth\External::login');
 
 $routes->get('partner-gateway/register/client', 'Partners\Register::client_index');
-$routes->post('register/client/step1', 'Partners\Register::client_step2');
-$routes->post('register/client/step2', 'Partners\Register::client_step3');
+$routes->post('register/client/step1', 'Partners\Register::client_save_step1');
+$routes->get('register/client/step2', 'Partners\Register::client_step2_view');
+$routes->post('register/client/step2', 'Partners\Register::client_save_step2');
+$routes->get('register/client/step3', 'Partners\Register::client_step3_view');
 $routes->post('register/client/submit', 'Partners\Register::client_submit');
 
 $routes->get('partner-gateway/register/supplier', 'Partners\Register::supplier_index');
@@ -107,6 +175,7 @@ $routes->get('contact', 'PublicSite\Main::contact');
 $routes->get('partner-gateway', 'Auth\External::index');
 $routes->get('customer/info', 'PublicSite\CustomerInfo::index');
 $routes->post('customer/info/save', 'PublicSite\CustomerInfo::save');
+$routes->post('contact/submit', 'PublicSite\Main::submit_contact');
 
 
 // --- SECURED ADMIN SECTION ---
@@ -114,16 +183,20 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
     
     // 1. MAIN FOLDER
     $routes->get('dashboard', 'Main\Dashboard::index');
+    $routes->get('main/dashboard/weekly-trend', 'Main\Dashboard::weekly_trend_data');
 
     // 2. OPERATIONS FOLDER - INVENTORY
     $routes->group('inventory', ['namespace' => 'App\Controllers\Admin\Operations'], function($routes) {
         $routes->get('stock-management', 'Inventory::stock_management');
         $routes->get('adjustment-logs', 'Inventory::adjustment_logs');
 
+        $routes->get('check-stock-updated', 'Inventory::check_stock_updated');
+        $routes->get('stock-table-data', 'Inventory::stock_table_data');
         $routes->get('get-stock-context/(:num)', 'Inventory::get_stock_context/$1');
         $routes->get('get-details/(:num)', 'Inventory::get_details/$1');
         $routes->get('get-log-details/(:num)', 'Inventory::get_log_details/$1');
         $routes->get('get-product/(:num)', 'Inventory::get_product/$1');
+        $routes->get('get-product-batches/(:num)', 'Inventory::get_product_batches/$1');
 
         $routes->get('get-education/(:num)', 'Inventory::get_education/$1');
         
@@ -144,13 +217,26 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
 
         $routes->get('purchase-orders', 'Procurement::purchase_orders');
         $routes->post('save-po', 'Procurement::save_po');
+        $routes->post('mark-paid', 'Procurement::mark_paid');
 
         $routes->get('approve-po/(:num)', 'Procurement::approve_po/$1');
         $routes->get('reject-po/(:num)', 'Procurement::reject_po/$1');
         $routes->get('get-po-details/(:num)', 'Procurement::get_po_details/$1');
 
+        $routes->post('save-walkin-po', 'Procurement::save_walkin_po');
+
         $routes->get('goods-receipt', 'Procurement::goods_receipt');
         $routes->post('save-grr', 'Procurement::save_grr');
+
+        $routes->get('supplier-returns', 'Procurement::supplier_returns');
+        $routes->get('get-po-items-for-return/(:num)', 'Procurement::get_po_items_for_return/$1');
+        $routes->post('save-supplier-return', 'Procurement::save_supplier_return');
+        $routes->get('approve-supplier-return/(:num)', 'Procurement::approve_supplier_return/$1');
+        $routes->get('reject-supplier-return/(:num)', 'Procurement::reject_supplier_return/$1');
+        $routes->get('get-supplier-return-details/(:num)', 'Procurement::get_supplier_return_details/$1');
+        $routes->get('create-replacement-po/(:num)', 'Procurement::create_replacement_po/$1');
+
+        $routes->get('mark-return-sent/(:num)', 'Procurement::mark_return_sent/$1');
 
     });
 
@@ -163,6 +249,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->get('sales-orders', 'Sales::orders');
         $routes->get('get-order-details/(:num)', 'Sales::get_order_details/$1');
         $routes->post('update-order-status', 'Sales::update_order_status');
+        $routes->post('save-order', 'Sales::save_order');
         
         $routes->get('sales-returns', 'Sales::returns');
         $routes->get('get-return-order-items/(:num)', 'Sales::get_return_order_items/$1');
@@ -172,15 +259,10 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->post('process-return', 'Sales::process_return');
         $routes->post('confirm-payment', 'Sales::confirm_payment');
 
-        $routes->get('supplier-returns', 'Sales::supplier_returns');
-        $routes->get('get-po-items-for-return/(:num)', 'Sales::get_po_items_for_return/$1');
-        $routes->post('save-supplier-return', 'Sales::save_supplier_return');
-        $routes->get('approve-supplier-return/(:num)', 'Sales::approve_supplier_return/$1');
-        $routes->get('reject-supplier-return/(:num)', 'Sales::reject_supplier_return/$1');
-        $routes->get('get-supplier-return-details/(:num)', 'Sales::get_supplier_return_details/$1');
-
         $routes->get('get-product-pos/(:any)', 'Sales::get_product_pos/$1'); // Added missing POS search
         $routes->post('pos/process', 'Sales::process_pos');
+        $routes->get('pos/summary', 'Sales::pos_summary');
+        $routes->get('pos/receipt/(:num)', 'Sales::pos_receipt/$1');
     });
 
     // 3. STRATEGY FOLDER
@@ -216,6 +298,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->get('alerts/delete/(:num)', 'Alerts::delete/$1');
         $routes->get('alerts/resolve/(:num)', 'Alerts::resolve/$1');
         $routes->get('alerts/header-notifications', 'Alerts::header_notifications');
+        $routes->get('alerts/check-stockout', 'Alerts::check_stockout_events');
 
         // Bulletin
         $routes->get('bulletin-board', 'Bulletin::index');
@@ -264,6 +347,7 @@ $routes->group('staff', ['namespace' => 'App\Controllers\Staff', 'filter' => 'au
     
     // MAIN Folder
     $routes->get('dashboard', 'Main\Dashboard::index');
+    $routes->get('notifications/header-data', 'Notifications::header_data');
 
     $routes->get('main/my-profile/get', 'Main\ProfileController::get_my_profile');
     $routes->post('main/my-profile/update', 'Main\ProfileController::update_my_profile');
@@ -271,15 +355,15 @@ $routes->group('staff', ['namespace' => 'App\Controllers\Staff', 'filter' => 'au
     // OPERATIONS Folder
     $routes->group('inventory', ['namespace' => 'App\Controllers\Staff\Inventory'], function($routes) {
         $routes->get('stock', 'Stock::index');
-        $routes->get('get-details/(:num)', 'Stock::get_details/$1');
 
         $routes->post('create-batch', 'Stock::create_batch');
         $routes->get('get-product-info/(:num)', 'Stock::get_product_info/$1');
 
-        $routes->post('adjust_stock', 'Stock::adjust_stock');
+        $routes->get('get-product-batches/(:num)', 'Stock::get_product_batches/$1');
+        $routes->post('adjust-stock', 'Stock::adjust_stock');
         $routes->get('adjustment-logs', 'Logs::logs');
         $routes->get('logs', 'Logs::logs');
-    });
+});
 
     $routes->group('operations', ['namespace' => 'App\Controllers\Staff\Operations'], function($routes) {
         $routes->get('sales-orders', 'SalesOrders::index');

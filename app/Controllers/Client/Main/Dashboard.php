@@ -18,6 +18,11 @@ class Dashboard extends BaseController
     {
         $clientId = session()->get('client_id');
 
+        if (!$clientId) {
+            session()->destroy();
+            return redirect()->to('partner-gateway')->with('error', 'Your account session is invalid. Please log in again.');
+        }
+
         $data['client'] = $this->dashboardModel->getClientProfile($clientId);
 
         $kpis = $this->dashboardModel->getKpis($clientId);
@@ -27,7 +32,7 @@ class Dashboard extends BaseController
         $data['total_spend_ytd'] = $kpis['total_spend_ytd'];
 
         $data['recent_orders'] = $this->dashboardModel->getRecentOrders($clientId, 5);
-        $data['pending_clearance'] = $this->dashboardModel->getPendingClearance($clientId, 5);
+        $data['awaiting_confirmation'] = $this->dashboardModel->getAwaitingConfirmation($clientId, 5);
         $data['announcements'] = $this->dashboardModel->getActiveAnnouncements(3);
 
         $data['title'] = "Client Dashboard";

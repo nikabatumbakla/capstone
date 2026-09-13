@@ -78,4 +78,40 @@ class Main extends BaseController
         $data['active_nav'] = 'contact';
         return view('public_site/pages/contact', $data);
     }
+
+    public function submit_contact()
+{
+    $firstName = trim((string) $this->request->getPost('first_name'));
+    $lastName = trim((string) $this->request->getPost('last_name'));
+    $email = trim((string) $this->request->getPost('email'));
+    $phone = trim((string) $this->request->getPost('phone'));
+    $institution = trim((string) $this->request->getPost('institution'));
+    $inquiryType = trim((string) $this->request->getPost('inquiry_type'));
+    $products = trim((string) $this->request->getPost('products'));
+    $message = trim((string) $this->request->getPost('message'));
+
+    if (empty($firstName) || empty($lastName) || empty($email) || empty($inquiryType) || empty($message)) {
+        return redirect()->to('contact')->withInput()->with('error', 'Please complete all required fields.');
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return redirect()->to('contact')->withInput()->with('error', 'Please enter a valid email address.');
+    }
+
+    $db = \Config\Database::connect();
+    $db->table('contact_inquiries')->insert([
+        'first_name'      => $firstName,
+        'last_name'       => $lastName,
+        'email'           => $email,
+        'phone'           => $phone ?: null,
+        'institution'     => $institution ?: null,
+        'inquiry_type'    => $inquiryType,
+        'products_needed' => $products ?: null,
+        'message'         => $message,
+    ]);
+
+    \App\Libraries\ContactInquiryService::notifyBusiness($firstName, $lastName, $email, $phone, $institution, $inquiryType, $products, $message);
+    \App\Libraries\ContactInquiryService::confirmToInquirer($firstName, $email, $inquiryType);
+
+    return redirect()->to('contact')->with('success', 'Thank you for reaching out! We\'ve received your inquiry and will get back to you shortly.');
+}
 }

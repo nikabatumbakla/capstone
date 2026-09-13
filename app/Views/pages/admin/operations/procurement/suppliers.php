@@ -48,20 +48,21 @@
 
                 <div class="row g-3">
                     <?php foreach($suppliers as $s): 
-                        $perf = ($s['on_time_rate'] + $s['accuracy_rate']) / 2;
-                        $color = ($perf >= 90) ? '#22c55e' : (($perf >= 75) ? '#f59e0b' : '#ef4444');
-                    ?>
-                    <div class="col-xl-3 col-lg-4 col-md-6">
-                        <div class="compact-supplier-card p-3 h-100 border">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div style="width: 70%;"><h6 class="fw-bold mb-0 text-dark text-truncate"><?= $s['name'] ?></h6><small class="text-muted" style="font-size: 9px;"><?= $s['contact_person'] ?: 'Distributor' ?></small></div>
-                                <div class="mini-gauge" style="--perf: <?= $perf ?>%; --color: <?= $color ?>;"><span class="fw-bold" style="font-size: 9px;"><?= round($perf) ?>%</span></div>
-                            </div>
-                            <div class="row g-1 mb-3 pt-2 border-top">
-                                <div class="col-4 border-end text-center"><small class="mini-label">Lead Time</small><p class="mini-val"><?= $s['lead_time_days'] ?>d</p></div>
-                                <div class="col-4 border-end text-center"><small class="mini-label">Accuracy</small><p class="mini-val"><?= round($s['accuracy_rate']) ?>%</p></div>
-                                <div class="col-4 text-center"><small class="mini-label">Orders</small><p class="mini-val"><?= $s['total_orders'] ?: 0 ?></p></div>
-                            </div>
+    $hasPerf = $s['on_time_rate'] !== null && $s['accuracy_rate'] !== null;
+    $perf = $hasPerf ? ($s['on_time_rate'] + $s['accuracy_rate']) / 2 : null;
+    $color = $perf === null ? '#9ca3af' : (($perf >= 90) ? '#22c55e' : (($perf >= 75) ? '#f59e0b' : '#ef4444'));
+?>
+<div class="col-xl-3 col-lg-4 col-md-6">
+    <div class="compact-supplier-card p-3 h-100 border">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div style="width: 70%;"><h6 class="fw-bold mb-0 text-dark text-truncate"><?= $s['name'] ?></h6><small class="text-muted" style="font-size: 9px;"><?= $s['contact_person'] ?: 'Distributor' ?></small></div>
+            <div class="mini-gauge" style="--perf: <?= $perf ?? 0 ?>%; --color: <?= $color ?>;"><span class="fw-bold" style="font-size: 9px;"><?= $perf !== null ? round($perf) . '%' : 'N/A' ?></span></div>
+        </div>
+        <div class="row g-1 mb-3 pt-2 border-top">
+            <div class="col-4 border-end text-center"><small class="mini-label">Lead Time</small><p class="mini-val"><?= $s['lead_time_days'] ?>d</p></div>
+            <div class="col-4 border-end text-center"><small class="mini-label">Accuracy</small><p class="mini-val"><?= $s['accuracy_rate'] !== null ? round($s['accuracy_rate']) . '%' : 'N/A' ?></p></div>
+            <div class="col-4 text-center"><small class="mini-label">Orders</small><p class="mini-val"><?= $s['total_orders'] ?: 0 ?></p></div>
+        </div>
                             <div class="d-grid gap-1">
     <button class="btn btn-xs btn-dark rounded-2 btn-view-supplier" data-id="<?= $s['supplier_id'] ?>">View</button>
     <button type="button" class="btn btn-xs btn-outline-maroon rounded-2 btn-create-po"
@@ -114,7 +115,7 @@
 <div class="offcanvas offcanvas-end" tabindex="-1" id="supplierDrawer" style="width: 450px;"><div class="offcanvas-body" id="supplierDrawerContent"></div></div>
 
 <!-- CREATE PO DRAWER — scoped per supplier -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="createPODrawer" style="width: 600px;">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="createPODrawer" style="width: 750px;">
     <div class="offcanvas-header border-bottom">
         <h6 class="fw-bold mb-0" id="createPOTitle">Create Purchase Order</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>

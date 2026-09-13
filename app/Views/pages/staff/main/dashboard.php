@@ -11,21 +11,21 @@
                 <p class="mb-0 opacity-75 small"><?= date('l, F d, Y') ?> · Staff Terminal</p>
             </div>
 
-            <div class="row g-4 mb-4">
+<div class="row g-4 mb-4">
     <div class="col-md-3">
         <a href="<?= base_url('staff/operations/pos') ?>" target="_blank" rel="noopener" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative">
-                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <i class="fas fa-cash-register position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                 <small class="text-muted fw-bold d-block mb-1">TODAY'S POS TXNS</small>
                 <h3 class="fw-bold mb-0 text-warning"><?= $pos_txns ?></h3>
-                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+                <small class="text-muted d-block" style="font-size:9.5px;">₱<?= number_format($pos_total, 2) ?> today</small>
             </div>
         </a>
     </div>
     <div class="col-md-3">
         <a href="<?= base_url('staff/operations/goods-receipt') ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative">
-                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <i class="fas fa-truck-loading position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                 <small class="text-muted fw-bold d-block mb-1">PENDING GRR</small>
                 <h3 class="fw-bold mb-0 text-danger"><?= $pending_grr ?></h3>
                 <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -35,7 +35,7 @@
     <div class="col-md-3">
         <a href="<?= base_url('staff/operations/sales-orders?status=pending') ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative">
-                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <i class="fas fa-receipt position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                 <small class="text-muted fw-bold d-block mb-1">ORDERS TO PROCESS</small>
                 <h3 class="fw-bold mb-0 text-success"><?= $orders_to_process ?></h3>
                 <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -45,7 +45,7 @@
     <div class="col-md-3">
         <a href="<?= base_url('staff/info/alerts') ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative">
-                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <i class="fas fa-bell position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                 <small class="text-muted fw-bold d-block mb-1">MY ALERTS</small>
                 <h3 class="fw-bold mb-0 text-dark"><?= $assigned_alerts ?></h3>
                 <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -100,11 +100,11 @@
                                     <?php else: foreach($low_stock as $ls): ?>
                                     <tr>
                                         <td class="ps-3 fw-bold"><?= esc($ls['name']) ?></td>
-                                        <td class="text-danger fw-bold"><?= $ls['quantity_avail'] ?></td>
+                                        <td class="text-danger fw-bold"><?= $ls['total_stock'] ?></td>
                                         <td><?= $ls['reorder_level'] ?></td>
                                         <td class="text-center">
-                                            <a href="<?= base_url('staff/inventory/stock?highlight='.$ls['batch_id']) ?>" class="btn btn-xs btn-outline-dark rounded-pill px-3">Adjust</a>
-                                        </td>
+    <a href="<?= base_url('staff/inventory/stock?highlight_product='.$ls['product_id']) ?>" class="btn btn-xs btn-outline-dark rounded-pill px-3">Adjust</a>
+</td>
                                     </tr>
                                     <?php endforeach; endif; ?>
                                 </tbody>
@@ -116,46 +116,31 @@
         </div>
 
         <div class="offcanvas offcanvas-end" tabindex="-1" id="qrDrawer" style="width: 420px;">
-            <div class="offcanvas-header border-bottom">
-                <h6 class="fw-bold mb-0"><i class="fas fa-qrcode me-2"></i>QR Access Codes</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
-            <div class="offcanvas-body p-4">
-                <ul class="nav nav-pills mb-4 bg-light p-1 rounded-pill border">
-                    <li class="nav-item flex-grow-1"><button class="nav-link active rounded-pill w-100 small fw-bold" data-bs-toggle="pill" data-bs-target="#qr-staff">Staff Login</button></li>
-                    <li class="nav-item flex-grow-1"><button class="nav-link rounded-pill w-100 small fw-bold" data-bs-toggle="pill" data-bs-target="#qr-customer">Customer Poster</button></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div class="tab-pane fade show active text-center" id="qr-staff">
-                        <p class="text-muted mb-3" style="font-size:10px;">Scan with your phone to open the staff login on mobile. Log in with your own account as usual.</p>
-                        <div id="staffQrCode" class="d-inline-block p-3 bg-white border rounded-3"></div>
-                        <p class="text-muted mt-2 mb-3" style="font-size:9px; word-break:break-all;"><?= base_url('portal') ?></p>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-dark rounded-pill flex-grow-1 btn-download-qr" data-target="staffQrCode" data-name="staff-login-qr"><i class="fas fa-download me-1"></i>Download</button>
-                            <button class="btn btn-sm btn-dark rounded-pill flex-grow-1 btn-print-qr" data-target="staffQrCode" data-title="Staff Mobile Login"><i class="fas fa-print me-1"></i>Print</button>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade text-center" id="qr-customer">
-                        <p class="text-muted mb-3" style="font-size:10px;">Printable poster QR — customers scan this to enter their name and contact details.</p>
-                        <div id="customerQrCode" class="d-inline-block p-3 bg-white border rounded-3"></div>
-                        <p class="text-muted mt-2 mb-3" style="font-size:9px; word-break:break-all;"><?= base_url('customer/info') ?></p>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-dark rounded-pill flex-grow-1 btn-download-qr" data-target="customerQrCode" data-name="customer-info-qr"><i class="fas fa-download me-1"></i>Download</button>
-                            <button class="btn btn-sm btn-dark rounded-pill flex-grow-1 btn-print-qr" data-target="customerQrCode" data-title="Customer Sign-In Poster"><i class="fas fa-print me-1"></i>Print</button>
-                        </div>
-                    </div>
-                </div>
+    <div class="offcanvas-header border-bottom">
+        <h6 class="fw-bold mb-0"><i class="fas fa-qrcode me-2"></i>Mobile Access</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-4">
+        <div class="text-center">
+            <p class="text-muted mb-3" style="font-size:10px;">
+                Scan with your phone to open PharMediSync Mobile. Staff and customers both use this same code —
+                you'll choose your role right after scanning.
+            </p>
+            <div id="mobileQrCode" class="d-inline-block p-3 bg-white border rounded-3"></div>
+            <p class="text-muted mt-2 mb-3" style="font-size:9px; word-break:break-all;"><?= base_url('m/') ?></p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-dark rounded-pill flex-grow-1 btn-download-qr" data-target="mobileQrCode" data-name="pharmedisync-mobile-qr"><i class="fas fa-download me-1"></i>Download</button>
+                <button class="btn btn-sm btn-dark rounded-pill flex-grow-1 btn-print-qr" data-target="mobileQrCode" data-title="PharMediSync Mobile Access"><i class="fas fa-print me-1"></i>Print</button>
             </div>
         </div>
+    </div>
+</div>
 
     </div>
 </div>
 
 <script>
-    const STAFF_LOGIN_URL = "<?= base_url('portal') ?>";
-    const CUSTOMER_INFO_URL = "<?= base_url('customer/info') ?>";
+    const MOBILE_APP_URL = "<?= base_url('m/') ?>";";
 </script>
 <script src="<?= base_url('public/js/vendor/qrcode.min.js') ?>"></script>
 <script src="<?= base_url('public/js/staff/dashboard_qr.js') ?>"></script>

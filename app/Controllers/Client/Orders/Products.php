@@ -29,6 +29,7 @@ class Products extends BaseController
         $data['current_page'] = $page;
         $data['search'] = $search;
         $data['category_filter'] = $catId;
+        $data['cart'] = $cart;
         $data['cart_count'] = array_sum($cart);
 
         $data['title'] = "Browse Medical Supplies";
@@ -42,17 +43,35 @@ class Products extends BaseController
         $productId = (int) $this->request->getPost('product_id');
         $qty = max(1, (int) $this->request->getPost('qty'));
 
+        // Never trust the client's requested quantity blindly — cap to real available stock
+        $product = $this->productsModel->getProductsByIds([$productId]);
+        if (empty($product)) {
+            return redirect()->back()->with('error', 'That product is no longer available.');
+        }
+        $availableStock = (int) $product[0]['total_stock'];
+        if ($availableStock <= 0) {
+            return redirect()->back()->with('error', 'This product is currently out of stock.');
+        }
+
         $cart = session()->get('client_cart') ?? [];
-        $cart[$productId] = ($cart[$productId] ?? 0) + $qty;
+        $newQty = ($cart[$productId] ?? 0) + $qty;
+        if ($newQty > $availableStock) {
+            $newQty = $availableStock;
+            session()->setFlashdata('warning', "Only {$availableStock} unit(s) of {$product[0]['name']} are available — your cart quantity was adjusted.");
+        } else {
+            session()->setFlashdata('success', 'Added to your order cart.');
+        }
+
+        $cart[$productId] = $newQty;
         session()->set('client_cart', $cart);
 
-        return redirect()->back()->with('success', 'Added to your order cart.');
+        return redirect()->back();
     }
 
     public function get_product_details($id)
-{
-    $product = $this->productsModel->getProductDetails((int) $id);
-    if (!$product) return $this->response->setStatusCode(404)->setJSON(['error' => 'Product not found']);
-    return $this->response->setJSON($product);
-}
+    {
+        $product = $this->productsModel->getProductDetails((int) $id);
+        if (!$product) return $this->response->setStatusCode(404)->setJSON(['error' => 'Product not found']);
+        return $this->response->setJSON($product);
+    }
 }

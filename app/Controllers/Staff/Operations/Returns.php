@@ -56,7 +56,7 @@ class Returns extends BaseController
         $notes = trim((string) $this->request->getPost('notes'));
         $condition = $this->request->getPost('restock_condition') ?: 'resellable';
 
-        if (empty($orderId) || empty($productId) || $qty <= 0) {
+        if (empty($orderId) || empty($productId) || $qty <= 0 || $notes === '') {
             return redirect()->back()->withInput()->with('error', 'Please complete all required fields.');
         }
 

@@ -86,4 +86,17 @@ class Alerts extends BaseController
 {
     return $this->response->setJSON($this->alertsModel->getHeaderNotifications(6));
 }
+
+public function check_stockout_events()
+{
+    $db = \Config\Database::connect();
+    $events = $db->table('stockout_events')->where('is_seen', 0)->orderBy('created_at', 'DESC')->get()->getResultArray();
+
+    if (!empty($events)) {
+        $ids = array_column($events, 'event_id');
+        $db->table('stockout_events')->whereIn('event_id', $ids)->update(['is_seen' => 1]);
+    }
+
+    return $this->response->setJSON($events);
+}
 }

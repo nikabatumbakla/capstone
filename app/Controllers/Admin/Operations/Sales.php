@@ -2,9 +2,17 @@
 
 namespace App\Controllers\Admin\Operations;
 use App\Controllers\BaseController;
+use App\Models\Admin\Operations\Sales\PosModel;
 
 class Sales extends BaseController
 {
+    protected $posModel;
+
+    public function __construct()
+    {
+        $this->posModel = new \App\Models\Admin\Operations\Sales\PosModel();
+    }
+
     public function clients()
 {
     $db = \Config\Database::connect();
@@ -12,14 +20,13 @@ class Sales extends BaseController
 
     $search = trim((string) ($request->getGet('search') ?? ''));
     $type   = $request->getGet('type') ?? '';
+    $status = $request->getGet('status') ?? '';
 
     $page    = (int) ($request->getGet('page') ?? 1);
     if ($page < 1) $page = 1;
     $perPage = 10;
     $offset  = ($page - 1) * $perPage;
 
-    // Single source of truth for "is this a real, usable client record" —
-    // used by the KPIs AND the table, so they can never disagree again.
     $baseQualified = function() use ($db) {
         return $db->table('institutional_clients as ic')
             ->join('users as u', 'u.user_id = ic.user_id')
@@ -31,7 +38,7 @@ class Sales extends BaseController
             ->groupEnd();
     };
 
-    $applyFilters = function($builder) use ($search, $type) {
+    $applyFilters = function($builder) use ($search, $type, $status) {
         if ($search !== '') {
             $builder->groupStart()
                 ->like('ic.organization', $search)
@@ -45,14 +52,21 @@ class Sales extends BaseController
         } elseif ($type !== '') {
             $builder->where('ic.client_type', $type);
         }
+        if ($status === 'unverified') {
+            $builder->where('u.is_verified', 0);
+        } elseif ($status === 'no_orders') {
+            $builder->where("ic.client_id NOT IN (SELECT DISTINCT client_id FROM sales_orders)", null, false);
+        }
         return $builder;
     };
 
-    // KPIs now use the SAME qualification rules as the table
-    $data['count_schools']   = $baseQualified()->where('ic.client_type', 'school')->countAllResults();
-    $data['count_hospitals'] = $baseQualified()->whereIn('ic.client_type', ['hospital', 'clinic'])->countAllResults();
-    $data['count_lgu']       = $baseQualified()->whereIn('ic.client_type', ['lgu', 'sk'])->countAllResults();
-    $data['count_brgy']      = $baseQualified()->where('ic.client_type', 'barangay')->countAllResults();
+    // KPIs — same qualification rules as the table, filters folded in the same way
+    $data['count_total']      = $baseQualified()->countAllResults();
+    $data['count_unverified'] = $baseQualified()->where('u.is_verified', 0)->countAllResults();
+    $data['count_no_orders']  = $baseQualified()->where("ic.client_id NOT IN (SELECT DISTINCT client_id FROM sales_orders)", null, false)->countAllResults();
+    $data['count_types']      = count(
+        $db->table('institutional_clients')->select('client_type')->where('is_active', 1)->distinct()->get()->getResultArray()
+    );
 
     $countBuilder = $baseQualified();
     $applyFilters($countBuilder);
@@ -71,18 +85,18 @@ class Sales extends BaseController
     $data['total_pages']  = max(1, (int) ceil($totalRows / $perPage));
     $data['search']       = $search;
     $data['type_filter']  = $type;
+    $data['status_filter'] = $status;
 
-    // Data for the "New Sales Order" drawer, launched from the client View panel
-$data['categories'] = $db->table('categories')->orderBy('sort_order', 'ASC')->get()->getResultArray();
-$data['products'] = $db->table('products as p')
-    ->select("p.product_id, p.name, p.unit, p.category_id, p.is_vat_exempt,
-        (SELECT COALESCE(SUM(quantity_avail),0) FROM inventory_batches WHERE product_id = p.product_id) as total_stock,
-        (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id ORDER BY ib.received_at DESC LIMIT 1) as latest_sell_price")
-    ->where('p.is_active', 1)
-    ->orderBy('p.name', 'ASC')
-    ->get()->getResultArray();
-$rateRow = $db->table('store_settings')->where('setting_key', 'school_discount_rate')->get()->getRow();
-$data['school_discount_rate'] = $rateRow ? (float) $rateRow->setting_value : 10;
+    $data['categories'] = $db->table('categories')->orderBy('sort_order', 'ASC')->get()->getResultArray();
+    $data['products'] = $db->table('products as p')
+        ->select("p.product_id, p.name, p.unit, p.category_id, p.is_vat_exempt,
+            (SELECT COALESCE(SUM(quantity_avail),0) FROM inventory_batches WHERE product_id = p.product_id) as total_stock,
+            (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as latest_sell_price")
+        ->where('p.is_active', 1)
+        ->orderBy('p.name', 'ASC')
+        ->get()->getResultArray();
+    $rateRow = $db->table('store_settings')->where('setting_key', 'school_discount_rate')->get()->getRow();
+    $data['school_discount_rate'] = $rateRow ? (float) $rateRow->setting_value : 10;
 
     $data['title'] = "Client Directory";
     $data['fullname'] = session()->get('full_name');
@@ -119,10 +133,6 @@ $data['school_discount_rate'] = $rateRow ? (float) $rateRow->setting_value : 10;
         
         return $this->response->setJSON(['client' => $client, 'orders' => $orders]);
     }
-
-
-
-
 public function orders()
 {
     $db = \Config\Database::connect();
@@ -137,25 +147,30 @@ public function orders()
 
     $applyFilters = function($builder) use ($search, $type) {
         if ($search !== '') {
-            $builder->groupStart()->like('so.order_number', $search)->orLike('ic.organization', $search)->groupEnd();
+            $builder->groupStart()->like('so.order_number', $search)->orLike('ic.organization', $search)->orLike('gc.name', $search)->groupEnd();
         }
         if ($type === 'hospital_clinic') {
             $builder->whereIn('ic.client_type', ['hospital', 'clinic']);
         } elseif ($type === 'lgu_sk') {
             $builder->whereIn('ic.client_type', ['lgu', 'sk']);
+        } elseif ($type === 'walkin') {
+            $builder->where('so.guest_client_id IS NOT NULL', null, false);
         } elseif ($type !== '') {
             $builder->where('ic.client_type', $type);
         }
         return $builder;
     };
 
-    $countBuilder = $db->table('sales_orders as so')->join('institutional_clients as ic', 'ic.client_id = so.client_id');
+    $countBuilder = $db->table('sales_orders as so')
+        ->join('institutional_clients as ic', 'ic.client_id = so.client_id', 'left')
+        ->join('guest_clients as gc', 'gc.guest_client_id = so.guest_client_id', 'left');
     $applyFilters($countBuilder);
     $totalRows = $countBuilder->countAllResults();
 
     $builder = $db->table('sales_orders as so');
-    $builder->select('so.*, ic.organization as client_name, ic.client_type, (SELECT COUNT(*) FROM sales_order_items WHERE order_id = so.order_id) as item_count');
-    $builder->join('institutional_clients as ic', 'ic.client_id = so.client_id');
+    $builder->select("so.*, COALESCE(ic.organization, gc.name) as client_name, ic.client_type, so.guest_client_id, (SELECT COUNT(*) FROM sales_order_items WHERE order_id = so.order_id) as item_count");
+    $builder->join('institutional_clients as ic', 'ic.client_id = so.client_id', 'left');
+    $builder->join('guest_clients as gc', 'gc.guest_client_id = so.guest_client_id', 'left');
     $applyFilters($builder);
     $builder->orderBy('so.created_at', 'DESC');
     $builder->limit($perPage, $offset);
@@ -179,35 +194,55 @@ public function orders()
     $session = session();
 
     $client_id = $this->request->getPost('client_id');
+    $isWalkIn = $this->request->getPost('order_mode') === 'walkin';
     $items = $this->request->getPost('items');
     $qtys  = $this->request->getPost('qtys');
     $discountType = $this->request->getPost('discount_type') ?: 'none';
     $customPercent = (float) ($this->request->getPost('discount_percent') ?? 0);
     $discountIdNumber = trim((string) $this->request->getPost('discount_id_number'));
     $discountHolderName = trim((string) $this->request->getPost('discount_holder_name'));
+    $fulfillmentType = $this->request->getPost('fulfillment_type') === 'pickup' ? 'pickup' : 'delivery';
 
-    if (empty($client_id) || empty($items)) {
-        return redirect()->back()->withInput()->with('error', 'Please select a client and at least one product.');
+    if (empty($items)) {
+        return redirect()->back()->withInput()->with('error', 'Please select at least one product.');
     }
 
-    // Re-verify server-side: only a real, linked-account client can ever receive an order
-    $client = $db->table('institutional_clients')
-        ->where('client_id', $client_id)
-        ->where('user_id IS NOT NULL', null, false)
-        ->get()->getRow();
-    if (!$client) {
-        return redirect()->back()->with('error', 'Selected client is not a registered account.');
+    $guestClientId = null;
+    if ($isWalkIn) {
+        $guestName = trim((string) $this->request->getPost('guest_name'));
+        if ($guestName === '') {
+            return redirect()->back()->withInput()->with('error', 'Please provide the client/customer name.');
+        }
+        $guestModel = new \App\Models\Admin\GuestPartyModel();
+        $guestClientId = $guestModel->findOrCreateGuestClient([
+            'name' => $guestName, 'contact_person' => $this->request->getPost('guest_contact'),
+            'phone' => $this->request->getPost('guest_phone'), 'email' => $this->request->getPost('guest_email'),
+            'address' => $this->request->getPost('guest_address'), 'tin' => $this->request->getPost('guest_tin'),
+        ]);
+    } else {
+        if (empty($client_id)) {
+            return redirect()->back()->withInput()->with('error', 'Please select a client.');
+        }
+        $client = $db->table('institutional_clients')
+            ->where('client_id', $client_id)
+            ->where('user_id IS NOT NULL', null, false)
+            ->get()->getRow();
+        if (!$client) {
+            return redirect()->back()->with('error', 'Selected client is not a registered account.');
+        }
     }
 
     $db->transStart();
 
     $db->table('sales_orders')->insert([
-        'client_id'            => $client_id,
+        'client_id'            => $isWalkIn ? null : $client_id,
+        'guest_client_id'      => $guestClientId,
         'order_number'         => 'SO-' . date('Y') . '-' . mt_rand(1000, 9999),
         'invoice_number'       => 'INV-' . date('Y') . '-' . mt_rand(1000, 9999),
         'status'               => 'pending',
+        'fulfillment_type'     => $fulfillmentType,
         'payment_method'       => $this->request->getPost('payment_method'),
-        'delivery_address'     => $this->request->getPost('address'),
+        'delivery_address'     => $fulfillmentType === 'delivery' ? $this->request->getPost('address') : null,
         'payment_status'       => 'unpaid',
         'discount'             => 0,
         'discount_type'        => $discountType,
@@ -236,7 +271,6 @@ public function orders()
 
         if (!$batch) continue;
 
-        // Never deduct more than what's actually on hand
         if ($qty > $batch->quantity_avail) {
             $qty = $batch->quantity_avail;
             $cappedCount++;
@@ -276,7 +310,6 @@ public function orders()
     }
 
     if ($discountType === 'pwd' || $discountType === 'senior') {
-        // RA 10754 / RA 9994: 20% off the VAT-exclusive price, and VAT-exempt entirely
         $vatExclusive = $grossTotal / 1.12;
         $discountAmount = $vatExclusive * 0.20;
         $netTotal = $vatExclusive - $discountAmount;
@@ -321,8 +354,9 @@ public function orders()
 {
     $db = \Config\Database::connect();
     $order = $db->table('sales_orders as so')
-        ->select('so.*, ic.organization, ic.address as client_addr, ic.phone, ic.tin as client_tin, u.full_name as encoder')
-        ->join('institutional_clients as ic', 'ic.client_id = so.client_id')
+        ->select('so.*, so.guest_client_id, COALESCE(ic.organization, gc.name) as organization, COALESCE(ic.address, gc.address) as client_addr, COALESCE(ic.phone, gc.phone) as phone, COALESCE(ic.tin, gc.tin) as client_tin, u.full_name as encoder')
+        ->join('institutional_clients as ic', 'ic.client_id = so.client_id', 'left')
+        ->join('guest_clients as gc', 'gc.guest_client_id = so.guest_client_id', 'left')
         ->join('users as u', 'u.user_id = so.created_by', 'left')
         ->where('so.order_id', $id)->get()->getRow();
 
@@ -331,7 +365,7 @@ public function orders()
     }
 
     $items = $db->table('sales_order_items as soi')
-        ->select('soi.*, p.name, p.sku')
+        ->select('soi.*, p.name, p.barcode_value')
         ->join('products as p', 'p.product_id = soi.product_id')
         ->where('soi.order_id', $id)->get()->getResultArray();
 
@@ -343,8 +377,6 @@ public function orders()
 
     return $this->response->setJSON(['order' => $order, 'items' => $items, 'store_info' => $storeInfo]);
 }
-
-
 
    public function returns()
 {
@@ -428,7 +460,7 @@ public function get_return_details($id)
 public function approve_return($id)
 {
     $db = \Config\Database::connect();
-    $ret = $db->table('sales_returns')->where('return_id', $id)->get()->getRow();
+    $ret = $db->table('sales_returns as sr')->select('sr.*, so.client_id, so.guest_client_id, so.fulfillment_type')->join('sales_orders as so', 'so.order_id = sr.order_id')->where('sr.return_id', $id)->get()->getRow();
 
     if (!$ret || $ret->status !== 'pending') {
         return redirect()->back()->with('error', 'Only pending returns can be approved.');
@@ -441,41 +473,63 @@ public function approve_return($id)
         'resolved_at' => date('Y-m-d H:i:s')
     ]);
 
-    // Only put it back into sellable stock if it's actually fit to sell
     if ($ret->restock_condition === 'resellable' && $ret->batch_id) {
         $db->table('inventory_batches')->where('batch_id', $ret->batch_id)
             ->set('quantity_avail', "quantity_avail + {$ret->quantity}", false)->update();
 
         $db->table('stock_movements')->insert([
-            'product_id'     => $ret->product_id,
-            'batch_id'       => $ret->batch_id,
-            'movement_type'  => 'return_inbound',
-            'quantity'       => $ret->quantity,
-            'reference_id'   => $ret->order_id,
-            'reference_type' => 'return',
-            'scanned_by'     => session()->get('user_id') ?? 1,
-            'reason'         => 'Client return approved — restocked as resellable'
+            'product_id' => $ret->product_id, 'batch_id' => $ret->batch_id, 'movement_type' => 'return_inbound',
+            'quantity' => $ret->quantity, 'reference_id' => $ret->order_id, 'reference_type' => 'return',
+            'scanned_by' => session()->get('user_id') ?? 1, 'reason' => 'Client return approved — restocked as resellable'
         ]);
     } else {
-        // Damaged/expired/disposed: approved, but NOT put back into sellable inventory
         $db->table('stock_movements')->insert([
-            'product_id'     => $ret->product_id,
-            'batch_id'       => $ret->batch_id,
-            'movement_type'  => 'adjustment',
-            'quantity'       => 0,
-            'reference_id'   => $ret->order_id,
-            'reference_type' => 'return',
-            'scanned_by'     => session()->get('user_id') ?? 1,
-            'reason'         => 'Client return approved — condition: ' . $ret->restock_condition . ' (not restocked)'
+            'product_id' => $ret->product_id, 'batch_id' => $ret->batch_id, 'movement_type' => 'adjustment',
+            'quantity' => 0, 'reference_id' => $ret->order_id, 'reference_type' => 'return',
+            'scanned_by' => session()->get('user_id') ?? 1, 'reason' => 'Client return approved — condition: ' . $ret->restock_condition . ' (not restocked)'
+        ]);
+
+        // Damaged/wrong-item units are unsellable — replace them via a zero-cost
+        // sales order, mirroring the supplier-side exchange flow exactly.
+        $db->table('sales_orders')->insert([
+            'client_id'                 => $ret->client_id,
+            'guest_client_id'           => $ret->guest_client_id,
+            'order_number'              => 'SO-' . date('Y') . '-' . time(),
+            'invoice_number'            => 'INV-' . date('Y') . '-' . time(),
+            'status'                    => 'pending',
+            'fulfillment_type'          => $ret->fulfillment_type,
+            'payment_method'            => 'cash',
+            'payment_status'            => 'paid', // zero-cost replacement — nothing owed
+            'discount'                  => 0,
+            'subtotal'                  => 0,
+            'vat_amount'                => 0,
+            'total'                     => 0,
+            'replacement_for_return_id' => $id,
+            'notes'                     => 'Replacement for damaged/incorrect item — see Return #' . $id,
+            'created_by'                => session()->get('user_id') ?? 1,
+        ]);
+        $newOrderId = $db->insertID();
+
+        $db->table('sales_order_items')->insert([
+            'order_id'   => $newOrderId,
+            'product_id' => $ret->product_id,
+            'batch_id'   => null, // fulfilled from whatever batch is available at dispatch time
+            'quantity'   => $ret->quantity,
+            'unit_price' => 0,
+            'subtotal'   => 0,
         ]);
     }
 
     $db->transComplete();
+    if (!empty($ret->client_id)) {
+    \App\Models\Client\NotificationModel::notify($db, (int) $ret->client_id, "Your return has been approved — a replacement order has been created.", '/client/orders/my-orders');
+}
     $msg = ($ret->restock_condition === 'resellable')
         ? 'Return approved and stock restored.'
-        : "Return approved — item marked '{$ret->restock_condition}' and was NOT returned to sellable stock.";
+        : "Return approved. Item was NOT returned to sellable stock, and a free replacement order has been created for the client.";
     return redirect()->back()->with('success', $msg);
 }
+
 public function reject_return($id)
 {
     $db = \Config\Database::connect();
@@ -483,7 +537,14 @@ public function reject_return($id)
     if (!$ret || $ret->status !== 'pending') {
         return redirect()->back()->with('error', 'Only pending returns can be rejected.');
     }
+
     $db->table('sales_returns')->where('return_id', $id)->update(['status' => 'rejected']);
+
+    $ret = $db->table('sales_returns as sr')->select('sr.*, so.client_id, so.order_number')->join('sales_orders as so', 'so.order_id = sr.order_id')->where('sr.return_id', $id)->get()->getRow();
+    if (!empty($ret->client_id)) {
+        \App\Models\Client\NotificationModel::notify($db, (int) $ret->client_id, "Your return request for order {$ret->order_number} was reviewed and rejected.", '/client/orders/returns');
+    }
+
     return redirect()->back()->with('info', 'Return Request Rejected.');
 }
 
@@ -703,40 +764,20 @@ public function get_supplier_return_details($id)
 }
 
 
-
 public function pos()
 {
-    $db = \Config\Database::connect();
-    $today = date('Y-m-d');
+    $data['categories']  = $this->posModel->getCategories();
+    $data['products']    = $this->posModel->getSellableProducts();
+    $data['store_info']  = $this->posModel->getStoreSettings();
+    $data['vat_rate']    = $this->posModel->getVatRate();
 
-    $data['total_txns']  = $db->table('pos_transactions')->where('DATE(created_at)', $today)->where('status', 'completed')->countAllResults();
-    $data['gross_sales']  = $db->table('pos_transactions')->selectSum('total')->where('DATE(created_at)', $today)->where('status', 'completed')->get()->getRow()->total ?? 0;
-    $data['cash_sales']   = $db->table('pos_transactions')->selectSum('total')->where(['DATE(created_at)' => $today, 'payment_method' => 'cash', 'status' => 'completed'])->get()->getRow()->total ?? 0;
-    $data['gcash_sales']  = $db->table('pos_transactions')->selectSum('total')->where(['DATE(created_at)' => $today, 'payment_method' => 'gcash', 'status' => 'completed'])->get()->getRow()->total ?? 0;
+    $summary = $this->posModel->getTodaySummary();
+    $data['total_txns']  = $summary['total_txns'];
+    $data['gross_sales'] = $summary['gross_sales'];
+    $data['cash_sales']  = $summary['cash_sales'];
+    $data['gcash_sales'] = $summary['gcash_sales'];
 
-    $data['history'] = $db->table('pos_transactions as pt')
-        ->select('pt.*, (SELECT COUNT(*) FROM pos_transaction_items WHERE txn_id = pt.txn_id) as item_count')
-        ->where('DATE(pt.created_at)', $today)
-        ->orderBy('pt.created_at', 'DESC')->get()->getResultArray();
-
-    // Real category → product browsing, not search-only
-    $data['categories'] = $db->table('categories')->orderBy('sort_order', 'ASC')->get()->getResultArray();
-    $data['products'] = $db->table('products as p')
-        ->select("p.product_id, p.name, p.sku, p.barcode_value, p.unit, p.category_id, p.is_vat_exempt,
-            ib.batch_id, ib.batch_number, ib.expires_at, ib.quantity_avail, ib.sell_price")
-        ->join('inventory_batches as ib', 'ib.product_id = p.product_id')
-        ->where('p.is_active', 1)
-        ->where('ib.quantity_avail >', 0)
-        ->orderBy('ib.expires_at', 'ASC') // FEFO — earliest expiry surfaces first per product
-        ->get()->getResultArray();
-
-    $rateRow = $db->table('store_settings')->where('setting_key', 'vat_rate')->get()->getRow();
-    $data['vat_rate'] = $rateRow ? (float) $rateRow->setting_value : 12;
-
-    $storeRows = $db->table('store_settings')->get()->getResultArray();
-    $storeInfo = [];
-    foreach ($storeRows as $row) $storeInfo[$row['setting_key']] = $row['setting_value'];
-    $data['store_info'] = $storeInfo;
+    $data['history'] = $this->posModel->getTodayTransactions(50);
 
     $data['title'] = "Point of Sale";
     $data['fullname'] = session()->get('full_name');
@@ -744,40 +785,45 @@ public function pos()
     return view('pages/admin/operations/sales/pos', $data);
 }
 
+    public function pos_summary()
+{
+    $daily   = $this->posModel->getTodaySummary();
+    $history = $this->posModel->getTodayTransactions(50);
 
-// AJAX: Intelligent Search (Returns full details: Expiry, Batch, Stock)
+    return $this->response->setJSON([
+        'status'      => 'success',
+        'daily'       => $daily,
+        'history'     => $history,
+        'server_time' => date('h:i:s A'),
+    ]);
+}
+
+    public function pos_receipt($id)
+{
+    $data = $this->posModel->getReceiptData((int) $id);
+    if (!$data) {
+        return $this->response->setStatusCode(404)->setJSON(['error' => 'Receipt not found.']);
+    }
+    return $this->response->setJSON($data);
+}
+
 public function get_product_pos($query)
 {
-    $db = \Config\Database::connect();
-    $products = $db->table('products as p')
-        ->select('p.product_id, p.name, p.sku, p.barcode_value, ib.batch_id, ib.batch_number, ib.expires_at, ib.quantity_avail, ib.sell_price, c.name as cat_name')
-        ->join('inventory_batches as ib', 'ib.product_id = p.product_id')
-        ->join('categories as c', 'c.category_id = p.category_id')
-        ->where('ib.quantity_avail >', 0)
-        ->groupStart()
-            ->like('p.name', $query)
-            ->orLike('p.barcode_value', $query)
-            ->orLike('p.sku', $query)
-        ->groupEnd()
-        ->orderBy('ib.expires_at', 'ASC')
-        ->get()->getResultArray();
-
-    return $this->response->setJSON($products);
+    return $this->response->setJSON($this->posModel->searchSellableProducts($query));
 }
 
 public function process_pos()
 {
-    $db = \Config\Database::connect();
     $session = session();
 
-    $items = json_decode($this->request->getPost('items'), true) ?? [];
-    $discountType = $this->request->getPost('discount_type') ?: 'none';
-    $discountIdNumber = trim((string) $this->request->getPost('discount_id_number'));
+    $items              = json_decode($this->request->getPost('items'), true) ?? [];
+    $discountType       = $this->request->getPost('discount_type') ?: 'none';
+    $discountIdNumber   = trim((string) $this->request->getPost('discount_id_number'));
     $discountHolderName = trim((string) $this->request->getPost('discount_holder_name'));
-    $customerName = trim((string) $this->request->getPost('customer_name'));
-    $paymentMethod = $this->request->getPost('payment_method');
-    $tendered = (float) $this->request->getPost('tendered');
-    $gcashRef = trim((string) $this->request->getPost('gcash_ref'));
+    $customerName       = trim((string) $this->request->getPost('customer_name'));
+    $paymentMethod      = $this->request->getPost('payment_method');
+    $tendered           = (float) $this->request->getPost('tendered');
+    $gcashRef           = trim((string) $this->request->getPost('gcash_ref'));
 
     if (empty($items)) {
         return $this->response->setStatusCode(422)->setJSON(['error' => 'Cart is empty.']);
@@ -786,122 +832,144 @@ public function process_pos()
         return $this->response->setStatusCode(422)->setJSON(['error' => 'GCash reference number is required.']);
     }
 
-    // Re-validate stock AND VAT-exempt status server-side — never trust the client for either
-    $vatableGross = 0;
-    $exemptGross = 0;
-    $validatedItems = [];
-
-    foreach ($items as $item) {
-        $batch = $db->table('inventory_batches as ib')
-            ->select('ib.batch_id, ib.quantity_avail, ib.sell_price, ib.product_id, p.is_vat_exempt, p.name')
-            ->join('products as p', 'p.product_id = ib.product_id')
-            ->where('ib.batch_id', $item['batch_id'])
-            ->get()->getRow();
-
-        if (!$batch || $batch->quantity_avail < $item['qty']) {
-            return $this->response->setStatusCode(422)->setJSON(['error' => 'Insufficient stock for one or more items. Please refresh and try again.']);
-        }
-
-        $lineTotal = $batch->sell_price * $item['qty'];
-        if ($batch->is_vat_exempt) {
-            $exemptGross += $lineTotal;
-        } else {
-            $vatableGross += $lineTotal;
-        }
-
-        $validatedItems[] = [
-            'product_id' => $batch->product_id, 'batch_id' => $batch->batch_id,
-            'name' => $batch->name, 'qty' => $item['qty'],
-            'price' => $batch->sell_price, 'subtotal' => $lineTotal
-        ];
+    try {
+        [$validatedItems, $vatableGross, $exemptGross] = $this->posModel->validateCartItems($items);
+    } catch (\RuntimeException $e) {
+        return $this->response->setStatusCode(422)->setJSON(['error' => $e->getMessage()]);
     }
 
-    $gross = $vatableGross + $exemptGross;
-
-    if ($discountType === 'pwd' || $discountType === 'senior') {
-        $vatExclusiveBase = ($vatableGross / 1.12) + $exemptGross;
-        $discountAmount = $vatExclusiveBase * 0.20;
-        $netTotal = $vatExclusiveBase - $discountAmount;
-        $vatAmount = 0;
-        $subtotal = $netTotal;
-    } else {
-        $discountAmount = 0;
-        $vatAmount = $vatableGross - ($vatableGross / 1.12);
-        $subtotal = ($vatableGross / 1.12) + $exemptGross;
-        $netTotal = $gross;
-    }
+    // Dynamic rate, not hardcoded — keeps server math in sync with whatever
+    // admin has configured in store_settings, same value the client preview uses.
+    $vatRate = $this->posModel->getVatRate();
+    $totals = $this->posModel->computeTotals($vatableGross, $exemptGross, $discountType, $vatRate);
+    $netTotal = $totals['netTotal'];
 
     if ($paymentMethod === 'cash' && $tendered < $netTotal) {
         return $this->response->setStatusCode(422)->setJSON(['error' => 'Amount tendered is less than the total due.']);
     }
-    // For GCash, confirmation of payment IS the tender — treat as exact amount
     if ($paymentMethod === 'gcash') {
         $tendered = $netTotal;
     }
 
-    $db->transStart();
-
-    $db->table('pos_transactions')->insert([
+    $header = [
         'txn_number'           => 'TXN-' . date('Ymd') . '-' . mt_rand(1000, 9999),
         'cashier_id'           => $session->get('user_id') ?? 1,
         'customer_name'        => $customerName !== '' ? $customerName : null,
-        'subtotal'             => $subtotal,
-        'discount'             => $discountAmount,
+        'subtotal'             => $totals['subtotal'],
+        'discount'             => $totals['discountAmount'],
         'discount_type'        => $discountType,
         'discount_id_number'   => $discountIdNumber !== '' ? $discountIdNumber : null,
         'discount_holder_name' => $discountHolderName !== '' ? $discountHolderName : null,
-        'vat_amount'           => $vatAmount,
+        'vat_amount'           => $totals['vatAmount'],
         'total'                => $netTotal,
         'payment_method'       => $paymentMethod,
         'gcash_ref'            => $paymentMethod === 'gcash' ? $gcashRef : null,
         'amount_tendered'      => $tendered,
         'change_due'           => $paymentMethod === 'cash' ? ($tendered - $netTotal) : 0,
         'or_number'            => 'OR-' . date('Ymd') . '-' . mt_rand(1000, 9999),
-        'status'               => 'completed'
-    ]);
-    $txn_id = $db->insertID();
+        'status'               => 'completed',
+    ];
 
-    $productsSold = [];
-    foreach ($validatedItems as $item) {
-        $db->table('pos_transaction_items')->insert([
-            'txn_id' => $txn_id, 'product_id' => $item['product_id'], 'batch_id' => $item['batch_id'],
-            'quantity' => $item['qty'], 'unit_price' => $item['price'], 'subtotal' => $item['subtotal']
-        ]);
-        $db->table('inventory_batches')->where('batch_id', $item['batch_id'])
-            ->set('quantity_avail', "quantity_avail - {$item['qty']}", false)->update();
-        $db->table('stock_movements')->insert([
-            'product_id' => $item['product_id'], 'batch_id' => $item['batch_id'], 'movement_type' => 'pos_sale',
-            'quantity' => $item['qty'], 'reference_id' => $txn_id, 'reference_type' => 'pos',
-            'scanned_by' => $session->get('user_id') ?? 1, 'scan_mode' => 'pos',
-        ]);
-        $productsSold[] = $item['product_id'];
+    try {
+        $txnId = $this->posModel->saveTransaction($header, $validatedItems);
+    } catch (\RuntimeException $e) {
+        return $this->response->setStatusCode(500)->setJSON(['error' => $e->getMessage()]);
     }
 
-    $db->transComplete();
-    if ($db->transStatus() === false) {
-        return $this->response->setStatusCode(500)->setJSON(['error' => 'Transaction failed. Please try again.']);
-    }
-
-    foreach (array_unique($productsSold) as $pid) {
+    foreach (array_unique(array_column($validatedItems, 'product_id')) as $pid) {
         \App\Libraries\AutoReorder::check($pid);
     }
 
-    $txn = $db->table('pos_transactions')->where('txn_id', $txn_id)->get()->getRow();
-    return $this->response->setJSON(['status' => 'success', 'txn' => $txn, 'items' => $validatedItems]);
+    $updatedBatches = $this->posModel->getUpdatedBatchStocks(array_column($validatedItems, 'batch_id'));
+    $daily   = $this->posModel->getTodaySummary();
+    $history = $this->posModel->getTodayTransactions(50); // <-- the actual fix
+    $txn     = $this->posModel->getTransactionById($txnId);
+
+    return $this->response->setJSON([
+        'status'          => 'success',
+        'txn'             => $txn,
+        'items'           => $validatedItems,
+        'updated_batches' => $updatedBatches,
+        'daily'           => $daily,
+        'history'         => $history, // <-- populates Today's Transactions immediately, no poll wait
+    ]);
 }
 
 public function confirm_payment()
 {
     $orderId = (int) $this->request->getPost('order_id');
+    $method = $this->request->getPost('payment_method');
     $reference = trim((string) $this->request->getPost('payment_reference'));
 
+    if (!in_array($method, ['cash', 'bank_transfer', 'cheque'])) {
+        return redirect()->back()->with('error', 'Please select a valid payment method.');
+    }
+    if (in_array($method, ['bank_transfer', 'cheque']) && $reference === '') {
+        return redirect()->back()->with('error', 'A reference number is required for bank transfer or cheque payments.');
+    }
+
     $db = \Config\Database::connect();
+    $order = $db->table('sales_orders')->where('order_id', $orderId)->get()->getRow();
+    if (!$order || $order->payment_status === 'paid') {
+        return redirect()->back()->with('error', 'Order not found or already marked paid.');
+    }
+
     $db->table('sales_orders')->where('order_id', $orderId)->update([
         'payment_status'    => 'paid',
+        'payment_method'    => $method,
         'payment_reference' => $reference ?: null,
+        'paid_at'           => date('Y-m-d H:i:s'),
     ]);
+
+    if (!empty($order->client_id)) {
+        \App\Models\Client\NotificationModel::notify($db, (int) $order->client_id, "Payment confirmed for order {$order->order_number}.", '/client/account/invoices');
+    }
 
     return redirect()->back()->with('success', 'Payment confirmed.');
 }
 
+public function update_order_status()
+{
+    $db = \Config\Database::connect();
+    $orderId = (int) $this->request->getPost('order_id');
+    $newStatus = $this->request->getPost('status');
+
+    $order = $db->table('sales_orders')->where('order_id', $orderId)->get()->getRow();
+    if (!$order) {
+        return redirect()->back()->with('error', 'Order not found.');
+    }
+
+    $requiresPrepayment = $order->fulfillment_type === 'delivery'
+        && in_array($order->payment_method, ['cheque', 'bank_transfer'])
+        && $order->payment_status !== 'paid';
+
+    if ($newStatus === 'out_for_delivery' && $requiresPrepayment) {
+        return redirect()->back()->with('error',
+            "This order is paid via " . strtoupper(str_replace('_', ' ', $order->payment_method)) .
+            " and must be confirmed PAID before it can be dispatched. Please confirm payment first.");
+    }
+
+    // Pickup: payment must be confirmed before it can be marked picked up/delivered
+    if ($order->fulfillment_type === 'pickup' && $newStatus === 'delivered' && $order->payment_status !== 'paid') {
+        return redirect()->back()->with('error', 'Please confirm payment before marking this order as picked up.');
+    }
+
+    $db->table('sales_orders')->where('order_id', $orderId)->update(['status' => $newStatus]);
+
+$updatedOrder = $db->table('sales_orders')->where('order_id', $orderId)->get()->getRow();
+if (!empty($updatedOrder->client_id)) {
+    $statusMessages = [
+        'ready_for_pickup' => "Your order {$updatedOrder->order_number} is ready for pickup at the store.",
+        'out_for_delivery' => "Your order {$updatedOrder->order_number} is out for delivery.",
+        'delivered'        => "Your order {$updatedOrder->order_number} has been completed.",
+    ];
+    if (isset($statusMessages[$newStatus])) {
+        \App\Models\Client\NotificationModel::notify($db, (int) $updatedOrder->client_id, $statusMessages[$newStatus], '/client/orders/my-orders');
+    }
 }
+
+return redirect()->back()->with('success', 'Order status updated.');
+}
+
+}
+

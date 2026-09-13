@@ -65,31 +65,31 @@ class ChatbotModel extends Model
     }
 
     public function getOpenEscalations(string $status = 'open', int $page = 1, int $perPage = 10): array
-    {
-        $offset = ($page - 1) * $perPage;
+{
+    $offset = ($page - 1) * $perPage;
 
-        $countBuilder = $this->db->table('chatbot_escalations')->where('status', $status);
-        $total = $countBuilder->countAllResults();
+    $countBuilder = $this->db->table('chatbot_escalations')->where('status', $status);
+    $total = $countBuilder->countAllResults();
 
-        $builder = $this->db->table('chatbot_escalations as ce')
-            ->select('ce.*, cl.query_text, u.full_name as customer_name')
-            ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
-            ->join('users as u', 'u.user_id = cl.user_id', 'left')
-            ->where('ce.status', $status)
-            ->orderBy('ce.created_at', 'DESC')
-            ->limit($perPage, $offset);
+    $builder = $this->db->table('chatbot_escalations as ce')
+        ->select('ce.*, cl.query_text, u.full_name as customer_name, u.role as customer_role')
+        ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
+        ->join('users as u', 'u.user_id = cl.user_id', 'left')
+        ->where('ce.status', $status)
+        ->orderBy('ce.created_at', 'DESC')
+        ->limit($perPage, $offset);
 
-        return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
-    }
+    return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
+}
 
     public function getEscalationDetails(int $id)
-    {
-        return $this->db->table('chatbot_escalations as ce')
-            ->select('ce.*, u.full_name as customer')
-            ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
-            ->join('users as u', 'u.user_id = cl.user_id', 'left')
-            ->where('ce.escalation_id', $id)->get()->getRow();
-    }
+{
+    return $this->db->table('chatbot_escalations as ce')
+        ->select('ce.*, u.full_name as customer, u.role as customer_role')
+        ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
+        ->join('users as u', 'u.user_id = cl.user_id', 'left')
+        ->where('ce.escalation_id', $id)->get()->getRow();
+}
 
     // Appends a staff reply to the chat history, and marks the escalation in_progress
     // the moment a staff member actually responds — separate from 'open' (untouched) and 'resolved'.

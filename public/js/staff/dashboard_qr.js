@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (typeof QRCode === 'undefined') {
             container.innerHTML = `<p class="text-danger small mb-0">QR library failed to load. Check your internet connection and reload the page.</p>`;
-            console.error('QRCode library is undefined — the qrcode.min.js script did not load.');
             return;
         }
 
@@ -16,7 +15,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         QRCode.toCanvas(canvas, text, { width: 180, margin: 1 }, function(error) {
             if (error) {
-                console.error('QR generation failed:', error);
                 container.innerHTML = `<p class="text-danger small mb-0">Failed to generate QR code.</p>`;
             }
         });
@@ -28,25 +26,19 @@ document.addEventListener("DOMContentLoaded", function() {
     if (openBtn && drawerEl) {
         openBtn.addEventListener('click', function() {
             if (typeof bootstrap === 'undefined') {
-                alert('Bootstrap JS is not loaded on this page — the drawer cannot open. Check that the staff footer includes the Bootstrap bundle script.');
-                console.error('window.bootstrap is undefined.');
+                alert('Bootstrap JS is not loaded on this page.');
                 return;
             }
-
             const drawer = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
             drawer.show();
 
             if (!generated) {
                 generated = true;
-                renderQr('staffQrCode', STAFF_LOGIN_URL);
-                renderQr('customerQrCode', CUSTOMER_INFO_URL);
+                renderQr('mobileQrCode', MOBILE_APP_URL);
             }
         });
-    } else {
-        console.error('QR drawer trigger or drawer element not found on page.');
     }
 
-    // ============ DOWNLOAD ============
     document.querySelectorAll('.btn-download-qr').forEach(btn => {
         btn.addEventListener('click', function() {
             const container = document.getElementById(this.getAttribute('data-target'));
@@ -60,7 +52,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // ============ PRINT ============
     document.querySelectorAll('.btn-print-qr').forEach(btn => {
         btn.addEventListener('click', function() {
             const container = document.getElementById(this.getAttribute('data-target'));

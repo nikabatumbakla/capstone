@@ -81,10 +81,13 @@
                                 <td><?= date('M d, Y', strtotime($i['created_at'])) ?></td>
                                 <td><span class="badge rounded-pill <?= $statusMeta[$i['payment_status']] ?? 'bg-secondary' ?> px-3"><?= strtoupper($i['payment_status']) ?></span></td>
                                 <td class="text-center">
-                                    <button class="btn btn-xs btn-outline-dark rounded-circle btn-view-invoice" data-id="<?= $i['order_id'] ?>" title="View Invoice" style="width:30px; height:30px;">
-    <i class="fas fa-eye"></i>
-</button>
-                                </td>
+    <?php if($i['fulfillment_type'] === 'delivery' && in_array($i['payment_method'], ['cheque','bank_transfer']) && $i['payment_status'] === 'unpaid' && empty($i['client_payment_ref'])): ?>
+        <button type="button" class="btn btn-xs btn-warning text-dark rounded-pill px-3 me-1 btn-submit-payment" data-id="<?= $i['order_id'] ?>">Submit Payment</button>
+    <?php endif; ?>
+    <button class="btn btn-xs btn-outline-dark rounded-circle btn-view-invoice" data-id="<?= $i['order_id'] ?>" title="View Invoice" style="width:30px; height:30px;">
+        <i class="fas fa-eye"></i>
+    </button>
+</td>
                             </tr>
                             <?php endforeach; endif; ?>
                         </tbody>
@@ -110,6 +113,19 @@
 </div>
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="invoiceDrawer" style="width:550px;"><div class="offcanvas-body p-0" id="invoiceDrawerContent"></div></div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="paymentDrawer" style="width:450px;">
+    <div class="offcanvas-header border-bottom bg-light">
+        <h6 class="fw-bold mb-0"><i class="fas fa-money-check-alt me-2"></i>Complete Your Payment</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-4" id="paymentDrawerContent"></div>
+</div>
+
+<script>
+    const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
+    const CSRF_HASH = "<?= csrf_hash() ?>";
+</script>
 
 <script src="<?= base_url('public/js/client/invoices.js') ?>"></script>
 <?= view('partials/client/footer') ?>

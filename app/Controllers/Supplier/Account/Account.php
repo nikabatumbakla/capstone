@@ -15,34 +15,36 @@ class Account extends BaseController
     }
 
     public function scorecard()
-    {
-        $supplierId = session()->get('supplier_id');
+{
+    $supplierId = session()->get('supplier_id');
 
-        $data['scorecard'] = $this->accountModel->getScorecard($supplierId);
-        $data['po_history'] = $this->accountModel->getPoHistory($supplierId, 10);
+    $data['scorecard']  = $this->accountModel->getScorecard($supplierId);
+    $data['po_history'] = $this->accountModel->getPoHistory($supplierId, 15);
 
-        $kpis = $this->accountModel->getKpis($supplierId);
-        $data['total_pos'] = $kpis['total_pos'];
-        $data['received_pos'] = $kpis['received_pos'];
+    $data['title']     = "My Scorecard";   // ← this line specifically
+    $data['fullname']  = session()->get('full_name');
+    $data['page_name'] = "scorecard";
 
-        $data['title'] = "Performance Scorecard";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "scorecard";
-        return view('pages/supplier/account/scorecard', $data);
-    }
+    return view('pages/supplier/account/scorecard', $data);
+}
 
     public function profile()
     {
         $supplierId = session()->get('supplier_id');
-        $data['profile'] = $this->accountModel->getProfile($supplierId);
 
-        $data['title'] = "Profile Settings";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "profile";
+        $data['profile']             = $this->accountModel->getProfile($supplierId);
+        $data['all_categories']      = $this->accountModel->getAllCategories();
+        $data['selected_categories'] = $this->accountModel->getSupplierCategories($supplierId);
+        $data['scorecard']           = $this->accountModel->getScorecard($supplierId);
+        $data['kpis']                = $this->accountModel->getKpis($supplierId);
+        $data['title']               = "My Profile";
+        $data['fullname']            = session()->get('full_name');
+        $data['page_name']           = "profile";
+
         return view('pages/supplier/account/profile', $data);
     }
 
-    public function update_profile()
+    public function update()
     {
         $supplierId = session()->get('supplier_id');
         $userId = session()->get('user_id');
@@ -53,17 +55,29 @@ class Account extends BaseController
         }
 
         $supplierPayload = [
-            'name'           => $this->request->getPost('name'),
-            'contact_person' => $this->request->getPost('contact'),
-            'phone'          => $this->request->getPost('phone'),
-            'address'        => $this->request->getPost('address'),
-        ];
+    'contact_person'       => $this->request->getPost('contact_person'),
+    'phone'                => $this->request->getPost('phone'),
+    'address'              => $this->request->getPost('address'),
+    'tin'                  => $this->request->getPost('tin'),
+    'payment_terms'        => $this->request->getPost('payment_terms'),
+    'lead_time_days'       => $this->request->getPost('lead_time_days') ?: 7,
+    'bank_name'            => $this->request->getPost('bank_name'),
+    'bank_account_name'    => $this->request->getPost('bank_account_name'),
+    'bank_account_number'  => $this->request->getPost('bank_account_number'),
+];
 
-        $file = $this->request->getFile('avatar');
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $newName = $file->getRandomName();
-            $file->move(FCPATH . 'public/uploads/avatars', $newName);
+        $avatar = $this->request->getFile('avatar');
+        if ($avatar && $avatar->isValid() && !$avatar->hasMoved()) {
+            $newName = $avatar->getRandomName();
+            $avatar->move(FCPATH . 'public/uploads/avatars', $newName);
             $supplierPayload['avatar_path'] = 'public/uploads/avatars/' . $newName;
+        }
+
+        $permit = $this->request->getFile('permit');
+        if ($permit && $permit->isValid() && !$permit->hasMoved()) {
+            $newName = $permit->getRandomName();
+            $permit->move(FCPATH . 'public/uploads/permits', $newName);
+            $supplierPayload['permit_path'] = 'public/uploads/permits/' . $newName;
         }
 
         $userPayload = ['email' => $email];
@@ -80,8 +94,14 @@ class Account extends BaseController
             $userPayload['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
         }
 
-        $this->accountModel->updateProfile($supplierId, $userId, $supplierPayload, $userPayload);
-        session()->set('full_name', $supplierPayload['name']);
+        $existingCategoryIds = $this->request->getPost('existing_categories') ?: [];
+
+if (empty($existingCategoryIds)) {
+    return redirect()->back()->withInput()->with('error', 'Please select at least one product category.');
+}
+
+        $this->accountModel->updateProfile($supplierId, $userId, $supplierPayload, $userPayload, $existingCategoryIds);
+        session()->set('full_name', $supplierPayload['contact_person']);
 
         return redirect()->to('supplier/account/profile')->with('success', 'Profile updated successfully.');
     }

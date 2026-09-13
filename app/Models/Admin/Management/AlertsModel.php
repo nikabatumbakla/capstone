@@ -231,18 +231,39 @@ private function escalateOverdueTasks(): void
         return $this->db->table('users')->select('user_id, full_name')->whereIn('role', ['admin', 'staff'])->where('is_active', 1)->get()->getResultArray();
     }
 
-    public function getHeaderNotifications(int $limit = 6): array
+    public function getHeaderNotifications(int $limit = 8): array
 {
-    $count = $this->db->table('alerts')->where('is_resolved', 0)->countAllResults();
+    $notifications = [];
 
-    $recent = $this->db->table('alerts')
-        ->where('is_resolved', 0)
-        ->orderBy('priority', 'DESC')
-        ->orderBy('created_at', 'DESC')
-        ->limit($limit)
-        ->get()->getResultArray();
+    $alerts = $this->db->table('alerts')->where('is_resolved', 0)
+        ->orderBy('priority', 'DESC')->orderBy('created_at', 'DESC')->limit($limit)->get()->getResultArray();
 
-    return ['count' => $count, 'recent' => $recent];
+    foreach ($alerts as $a) {
+        $link = base_url('admin/management/alerts-tasks');
+        if ($a['alert_type'] === 'low_stock' || $a['alert_type'] === 'expired' || $a['alert_type'] === 'near_expiry') {
+            $link = base_url('admin/inventory/stock?search=' . urlencode($a['message']));
+        } elseif ($a['alert_type'] === 'po_approval' && $a['po_id']) {
+            $link = base_url('admin/procurement/purchase-orders?highlight=' . $a['po_id']);
+        }
+        $notifications[] = ['type' => $a['alert_type'], 'message' => $a['message'], 'time' => $a['created_at'], 'link' => $link];
+    }
+
+    $pendingPos = $this->db->table('purchase_orders')->where('status', 'pending_approval')
+        ->orderBy('created_at', 'DESC')->limit(5)->get()->getResultArray();
+
+    foreach ($pendingPos as $po) {
+        $notifications[] = [
+            'type'    => 'po_pending',
+            'message' => "PO {$po['po_number']} is awaiting your approval.",
+            'time'    => $po['created_at'],
+            'link'    => base_url('admin/procurement/purchase-orders?highlight=' . $po['po_id']),
+        ];
+    }
+
+    usort($notifications, fn($a, $b) => strtotime($b['time']) <=> strtotime($a['time']));
+    $notifications = array_slice($notifications, 0, $limit);
+
+    return ['count' => count($alerts) + count($pendingPos), 'recent' => $notifications];
 }
 
 }

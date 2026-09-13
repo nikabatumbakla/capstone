@@ -10,6 +10,12 @@
     </div>
 </div>
 
+<?php if (session()->getFlashdata('error')): ?>
+<div style="background:rgba(220,53,69,0.1);border:1px solid #dc3545;color:#dc3545;padding:1rem;border-radius:8px;margin-bottom:1.5rem;">
+    <i class="fa fa-exclamation-circle"></i> <?= session()->getFlashdata('error') ?>
+</div>
+<?php endif; ?>
+
 <section class="section">
     <div class="section-container">
         <div class="contact-grid">
@@ -88,26 +94,26 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>First Name *</label>
-                            <input type="text" name="first_name" required placeholder="Juan">
+                            <input type="text" name="first_name" required placeholder="Juan" value="<?= old('first_name') ?>">
                         </div>
                         <div class="form-group">
                             <label>Last Name *</label>
-                            <input type="text" name="last_name" required placeholder="Dela Cruz">
+                            <input type="text" name="last_name" required placeholder="Dela Cruz" value="<?= old('last_name') ?>">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Email Address *</label>
-                            <input type="email" name="email" required placeholder="email@example.com">
+                            <input type="email" name="email" required placeholder="email@example.com" value="<?= old('email') ?>">
                         </div>
                         <div class="form-group">
                             <label>Phone Number</label>
-                            <input type="text" name="phone" placeholder="09XXXXXXXXX">
+                            <input type="text" name="phone" placeholder="09XXXXXXXXX" value="<?= old('phone') ?>">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Institution / Organization</label>
-                        <input type="text" name="institution" placeholder="Hospital, School, Barangay, etc.">
+                        <input type="text" name="institution" placeholder="Hospital, School, Barangay, etc." value="<?= old('institution') ?>">
                     </div>
                     <div class="form-group">
                         <label>Inquiry Type *</label>
@@ -125,7 +131,7 @@
                     </div>
                     <div class="form-group">
                         <label>Products Needed (if applicable)</label>
-                        <input type="text" name="products" placeholder="e.g. 100 boxes surgical masks, BP monitor x5">
+                        <input type="text" name="products" placeholder="e.g. 100 boxes surgical masks, BP monitor x5"  value="<?= old('products') ?>">
                     </div>
                     <div class="form-group">
                         <label>Message *</label>

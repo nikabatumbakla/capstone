@@ -4,6 +4,12 @@ document.addEventListener("DOMContentLoaded", function() {
     let escPage = 1;
     let escStatus = 'open';
 
+    function getRoleLabel(role) {
+        const roleLabels = { customer: 'Walk-in Customer', institutional_client: 'Institutional Client', supplier: 'Supplier' };
+        const label = roleLabels[role] || '';
+        return label ? `<span class="badge bg-light text-dark border ms-1" style="font-size:9px;">${label}</span>` : '';
+    }
+
     function escapeHtml(str) {
         const div = document.createElement('div');
         div.textContent = str;
@@ -59,7 +65,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 body.innerHTML = result.data.length ? result.data.map(e => `
                     <tr>
                         <td class="ps-4">#ESC-${String(e.escalation_id).padStart(4, '0')}</td>
-                        <td class="fw-bold">${escapeHtml(e.customer_name || 'Guest User')}</td>
+                        <td>
+    <span class="fw-bold">${escapeHtml(e.customer_name || 'Guest User')}</span>
+    ${getRoleLabel(e.customer_role)}
+</td>
                         <td>${new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                         <td><span class="badge ${statusClassMap[e.status]} px-3">${statusLabelMap[e.status].toUpperCase()}</span></td>
                         <td class="text-center">
@@ -182,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .then(res => res.json())
                     .then(data => {
                         if (data.error) { document.getElementById('chatThread').innerHTML = `<p class="text-danger text-center p-5">${data.error}</p>`; return; }
-                        document.getElementById('chatUser').innerText = data.customer || 'Guest User';
+                        document.getElementById('chatUser').innerHTML = `${escapeHtml(data.customer || 'Guest User')} ${getRoleLabel(data.customer_role)}`;
                         renderThread(data.full_chat_history);
                     })
                     .catch(err => console.error(err));

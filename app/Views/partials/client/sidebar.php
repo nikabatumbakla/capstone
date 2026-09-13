@@ -39,6 +39,8 @@
     </a>
 </li>
 
+<li class="nav-item"><a href="<?= base_url('client/orders/returns') ?>" class="nav-link-custom <?= ($page_name == 'returns') ? 'active' : '' ?>"><i class="fas fa-undo-alt"></i> <span>My Returns</span></a></li>
+
             <li class="nav-label">ACCOUNT</li>
             <li class="nav-item"><a href="<?= base_url('client/account/invoices') ?>" class="nav-link-custom"><i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span></a></li>
 

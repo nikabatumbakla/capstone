@@ -26,17 +26,18 @@
             <i class="fas fa-inbox"></i> <span>PO Inbox</span>
         </a>
     </li>
-    <!-- Acknowledge PO usually redirects to the Inbox where they can pick one to approve -->
-    <li>
-        <a href="<?= base_url('supplier/orders/inbox?tab=open') ?>" class="nav-link-custom">
-            <i class="fas fa-check-double"></i> <span>Acknowledge PO</span>
-        </a>
-    </li>
     <li>
         <a href="<?= base_url('supplier/orders/delivery') ?>" class="nav-link-custom <?= ($page_name == 'delivery') ? 'active' : '' ?>">
             <i class="fas fa-truck"></i> <span>Delivery Updates</span>
         </a>
     </li>
+    <li class="nav-item"><a href="<?= base_url('supplier/orders/returns') ?>" class="nav-link-custom <?= ($page_name == 'supplier_returns') ? 'active' : '' ?>"><i class="fas fa-undo-alt"></i> <span>Returns</span></a></li>
+<li class="nav-item">
+    <a href="<?= base_url('supplier/orders/payments') ?>" class="nav-link-custom <?= ($page_name == 'payments') ? 'active' : '' ?>">
+        <i class="fas fa-money-check-alt"></i> <span>Payment History</span>
+    </a>
+</li>
+
 
     <li class="nav-label">PRODUCTS & ACCOUNT</li>
     <li><a href="<?= base_url('supplier/inventory/catalog') ?>" class="nav-link-custom <?= ($page_name == 'catalog') ? 'active' : '' ?>"><i class="fas fa-box-open"></i> <span>My Product Catalog</span></a></li>

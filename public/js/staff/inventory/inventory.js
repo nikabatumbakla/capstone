@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <div class="text-center mb-3">
                             <h6 class="fw-bold mb-1">${data.name}</h6>
                             <span class="badge bg-dark">${data.cat_name}</span>
-                            <p class="text-muted mt-1 mb-0" style="font-size:10px;">SKU: ${val(data.sku)} · Currently has no recorded stock</p>
+                            <p class="text-muted mt-1 mb-0" style="font-size:10px;">Barcode: ${val(data.barcode_value)} · Currently has no recorded stock</p>
                         </div>
 
                         ${buildProductInfoBlock(data)}
@@ -55,7 +55,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         <hr class="my-4">
 
                         <form action="${BASE_URL}/staff/inventory/create-batch" method="POST">
-                            <input type="hidden" name="product_id" value="${data.product_id}">
+    <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+    <input type="hidden" name="product_id" value="${data.product_id}">
                             <div class="row g-3 text-start">
                                 <div class="col-6"><label class="formal-label">Batch Number *</label><input type="text" name="batch_number" class="formal-input" placeholder="e.g. B2026-05" required></div>
                                 <div class="col-6"><label class="formal-label">Quantity (${unit}) *</label><input type="number" name="quantity" class="formal-input" min="1" required></div>
@@ -90,55 +91,81 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // ============ VIEW DETAILS ============
     viewBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            if (!id) { alert('This product has no stock batch to view yet.'); return; }
+    btn.addEventListener('click', function() {
+        const productId = this.getAttribute('data-id');
+        detailsDrawer.show();
+        content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>`;
 
-            detailsDrawer.show();
-            content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>`;
+        fetch(`${BASE_URL}/staff/inventory/get-product-batches/${productId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) { content.innerHTML = `<div class="text-center text-danger p-5">${data.error}</div>`; return; }
 
-            fetch(`${BASE_URL}/staff/inventory/get-details/${id}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) { content.innerHTML = `<div class="text-center text-danger p-5">${data.error}</div>`; return; }
+                const totalStock = data.batches.reduce((sum, b) => sum + parseInt(b.quantity_avail), 0);
 
-                    content.innerHTML = `
-                        <div class="text-center mb-3 px-4 pt-4">
-                            <h5 class="fw-bold mb-1">${data.name}</h5>
-                            <span class="badge bg-dark">${data.cat_name}</span>
-                        </div>
-
-                        <div class="px-4">
-                            ${buildProductInfoBlock(data)}
-                        </div>
-
-                        <hr class="mx-4">
-
-                        <div class="row g-3 px-4 mb-4 text-start">
-                            <div class="col-6"><label class="info-label">SKU</label><p class="info-value">${val(data.sku)}</p></div>
-                            <div class="col-6"><label class="info-label">Barcode</label><p class="info-value">${val(data.barcode_value)}</p></div>
-                            <div class="col-6"><label class="info-label">Current Stock</label><p class="info-value fs-6 text-maroon">${data.quantity_avail} ${data.unit}</p></div>
-                            <div class="col-6"><label class="info-label">Batch No.</label><p class="info-value text-primary">${data.batch_number}</p></div>
-                        </div>
-
-                        <div class="d-grid gap-2 px-4 pb-4">
-                            <button type="button" id="btnStaffAdjust" class="btn btn-warning py-3 fw-bold rounded-3 shadow-sm text-dark">
-                                <i class="fas fa-adjust me-2"></i>PROCESS STOCK ADJUSTMENT
+                const batchRowsHtml = data.batches.length ? data.batches.map(b => `
+                    <tr>
+                        <td class="fw-bold">${b.batch_number}</td>
+                        <td>${b.expires_at || '—'}</td>
+                        <td class="text-center">${b.quantity_avail}</td>
+                        <td class="text-end">₱${parseFloat(b.sell_price).toFixed(2)}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 btn-adjust-batch"
+                                data-batch='${JSON.stringify(b).replace(/'/g, "&apos;")}' data-product-id="${productId}" data-product-name="${data.name}" data-unit="${data.unit}">
+                                <i class="fas fa-adjust"></i>
                             </button>
-                        </div>
-                    `;
+                        </td>
+                    </tr>
+                `).join('') : `<tr><td colspan="5" class="text-center text-muted py-3">No batches recorded yet.</td></tr>`;
 
-                    document.getElementById('btnStaffAdjust').addEventListener('click', function() {
+                content.innerHTML = `
+                    <div class="text-center mb-3 px-4 pt-4">
+                        <h5 class="fw-bold mb-1">${data.name}</h5>
+                        <span class="badge bg-dark">${data.cat_name}</span>
+                    </div>
+
+                    <div class="px-4">
+                        ${buildProductInfoBlock(data)}
+                    </div>
+
+                    <hr class="mx-4">
+
+                    <div class="row g-3 px-4 mb-3 text-start">
+                        <div class="col-6"><label class="info-label">Barcode</label><p class="info-value">${val(data.barcode_value)}</p></div>
+                        <div class="col-6"><label class="info-label">Total Stock</label><p class="info-value fs-6 text-maroon">${totalStock} ${data.unit}</p></div>
+                    </div>
+
+                    <div class="px-4 mb-4">
+                        <p class="fw-bold small mb-2">Batch Breakdown</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm" style="font-size:10px">
+                                <thead class="table-dark"><tr><th>Batch #</th><th>Expiry</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-center">Adjust</th></tr></thead>
+                                <tbody>${batchRowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                document.querySelectorAll('.btn-adjust-batch').forEach(adjBtn => {
+                    adjBtn.addEventListener('click', function() {
+                        const batch = JSON.parse(this.getAttribute('data-batch').replace(/&apos;/g, "'"));
                         detailsDrawer.hide();
-                        openAdjustForm(data);
+                        openAdjustForm({
+                            batch_id: batch.batch_id,
+                            product_id: this.getAttribute('data-product-id'),
+                            name: this.getAttribute('data-product-name'),
+                            batch_number: batch.batch_number,
+                            quantity_avail: batch.quantity_avail,
+                        });
                     });
-                })
-                .catch(err => {
-                    content.innerHTML = `<div class="text-center text-danger p-5">Failed to load item details.</div>`;
-                    console.error(err);
                 });
-        });
+            })
+            .catch(err => {
+                content.innerHTML = `<div class="text-center text-danger p-5">Failed to load product details.</div>`;
+                console.error(err);
+            });
     });
+});
 
     function openAdjustForm(data) {
         adjContent.innerHTML = `
@@ -147,8 +174,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     <i class="fas fa-pencil-alt me-2" style="color:#333"></i>ADD STOCK ADJUSTMENT
                 </h6>
             </div>
-            <form action="${BASE_URL}/staff/inventory/adjust_stock" method="POST">
-                <input type="hidden" name="batch_id" value="${data.batch_id}">
+            <form action="${BASE_URL}/staff/inventory/adjust-stock" method="POST">
+    <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+    <input type="hidden" name="batch_id" value="${data.batch_id}">
                 <input type="hidden" name="product_id" value="${data.product_id}">
                 <input type="hidden" name="qty_before" value="${data.quantity_avail}">
 

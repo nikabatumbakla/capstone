@@ -23,11 +23,15 @@
     </div>
 </div>
 
+<div id="stockoutToastContainer" style="position:fixed; bottom:20px; left:20px; z-index:1080; display:flex; flex-direction:column; gap:10px;"></div>
+<script src="<?= base_url('public/js/admin/stockout_toast.js') ?>"></script>
+
 <script>
     if (typeof BASE_URL === 'undefined') {
         var BASE_URL = "<?= base_url() ?>";
     }
 </script>
+
 
 <script src="<?= base_url('public/js/admin/my_profile.js') ?>"></script>
 </body>

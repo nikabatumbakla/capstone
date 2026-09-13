@@ -15,37 +15,100 @@ class OrdersModel extends Model
     }
 
     public function getKpis(int $clientId): array
-    {
-        return [
-            'active'  => $this->db->table('sales_orders')->where('client_id', $clientId)->whereNotIn('status', ['delivered', 'cancelled'])->countAllResults(),
-            'ytd'     => $this->db->table('sales_orders')->where('client_id', $clientId)->where('YEAR(created_at)', date('Y'))->countAllResults(),
-            'unpaid'  => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'unpaid')->countAllResults(),
-        ];
+{
+    return [
+        'active'    => $this->db->table('sales_orders')->where('client_id', $clientId)->whereNotIn('status', ['delivered', 'cancelled'])->countAllResults(),
+        'ytd'       => $this->db->table('sales_orders')->where('client_id', $clientId)->where('YEAR(created_at)', date('Y'))->countAllResults(),
+        'unpaid'    => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'unpaid')->countAllResults(),
+        'completed' => $this->db->table('sales_orders')->where('client_id', $clientId)->where('status', 'delivered')->countAllResults(),
+    ];
+}
+
+   public function getMyOrders(int $clientId, string $status = '', string $search = '', int $page = 1, int $perPage = 10): array
+{
+    $offset = ($page - 1) * $perPage;
+    $apply = function ($b) use ($clientId, $status, $search) {
+        $b->where('so.client_id', $clientId);
+        if ($status === 'ytd') $b->where('YEAR(so.created_at)', date('Y'));
+        if ($status === 'unpaid') $b->where('so.payment_status', 'unpaid');
+        if ($status === 'active') $b->whereNotIn('so.status', ['delivered', 'cancelled']);
+        if ($status === 'completed') $b->where('so.status', 'delivered');
+        if ($search !== '') $b->like('so.order_number', $search);
+        return $b;
+    };
+
+    $countBuilder = $this->db->table('sales_orders as so');
+    $apply($countBuilder);
+    $total = $countBuilder->countAllResults();
+
+    $builder = $this->db->table('sales_orders as so')
+        ->select("so.*, (SELECT COUNT(*) FROM sales_order_items WHERE order_id = so.order_id) as item_count,
+            (SELECT COUNT(*) FROM sales_returns WHERE order_id = so.order_id) as has_return");
+    $apply($builder);
+    $builder->orderBy('so.created_at', 'DESC')->limit($perPage, $offset);
+
+    return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
+}
+
+public function reportIssue(int $orderId, int $clientId, array $productIds, array $batchIds, array $qtyOrdered, array $conditions, array $qtyFlagged, int $userId): array
+{
+    $order = $this->db->table('sales_orders')
+        ->where('order_id', $orderId)->where('client_id', $clientId)
+        ->where('fulfillment_type', 'delivery')->where('status', 'delivered')
+        ->get()->getRow();
+    if (!$order) return ['success' => false, 'message' => 'Unable to file a return for this order.'];
+
+    $alreadyFiled = $this->db->table('sales_returns')->where('order_id', $orderId)->countAllResults();
+    if ($alreadyFiled > 0) return ['success' => false, 'message' => 'A return has already been filed for this order.'];
+
+    $conditionLabels = ['damaged' => 'Damaged', 'wrong_item' => 'Wrong Item', 'missing' => 'Never Received'];
+    $anyFiled = false;
+
+    foreach ($productIds as $index => $pid) {
+        $condition = $conditions[$index] ?? 'good';
+        if ($condition === 'good') continue;
+        $flaggedQty = min((int) ($qtyFlagged[$index] ?? 0), (int) $qtyOrdered[$index]);
+        if ($flaggedQty <= 0) continue;
+
+        $unitPrice = $this->db->table('sales_order_items')->select('unit_price')->where('order_id', $orderId)->where('product_id', $pid)->get()->getRow()->unit_price ?? 0;
+        $restockCondition = $condition === 'missing' ? 'resellable' : $condition;
+        $label = $conditionLabels[$condition] ?? ucfirst($condition);
+
+        $this->db->table('sales_returns')->insert([
+            'order_id'          => $orderId,
+            'product_id'        => $pid,
+            'batch_id'          => $batchIds[$index] ?: null,
+            'quantity'          => $flaggedQty,
+            'restock_condition' => $restockCondition,
+            'refund_amount'     => round($unitPrice * $flaggedQty, 2),
+            'processed_by'      => $userId,
+            'reason'            => "{$label} — reported by client after delivery.",
+            'source'            => 'client_post_delivery',
+            'status'            => 'pending',
+        ]);
+        $anyFiled = true;
     }
 
-    public function getMyOrders(int $clientId, string $status = '', string $search = '', int $page = 1, int $perPage = 10): array
-    {
-        $offset = ($page - 1) * $perPage;
-        $apply = function ($b) use ($clientId, $status, $search) {
-            $b->where('so.client_id', $clientId);
-            if ($status === 'ytd') $b->where('YEAR(so.created_at)', date('Y'));
-            if ($status === 'unpaid') $b->where('so.payment_status', 'unpaid');
-            if ($status === 'active') $b->whereNotIn('so.status', ['delivered', 'cancelled']);
-            if ($search !== '') $b->like('so.order_number', $search);
-            return $b;
-        };
+    if (!$anyFiled) return ['success' => false, 'message' => 'Please flag at least one item to report an issue.'];
+    return ['success' => true];
+}
 
-        $countBuilder = $this->db->table('sales_orders as so');
-        $apply($countBuilder);
-        $total = $countBuilder->countAllResults();
+public function getOrderForIssueReport(int $orderId, int $clientId)
+{
+    $order = $this->db->table('sales_orders')
+        ->where('order_id', $orderId)->where('client_id', $clientId)
+        ->where('fulfillment_type', 'delivery')->where('status', 'delivered')
+        ->get()->getRow();
+    if (!$order) return null;
 
-        $builder = $this->db->table('sales_orders as so')
-            ->select('so.*, (SELECT COUNT(*) FROM sales_order_items WHERE order_id = so.order_id) as item_count');
-        $apply($builder);
-        $builder->orderBy('so.created_at', 'DESC')->limit($perPage, $offset);
+    $items = $this->db->table('sales_order_items as soi')
+        ->select('soi.product_id, soi.batch_id, soi.quantity, soi.unit_price, p.name, p.barcode_value, p.unit')
+        ->join('products as p', 'p.product_id = soi.product_id')
+        ->where('soi.order_id', $orderId)->get()->getResultArray();
 
-        return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
-    }
+    return ['order' => $order, 'items' => $items];
+}
+
 
     // Ownership check baked in — a client can never view another client's order by guessing an ID
     public function getOrderDetails(int $orderId, int $clientId)
@@ -60,19 +123,13 @@ class OrdersModel extends Model
     if (!$order) return null;
 
     $items = $this->db->table('sales_order_items as soi')
-        ->select("soi.*, p.name, p.sku, p.unit,
+        ->select("soi.*, p.name, p.barcode_value, p.unit,
             (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
         ->join('products as p', 'p.product_id = soi.product_id')
         ->where('soi.order_id', $orderId)
         ->get()->getResultArray();
 
-    // Latest delivery tracking status, if any
-    $tracking = $this->db->table('order_delivery_tracking')
-        ->where('order_id', $orderId)
-        ->orderBy('updated_at', 'DESC')
-        ->get()->getRow();
-
-    return ['order' => $order, 'items' => $items, 'tracking' => $tracking];
+    return ['order' => $order, 'items' => $items];
 }
 
     public function getStoreInfo(): array
@@ -187,4 +244,105 @@ class OrdersModel extends Model
 
     return ['success' => true, 'order_id' => $orderId, 'products_ordered' => array_unique($productsOrdered), 'capped' => $cappedCount];
 }
+
+public function getOrderForConfirm(int $orderId, int $clientId)
+{
+    $order = $this->db->table('sales_orders')
+        ->where('order_id', $orderId)
+        ->where('client_id', $clientId)
+        ->where('fulfillment_type', 'delivery')
+        ->where('status', 'out_for_delivery')
+        ->get()->getRow();
+
+    if (!$order) return null;
+
+    $items = $this->db->table('sales_order_items as soi')
+        ->select('soi.product_id, soi.batch_id, soi.quantity, soi.unit_price, p.name, p.barcode_value, p.unit')
+        ->join('products as p', 'p.product_id = soi.product_id')
+        ->where('soi.order_id', $orderId)
+        ->get()->getResultArray();
+
+    return ['order' => $order, 'items' => $items];
+}
+
+public function confirmReceipt(int $orderId, int $clientId, array $productIds, array $batchIds, array $qtyOrdered, array $conditions, array $qtyFlagged, int $userId): array
+{
+    $order = $this->db->table('sales_orders')
+        ->where('order_id', $orderId)->where('client_id', $clientId)
+        ->where('fulfillment_type', 'delivery')
+        ->where('status', 'out_for_delivery')
+        ->get()->getRow();
+
+    if (!$order) return ['success' => false, 'message' => 'This order cannot be confirmed right now.'];
+
+    $conditionLabels = ['damaged' => 'Damaged', 'wrong_item' => 'Wrong Item', 'missing' => 'Never Received'];
+    $anyIssueFiled = false;
+    $this->db->transStart();
+
+    foreach ($productIds as $index => $pid) {
+        $condition = $conditions[$index] ?? 'good';
+        if ($condition === 'good') continue;
+
+        $flaggedQty = min((int) ($qtyFlagged[$index] ?? 0), (int) $qtyOrdered[$index]);
+        if ($flaggedQty <= 0) continue;
+
+        $anyIssueFiled = true;
+        $unitPrice = $this->db->table('sales_order_items')
+            ->select('unit_price')->where('order_id', $orderId)->where('product_id', $pid)
+            ->get()->getRow()->unit_price ?? 0;
+
+        $restockCondition = $condition === 'missing' ? 'resellable' : $condition;
+        $label = $conditionLabels[$condition] ?? ucfirst($condition);
+
+        $this->db->table('sales_returns')->insert([
+            'order_id'          => $orderId,
+            'product_id'        => $pid,
+            'batch_id'          => $batchIds[$index] ?: null,
+            'quantity'          => $flaggedQty,
+            'restock_condition' => $restockCondition,
+            'refund_amount'     => round($unitPrice * $flaggedQty, 2),
+            'processed_by'      => $userId,
+            'reason'            => "{$label} — reported by client during delivery confirmation.",
+            'source'            => 'client_confirmation',
+            'status'            => 'pending',
+        ]);
+    }
+
+    // Only a fully clean delivery closes as 'delivered'. Any flagged item keeps
+    // the order open at 'return_pending' until the return itself is resolved —
+    // it is NOT done just because the client received something.
+    $this->db->table('sales_orders')->where('order_id', $orderId)->update([
+        'status' => $anyIssueFiled ? 'return_pending' : 'delivered',
+    ]);
+
+    $this->db->transComplete();
+    if ($this->db->transStatus() === false) return ['success' => false, 'message' => 'Failed to confirm receipt. Please try again.'];
+
+    return ['success' => true, 'has_issue' => $anyIssueFiled];
+}
+
+public function getOrderForPayment(int $orderId, int $clientId)
+{
+    return $this->db->table('sales_orders')
+        ->where('order_id', $orderId)
+        ->where('client_id', $clientId)
+        ->where('fulfillment_type', 'delivery')
+        ->whereIn('payment_method', ['cheque', 'bank_transfer'])
+        ->where('payment_status', 'unpaid')
+        ->get()->getRow();
+}
+
+public function submitPaymentReference(int $orderId, int $clientId, string $reference): bool
+{
+    $order = $this->getOrderForPayment($orderId, $clientId);
+    if (!$order) return false;
+
+    $this->db->table('sales_orders')->where('order_id', $orderId)->update([
+        'client_payment_ref'          => $reference,
+        'client_payment_submitted_at' => date('Y-m-d H:i:s'),
+    ]);
+    return true;
+}
+
+
 }

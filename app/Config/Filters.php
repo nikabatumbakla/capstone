@@ -25,6 +25,7 @@ class Filters extends BaseConfig
         'secureheaders' => SecureHeaders::class,
         'auth'          => \App\Filters\AuthGuard::class, // Your Capstone Security Filter
         'forcehttps'    => ForceHTTPS::class, // FIXED: Added this missing alias
+        'sessionActivity' => \App\Filters\SessionActivityFilter::class,
     ];
 
     /**

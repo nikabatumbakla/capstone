@@ -14,27 +14,30 @@ class BulletinModel extends Model
         $this->db = \Config\Database::connect();
     }
 
-    public function getFeed(string $audience = '', string $search = '', int $page = 1, int $perPage = 8): array
-    {
-        $offset = ($page - 1) * $perPage;
-        $apply = function ($builder) use ($audience, $search) {
-            if ($audience !== '') $builder->where('bp.target_audience', $audience);
-            if ($search !== '') $builder->groupStart()->like('bp.title', $search)->orLike('bp.content', $search)->groupEnd();
-            return $builder;
-        };
+    public function getFeed(string $audience = '', string $status = '', string $search = '', int $page = 1, int $perPage = 8): array
+{
+    $offset = ($page - 1) * $perPage;
+    $apply = function ($builder) use ($audience, $status, $search) {
+        if ($audience !== '') $builder->where('bp.target_audience', $audience);
+        if ($status === 'pinned') $builder->where('bp.is_pinned', 1);
+        if ($status === 'published') $builder->where('bp.is_published', 1);
+        if ($status === 'drafts') $builder->where('bp.is_published', 0);
+        if ($search !== '') $builder->groupStart()->like('bp.title', $search)->orLike('bp.content', $search)->groupEnd();
+        return $builder;
+    };
 
-        $countBuilder = $this->db->table('bulletin_posts as bp');
-        $apply($countBuilder);
-        $total = $countBuilder->countAllResults();
+    $countBuilder = $this->db->table('bulletin_posts as bp');
+    $apply($countBuilder);
+    $total = $countBuilder->countAllResults();
 
-        $builder = $this->db->table('bulletin_posts as bp')
-            ->select('bp.*, u.full_name as author')
-            ->join('users as u', 'u.user_id = bp.created_by', 'left');
-        $apply($builder);
-        $builder->orderBy('bp.is_pinned', 'DESC')->orderBy('bp.created_at', 'DESC')->limit($perPage, $offset);
+    $builder = $this->db->table('bulletin_posts as bp')
+        ->select('bp.*, u.full_name as author')
+        ->join('users as u', 'u.user_id = bp.created_by', 'left');
+    $apply($builder);
+    $builder->orderBy('bp.is_pinned', 'DESC')->orderBy('bp.created_at', 'DESC')->limit($perPage, $offset);
 
-        return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
-    }
+    return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
+}
 
     public function getById(int $id)
     {

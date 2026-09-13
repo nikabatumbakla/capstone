@@ -16,7 +16,7 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = 'http://localhost:8080/';
+    public string $baseURL = 'https://aerospace-renewably-wistful.ngrok-free.dev/PharMediSync/';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
@@ -26,7 +26,7 @@ class App extends BaseConfig
      * When your site URL ($baseURL) is 'http://example.com/', and your site
      * also accepts 'http://media.example.com/' and 'http://accounts.example.com/':
      *     ['media.example.com', 'accounts.example.com']
-     *
+     *writable
      * @var list<string>
      */
     public array $allowedHostnames = [];

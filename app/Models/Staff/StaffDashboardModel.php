@@ -15,30 +15,34 @@ class StaffDashboardModel extends Model
     }
 
     public function getKpis(int $staffUserId): array
-    {
-        $today = date('Y-m-d');
+{
+    $today = date('Y-m-d');
 
-        return [
-            'pos_txns' => $this->db->table('pos_transactions')
-                ->where('DATE(created_at)', $today)
-                ->where('cashier_id', $staffUserId)
-                ->where('status', 'completed')
-                ->countAllResults(),
+    $posToday = $this->db->table('pos_transactions')
+        ->select('COUNT(*) as txn_count, COALESCE(SUM(total),0) as txn_total')
+        ->where('DATE(created_at)', $today)
+        ->where('cashier_id', $staffUserId)
+        ->where('status', 'completed')
+        ->get()->getRow();
 
-            'pending_grr' => $this->db->table('purchase_orders')
-                ->whereIn('status', ['sent', 'acknowledged', 'in_transit'])
-                ->countAllResults(),
+    return [
+        'pos_txns'  => (int) $posToday->txn_count,
+        'pos_total' => (float) $posToday->txn_total,
 
-            'orders_to_process' => $this->db->table('sales_orders')
-                ->where('status', 'pending')
-                ->countAllResults(),
+        'pending_grr' => $this->db->table('purchase_orders')
+            ->whereIn('status', ['sent', 'acknowledged', 'in_transit'])
+            ->countAllResults(),
 
-            'assigned_alerts' => $this->db->table('alerts')
-                ->where('assigned_to', $staffUserId)
-                ->where('is_resolved', 0)
-                ->countAllResults(),
-        ];
-    }
+        'orders_to_process' => $this->db->table('sales_orders')
+            ->where('status', 'pending')
+            ->countAllResults(),
+
+        'assigned_alerts' => $this->db->table('alerts')
+            ->where('assigned_to', $staffUserId)
+            ->where('is_resolved', 0)
+            ->countAllResults(),
+    ];
+}
 
     public function getTodaysTasks(int $staffUserId, int $limit = 5): array
     {
@@ -56,15 +60,17 @@ class StaffDashboardModel extends Model
 
     public function getLowStock(int $limit = 5): array
     {
-        return $this->db->table('inventory_batches as ib')
-            ->select('p.product_id, p.name, ib.batch_id, ib.quantity_avail, ib.reorder_level')
-            ->join('products as p', 'p.product_id = ib.product_id')
+        return $this->db->table('products as p')
+            ->select('p.product_id, p.name, COALESCE(SUM(ib.quantity_avail),0) as total_stock, COALESCE(MAX(ib.reorder_level),5) as reorder_level')
+            ->join('inventory_batches as ib', 'ib.product_id = p.product_id', 'left')
             ->where('p.is_active', 1)
-            ->where('ib.quantity_avail <= ib.reorder_level', null, false)
-            ->orderBy('ib.quantity_avail', 'ASC')
+            ->groupBy('p.product_id')
+            ->having('total_stock <= reorder_level', null, false)
+            ->orderBy('total_stock', 'ASC')
             ->limit($limit)
             ->get()->getResultArray();
     }
+
     public function getRecentActivity(int $staffUserId, int $limit = 6): array
 {
     return $this->db->table('stock_movements as sm')
@@ -75,5 +81,4 @@ class StaffDashboardModel extends Model
         ->limit($limit)
         ->get()->getResultArray();
 }
-
 }

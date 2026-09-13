@@ -34,29 +34,22 @@ document.addEventListener("DOMContentLoaded", function() {
                                                 const c = data.content || {};
                                                 const embedUrl = toGDrivePreview(c.video_url);
                                                 const brandLine = [safe(data.brand), safe(data.manufacturer)].filter(Boolean).join(' · ');
-
                                                 const stock = parseInt(data.total_stock || 0);
-                                                const stockBadge = stock <= 0 ?
-                                                    `<span class="badge bg-danger">Out of Stock</span>` :
-                                                    `<span class="badge bg-success">Available</span>`;
 
                                                 content.innerHTML = `
-                    <div style="height:220px; background:#f4f4f4; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                    <div style="height:220px; background:#ffffff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
                         ${data.image_path
-                            ? `<img src="${BASE_URL}/${data.image_path}" style="width:100%; height:100%; object-fit:cover;">`
-                            : `<i class="fas fa-box-open" style="font-size:48px; color:#ccc;"></i>`}
+                            ? `<img src="${BASE_URL}/${data.image_path}" style="max-width:100%; max-height:100%; object-fit:contain;">`
+                            : `<i class="fas fa-box-open" style="font-size:48px; color:#ddd;"></i>`}
                     </div>
 
                     <div class="p-4">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <span class="badge bg-dark">${safe(data.category_name, 'Uncategorized')}</span>
-                            ${stockBadge}
+                            ${data.is_vat_exempt == 1 ? `<span class="badge bg-success">VAT-Exempt</span>` : ''}
                         </div>
                         <h5 class="fw-bold mb-1">${safe(data.name, 'Unnamed Product')}</h5>
                         ${brandLine ? `<p class="text-muted mb-2" style="font-size:10.5px;">${brandLine}</p>` : ''}
-                        <p class="text-muted mb-3" style="font-size:10.5px;">
-                            SKU: ${safe(data.sku, '—')} &nbsp;|&nbsp; ${data.is_vat_exempt == 1 ? 'VAT-Exempt' : 'VAT-Inclusive'}
-                        </p>
                         <h4 class="fw-bold text-maroon mb-4">${peso(data.sell_price)} <small class="text-muted fw-normal" style="font-size:11px;">per ${safe(data.unit, 'unit')}</small></h4>
 
                         ${embedUrl ? `
@@ -113,9 +106,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
                         <form action="${BASE_URL}/client/orders/add-to-cart" method="POST" class="d-flex gap-2 pt-3 border-top">
                             <input type="hidden" name="product_id" value="${safe(data.product_id, id)}">
-                            <input type="number" name="qty" value="1" min="1" max="${stock}" class="form-control form-control-sm" style="width:80px;" ${stock <= 0 ? 'disabled' : ''}>
-                            <button type="submit" class="btn btn-dark rounded-pill flex-grow-1 fw-bold" ${stock <= 0 ? 'disabled' : ''}>
-                                <i class="fas fa-cart-plus me-2"></i>${stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                            <input type="number" name="qty" value="1" min="1" max="${stock}" class="form-control form-control-sm" style="width:80px;">
+                            <button type="submit" class="btn btn-dark rounded-pill flex-grow-1 fw-bold">
+                                <i class="fas fa-cart-plus me-2"></i>Add to Cart
                             </button>
                         </form>
                     </div>`;

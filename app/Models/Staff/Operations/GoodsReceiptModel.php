@@ -19,17 +19,20 @@ class GoodsReceiptModel extends Model
         $offset = ($page - 1) * $perPage;
         $apply = function ($b) use ($search) {
             $b->whereIn('po.status', ['sent', 'acknowledged', 'in_transit']);
-            if ($search !== '') $b->groupStart()->like('po.po_number', $search)->orLike('s.name', $search)->groupEnd();
+            if ($search !== '') $b->groupStart()->like('po.po_number', $search)->orLike('s.name', $search)->orLike('gs.name', $search)->groupEnd();
             return $b;
         };
 
-        $countBuilder = $this->db->table('purchase_orders as po')->join('suppliers as s', 's.supplier_id = po.supplier_id');
+        $countBuilder = $this->db->table('purchase_orders as po')
+            ->join('suppliers as s', 's.supplier_id = po.supplier_id', 'left')
+            ->join('guest_suppliers as gs', 'gs.guest_supplier_id = po.guest_supplier_id', 'left');
         $apply($countBuilder);
         $total = $countBuilder->countAllResults();
 
         $builder = $this->db->table('purchase_orders as po')
-            ->select('po.*, s.name as supplier')
-            ->join('suppliers as s', 's.supplier_id = po.supplier_id');
+            ->select('po.*, COALESCE(s.name, gs.name) as supplier')
+            ->join('suppliers as s', 's.supplier_id = po.supplier_id', 'left')
+            ->join('guest_suppliers as gs', 'gs.guest_supplier_id = po.guest_supplier_id', 'left');
         $apply($builder);
         $builder->orderBy('po.expected_date', 'ASC')->limit($perPage, $offset);
 
@@ -39,24 +42,24 @@ class GoodsReceiptModel extends Model
     public function getPoItemsForInspection(int $poId)
     {
         $po = $this->db->table('purchase_orders as po')
-            ->select('po.po_id, po.po_number, s.name as sname, po.supplier_dr_number')
-            ->join('suppliers as s', 's.supplier_id = po.supplier_id')
+            ->select('po.po_id, po.po_number, COALESCE(s.name, gs.name) as sname, po.supplier_dr_number')
+            ->join('suppliers as s', 's.supplier_id = po.supplier_id', 'left')
+            ->join('guest_suppliers as gs', 'gs.guest_supplier_id = po.guest_supplier_id', 'left')
             ->where('po.po_id', $poId)
             ->get()->getRow();
 
         if (!$po) return null;
 
         $items = $this->db->table('purchase_order_items as poi')
-    ->select('poi.product_id, poi.unit_cost, p.name, p.barcode_value, p.unit, poi.qty_ordered')
-    ->join('products as p', 'p.product_id = poi.product_id')
-    ->where('poi.po_id', $poId)
-    ->get()->getResultArray();
+            ->select("poi.product_id, poi.unit_cost, poi.qty_ordered, p.name, p.barcode_value, p.unit,
+                (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = poi.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as last_sell_price")
+            ->join('products as p', 'p.product_id = poi.product_id')
+            ->where('poi.po_id', $poId)
+            ->get()->getResultArray();
 
         return ['po' => $po, 'items' => $items];
     }
 
-    // Mirrors the exact logic in Admin\Operations\Procurement::save_grr() so both
-    // portals write identical GRR/inventory/movement records — one implementation, two entry points.
     public function saveGrr(array $data, int $staffUserId): array
     {
         $poId = $data['po_id'];
@@ -67,15 +70,25 @@ class GoodsReceiptModel extends Model
         $lotNumbers = $data['lot_numbers'];
         $expiresAts = $data['expires_ats'];
         $sellPrices = $data['sell_prices'];
+        $conditions = $data['conditions'] ?? [];
+        $qtyRejected = $data['qty_rejected'] ?? [];
         $deliveryRef = $data['delivery_ref'];
         $notes = $data['notes'];
 
+        $conditionLabels = ['damaged' => 'Damaged', 'wrong_item' => 'Wrong Item', 'expired' => 'Expired on Arrival'];
+
         $po = $this->db->table('purchase_orders')->where('po_id', $poId)->get()->getRow();
         if (!$po) return ['success' => false, 'message' => 'Purchase Order not found.'];
+        if ($po->status !== 'in_transit') {
+            return ['success' => false, 'message' => 'This order cannot be verified yet — the supplier must dispatch it first.'];
+        }
 
         $hasDiscrepancy = false;
         foreach ($productIds as $index => $pid) {
             if ((int) $qtyReceived[$index] !== (int) $qtyExpected[$index]) { $hasDiscrepancy = true; break; }
+            $cond = $conditions[$index] ?? 'good';
+            $rejected = (int) ($qtyRejected[$index] ?? 0);
+            if ($cond !== 'good' && $rejected > 0) { $hasDiscrepancy = true; break; }
         }
         $grrStatus = $hasDiscrepancy ? 'discrepancy' : 'complete';
         $poStatus = $hasDiscrepancy ? 'partial' : 'received';
@@ -93,11 +106,23 @@ class GoodsReceiptModel extends Model
         foreach ($productIds as $index => $pid) {
             $receivedQty = (int) $qtyReceived[$index];
             $expectedQty = (int) $qtyExpected[$index];
-            $itemNote = ($receivedQty !== $expectedQty) ? ($receivedQty < $expectedQty ? 'Short-delivered' : 'Over-delivered') : null;
+            $condition = $conditions[$index] ?? 'good';
+            $rejectedQty = min((int) ($qtyRejected[$index] ?? 0), $receivedQty);
+            $goodQty = $receivedQty - $rejectedQty;
+
+            $itemNote = ($receivedQty !== $expectedQty)
+                ? ($receivedQty < $expectedQty ? 'Short-delivered' : 'Over-delivered')
+                : null;
+            if ($condition !== 'good' && $rejectedQty > 0) {
+                $label = $conditionLabels[$condition] ?? ucfirst($condition);
+                $itemNote = trim(($itemNote ? $itemNote . ' — ' : '') . "{$label} ({$rejectedQty} units)");
+            }
 
             $this->db->table('goods_receipt_items')->insert([
                 'grr_id' => $grrId, 'product_id' => $pid, 'batch_id' => null,
-                'qty_expected' => $expectedQty, 'qty_received' => $receivedQty, 'notes' => $itemNote,
+                'qty_expected' => $expectedQty, 'qty_received' => $receivedQty,
+                'condition_status' => $condition, 'qty_rejected' => $rejectedQty,
+                'notes' => $itemNote,
             ]);
             $griId = $this->db->insertID();
 
@@ -108,11 +133,14 @@ class GoodsReceiptModel extends Model
 
                 $this->db->table('inventory_batches')->insert([
                     'product_id' => $pid, 'supplier_id' => $po->supplier_id, 'po_id' => $poId,
-                    'batch_number' => 'BAT-' . date('Ymd') . '-' . str_pad($pid, 4, '0', STR_PAD_LEFT) . '-' . $index,
+                    // Uses grr-item id (auto-increment) instead of date+index — guaranteed globally
+                    // unique, unlike the old scheme which could collide across two deliveries
+                    // of the same product received on the same day.
+                    'batch_number' => 'BAT-' . $poId . '-' . $griId,
                     'lot_number' => $lotNumbers[$index] !== '' ? $lotNumbers[$index] : null,
                     'expires_at' => $expiresAts[$index] !== '' ? $expiresAts[$index] : null,
                     'cost_price' => $unitCosts[$index] ?? 0, 'sell_price' => $sellPrices[$index],
-                    'quantity_in' => $receivedQty, 'quantity_avail' => $receivedQty,
+                    'quantity_in' => $receivedQty, 'quantity_avail' => $goodQty,
                     'reorder_level' => $lastBatch ? $lastBatch->reorder_level : 5,
                     'received_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -120,12 +148,30 @@ class GoodsReceiptModel extends Model
 
                 $this->db->table('goods_receipt_items')->where('gri_id', $griId)->update(['batch_id' => $batchId]);
 
-                $this->db->table('stock_movements')->insert([
-                    'product_id' => $pid, 'batch_id' => $batchId, 'movement_type' => 'inbound',
-                    'quantity' => $receivedQty, 'reference_id' => $poId, 'reference_type' => 'po',
-                    'scanned_by' => $staffUserId, 'scan_mode' => 'inbound_stock_in',
-                    'reason' => $itemNote, 'notes' => $notes !== '' ? $notes : null,
-                ]);
+                if ($goodQty > 0) {
+                    $this->db->table('stock_movements')->insert([
+                        'product_id' => $pid, 'batch_id' => $batchId, 'movement_type' => 'inbound',
+                        'quantity' => $goodQty, 'reference_id' => $poId, 'reference_type' => 'po',
+                        'scanned_by' => $staffUserId, 'scan_mode' => 'inbound_stock_in',
+                        'reason' => $itemNote, 'notes' => $notes !== '' ? $notes : null,
+                    ]);
+                }
+
+                // Auto-file a Supplier Return for anything flagged — same pattern as admin's GRR.
+                // Staff reports the physical condition; admin still decides approve/reject.
+                if ($condition !== 'good' && $rejectedQty > 0) {
+                    $label = $conditionLabels[$condition] ?? ucfirst($condition);
+                    $reasonText = "{$label} — flagged by staff during Goods Receipt Inspection."
+                        . ($notes !== '' ? ' Notes: ' . $notes : '');
+
+                    $this->db->table('procurement_returns')->insert([
+                        'po_id' => $poId, 'product_id' => $pid, 'batch_id' => $batchId,
+                        'quantity' => $rejectedQty, 'reason' => $reasonText,
+                        'refund_amount' => round((float) ($unitCosts[$index] ?? 0) * $rejectedQty, 2),
+                        'status' => 'pending', 'source' => 'staff_grr', 'discrepancy_type' => $condition,
+                        'processed_by' => $staffUserId,
+                    ]);
+                }
             }
         }
 
@@ -138,7 +184,7 @@ class GoodsReceiptModel extends Model
         }
 
         $message = $hasDiscrepancy
-            ? 'Delivery recorded with discrepancies — PO marked Partial. Inventory updated with actual quantities received.'
+            ? 'Delivery recorded with discrepancies — PO marked Partial. Inventory updated, and any flagged items have been sent to Supplier Returns for admin review.'
             : 'Delivery fully verified — inventory updated and PO closed.';
         return ['success' => true, 'message' => $message];
     }

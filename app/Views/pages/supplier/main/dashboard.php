@@ -13,41 +13,66 @@
             </div>
 
             <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <a href="<?= base_url('supplier/orders/inbox?tab=open') ?>" class="text-decoration-none">
-                        <div class="inventory-kpi-card border-bottom border-primary border-4">
-                            <small class="text-muted fw-bold d-block mb-1">OPEN PURCHASE ORDERS</small>
-                            <h3 class="fw-bold mb-0 text-primary"><?= $open_pos_count ?></h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="<?= base_url('supplier/orders/inbox?tab=pending') ?>" class="text-decoration-none">
-                        <div class="inventory-kpi-card border-bottom border-warning border-4">
-                            <small class="text-muted fw-bold d-block mb-1">AWAITING ACKNOWLEDGMENT</small>
-                            <h3 class="fw-bold mb-0 text-warning"><?= $pending_ack ?></h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <div class="inventory-kpi-card border-bottom border-success border-4">
-                        <small class="text-muted fw-bold d-block mb-1">COMPLETED (YTD)</small>
-                        <h3 class="fw-bold mb-0 text-success"><?= $completed_ytd ?></h3>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="inventory-kpi-card border-bottom border-maroon border-4">
-                        <small class="text-muted fw-bold d-block mb-1">ON-TIME DELIVERY RATE</small>
-                        <h3 class="fw-bold mb-0"><?= $scorecard->on_time_rate !== null ? number_format($scorecard->on_time_rate, 1) . '%' : 'No data yet' ?></h3>
-                    </div>
-                </div>
+    <div class="col-md-3">
+        <a href="?status=open" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter === 'open' ? 'border-bottom border-3 border-primary' : '' ?>">
+                <i class="fas fa-file-invoice position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">OPEN PURCHASE ORDERS</small>
+                <h3 class="fw-bold mb-0 text-primary"><?= $open_pos_count ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
             </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="?status=pending" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter === 'pending' ? 'border-bottom border-3 border-warning' : '' ?>">
+                <i class="fas fa-hourglass-half position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">AWAITING ACKNOWLEDGMENT</small>
+                <h3 class="fw-bold mb-0 text-warning"><?= $pending_ack ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="?status=completed" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter === 'completed' ? 'border-bottom border-3 border-success' : '' ?>">
+                <i class="fas fa-check-double position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">COMPLETED (YTD)</small>
+                <h3 class="fw-bold mb-0 text-success"><?= $completed_ytd ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-kpi-card position-relative">
+            <i class="fas fa-chart-pie position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+            <small class="text-muted fw-bold d-block mb-1">ON-TIME DELIVERY RATE</small>
+            <h3 class="fw-bold mb-0"><?= $scorecard->on_time_rate !== null ? number_format($scorecard->on_time_rate, 1) . '%' : 'No data yet' ?></h3>
+        </div>
+    </div>
+</div>
+
+<?php if ($status_filter): ?>
+<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3" style="font-size: 12px;">
+    <span><strong>
+        <?= $status_filter === 'open' ? 'Open Purchase Orders' : ($status_filter === 'pending' ? 'Awaiting Acknowledgment' : 'Completed (YTD)') ?>
+    </strong></span>
+    <a href="?" class="text-danger fw-bold text-decoration-none">×</a>
+</div>
+<?php endif; ?>
 
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="custom-table-container h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h6 class="fw-bold mb-0" style="font-size:13px;"><i class="fas fa-file-invoice me-2 text-maroon"></i>Recent Purchase Orders</h6>
+                            <h6 class="fw-bold mb-0" style="font-size:13px;">
+    <i class="fas fa-file-invoice me-2 text-maroon"></i>
+    <?php if ($status_filter === 'open'): ?>Open Purchase Orders
+    <?php elseif ($status_filter === 'pending'): ?>Awaiting Acknowledgment
+    <?php elseif ($status_filter === 'completed'): ?>Completed Purchase Orders (YTD)
+    <?php else: ?>Recent Purchase Orders
+    <?php endif; ?>
+</h6>
                             <a href="<?= base_url('supplier/orders/inbox') ?>" class="btn btn-xs btn-outline-dark rounded-pill px-3">View All</a>
                         </div>
                         <div class="table-responsive">

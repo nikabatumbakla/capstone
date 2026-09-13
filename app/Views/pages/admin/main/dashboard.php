@@ -1,151 +1,167 @@
 <?= view('partials/admin/head') ?>
+<link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <div class="wrapper">
     <?= view('partials/admin/sidebar') ?>
     <div id="content">
         <?= view('partials/admin/header') ?>
 
-        <div class="container-fluid p-4" style="font-size: 11px;">
-           
+        <div class="container-fluid p-4" style="font-size:11px;">
             <div class="dashboard-banner mb-4 p-3 text-white shadow-sm">
-                <h6 class="fw-bold mb-1">Admin Dashboard — Overview</h6>
-                <p class="mb-0 opacity-75" style="font-size: 10px;">Today: <?= date('F d, Y') ?> - Iriga City, Camarines Sur</p>
+                <h6 class="fw-bold mb-1">Welcome back, <?= esc($fullname) ?></h6>
+                <p class="mb-0 opacity-75 small"><?= date('l, F d, Y') ?> · Admin Command Center</p>
             </div>
 
-            <!-- 3. KPI STAT CARDS (WITH ICONS) -->
-            <div class="row g-3 mb-4">
+            <div class="row g-4 mb-4">
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted fw-bold" style="font-size: 8px;">TODAY'S SALE</small>
-                                <h4 class="fw-bold mb-0">₱ <?= number_format($total_sales_today, 2) ?></h4>
-                                <span class="text-success" style="font-size: 9px;">↑ 12% vs yesterday</span>
-                            </div>
-                            <div class="icon-circle bg-light p-2 rounded">
-                                <i class="fas fa-money-bill-wave text-warning fs-4"></i>
-                            </div>
-                        </div>
+                    <div class="inventory-kpi-card position-relative">
+                        <i class="fas fa-coins position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                        <small class="text-muted fw-bold d-block mb-1">TODAY'S SALES</small>
+                        <h3 class="fw-bold mb-0">₱<?= number_format($total_sales_today, 2) ?></h3>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted fw-bold" style="font-size: 8px;">ACTIVE PRODUCTS</small>
-                                <h4 class="fw-bold mb-0"><?= $active_products ?></h4>
-                                <span class="text-primary" style="font-size: 9px;">↑ 2 new this week</span>
-                            </div>
-                            <div class="icon-circle bg-light p-2 rounded">
-                                <i class="fas fa-box text-secondary fs-4"></i>
-                            </div>
+                    <a href="<?= base_url('admin/inventory/stock-management') ?>" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative">
+                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <small class="text-muted fw-bold d-block mb-1">ACTIVE PRODUCTS</small>
+                            <h3 class="fw-bold mb-0 text-primary"><?= $active_products ?></h3>
+                            <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted fw-bold" style="font-size: 8px;">LOW STOCK ITEMS</small>
-                                <h4 class="fw-bold mb-0 text-danger"><?= $low_stock_count ?></h4>
-                                <span class="text-muted" style="font-size: 9px;">↑ 3 since yesterday</span>
-                            </div>
-                            <div class="icon-circle bg-light p-2 rounded">
-                                <i class="fas fa-exclamation-circle text-danger fs-4"></i>
-                            </div>
+                    <a href="<?= base_url('admin/inventory/stock-management?status=low_stock') ?>" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative">
+                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <small class="text-muted fw-bold d-block mb-1">LOW STOCK ITEMS</small>
+                            <h3 class="fw-bold mb-0 text-danger"><?= $low_stock_count ?></h3>
+                            <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted fw-bold" style="font-size: 8px;">PENDING ORDERS</small>
-                                <h4 class="fw-bold mb-0"><?= $pending_orders ?></h4>
-                                <span class="text-info" style="font-size: 9px;">Institutional clients</span>
-                            </div>
-                            <div class="icon-circle bg-light p-2 rounded">
-                                <i class="fas fa-file-alt text-info fs-4"></i>
-                            </div>
+                    <a href="<?= base_url('admin/sales/sales-orders?status=pending') ?>" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative">
+                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <small class="text-muted fw-bold d-block mb-1">PENDING ORDERS</small>
+                            <h3 class="fw-bold mb-0 text-warning"><?= $pending_orders ?></h3>
+                            <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
-            <!-- 4. CHART & TOP CLIENTS -->
-            <div class="row g-3 mb-4">
-                <div class="col-lg-7">
-                    <div class="content-card">
-                        <h6 class="fw-bold mb-3 small"><i class="fas fa-chart-area me-2"></i>Weekly Sales Trend (<?= date('M Y') ?>)</h6>
-                        <canvas id="salesChart" data-labels='<?= json_encode($weekly_trend['labels']) ?>' data-values='<?= json_encode($weekly_trend['data']) ?>' height="120"></canvas>
-                    </div>
+            <div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="custom-table-container h-100">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <div>
+                    <h6 class="fw-bold mb-1" style="font-size:13px;"><i class="fas fa-chart-bar me-2 text-maroon"></i>7-Day Sales Trend</h6>
+                    <p class="text-muted mb-0" style="font-size:10px;">Combined revenue from walk-in POS sales and institutional Sales Orders, updated daily</p>
                 </div>
-                <div class="col-lg-5">
-                    <div class="content-card">
-                        <h6 class="fw-bold mb-3 small"><i class="fas fa-users me-2"></i>Top Institutional Clients</h6>
-                        <table class="table table-sm extra-small">
-                            <thead><tr><th>Client</th><th>Type</th><th>Orders</th><th class="text-end">Total</th></tr></thead>
-                            <tbody>
-                                <?php foreach($top_clients as $c): ?>
-                                <tr>
-                                    <td><?= $c['organization'] ?></td>
-                                    <td><?= ucfirst($c['client_type']) ?></td>
-                                    <td><?= $c['total_orders'] ?></td>
-                                    <td class="text-end fw-bold">₱ <?= number_format($c['total_spent']) ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <?php
+                    $weekTotal = array_sum($weekly_trend['data']);
+                    $todayIndex = count($weekly_trend['data']) - 1;
+                    $yesterdayIndex = $todayIndex - 1;
+                    $todayVal = $weekly_trend['data'][$todayIndex] ?? 0;
+                    $yesterdayVal = $yesterdayIndex >= 0 ? $weekly_trend['data'][$yesterdayIndex] : 0;
+                    $trendUp = $todayVal >= $yesterdayVal;
+                ?>
+                <span class="badge <?= $trendUp ? 'bg-success' : 'bg-danger' ?> bg-opacity-10 <?= $trendUp ? 'text-success' : 'text-danger' ?> px-3 py-2" style="font-size:10px;">
+                    <i class="fas fa-arrow-<?= $trendUp ? 'up' : 'down' ?> me-1"></i>vs. yesterday
+                </span>
             </div>
 
-            <!-- 5. BOTTOM ROW -->
-            <div class="row g-3">
-                <div class="col-lg-4">
-                    <div class="content-card">
-                        <h6 class="fw-bold mb-3 small"><i class="fas fa-bell me-2"></i>Active Alerts</h6>
-                        <?php foreach($active_alerts as $alert): ?>
-                            <div class="alert-item mb-2 p-2 border-start border-4 border-warning rounded bg-light">
-                                <p class="mb-0 extra-small fw-bold text-maroon"><?= $alert['message'] ?></p>
-                            </div>
-                        <?php endforeach; ?>
+            <div class="d-flex align-items-baseline gap-2 mb-3">
+                <h4 class="fw-bold mb-0">₱<?= number_format($weekTotal, 2) ?></h4>
+                <small class="text-muted">total this week</small>
+            </div>
+
+            <canvas id="salesChart" height="90"
+                data-labels='<?= json_encode($weekly_trend['labels']) ?>'
+                data-values='<?= json_encode($weekly_trend['data']) ?>'></canvas>
+
+            <p class="text-muted mb-0 mt-3" style="font-size:9.5px;">
+                <i class="fas fa-circle-info me-1"></i>Hover over a bar to see the exact amount for that day.
+            </p>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="custom-table-container h-100">
+            <h6 class="fw-bold mb-3" style="font-size:13px;"><i class="fas fa-bell me-2 text-danger"></i>Active Alerts</h6>
+            <?php if(empty($active_alerts)): ?>
+                <p class="text-muted text-center py-4 mb-0">No active alerts.</p>
+            <?php else: foreach($active_alerts as $a): ?>
+                <div class="d-flex align-items-start mb-3 pb-2 border-bottom">
+                    <i class="fas fa-exclamation-circle me-2 mt-1 <?= $a['priority']=='high' ? 'text-danger' : 'text-warning' ?>"></i>
+                    <div>
+                        <p class="mb-0" style="font-size:11px;"><?= esc($a['message']) ?></p>
+                        <small class="text-muted"><?= date('M d, h:i A', strtotime($a['created_at'])) ?></small>
                     </div>
                 </div>
+            <?php endforeach; endif; ?>
+            <a href="<?= base_url('admin/management/alerts-tasks') ?>" class="btn btn-xs btn-outline-dark rounded-pill w-100 mt-2">View All Alerts</a>
+        </div>
+    </div>
+</div>
+
+            <div class="row g-4">
                 <div class="col-lg-4">
-                    <div class="content-card">
-                        <h6 class="fw-bold mb-3 small"><i class="fas fa-chart-pie me-2"></i>Sales by Category</h6>
-                        <?php foreach($category_sales as $cat): ?>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between extra-small mb-1">
-                                <span><?= $cat['category'] ?></span>
-                                <span class="fw-bold">₱ <?= number_format($cat['total']) ?></span>
+                    <div class="custom-table-container h-100">
+                        <h6 class="fw-bold mb-3" style="font-size:13px;"><i class="fas fa-crown me-2 text-warning"></i>Top Clients</h6>
+                        <?php if(empty($top_clients)): ?>
+                            <p class="text-muted text-center py-4 mb-0">No client orders yet.</p>
+                        <?php else: foreach($top_clients as $c): ?>
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                <div>
+                                    <p class="mb-0 fw-bold" style="font-size:11px;"><?= esc($c['organization']) ?></p>
+                                    <small class="text-muted"><?= $c['total_orders'] ?> orders</small>
+                                </div>
+                                <span class="fw-bold text-maroon">₱<?= number_format($c['total_spent'], 0) ?></span>
                             </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar" style="width: 60%; background-color: #4489b3;"></div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
+                        <?php endforeach; endif; ?>
                     </div>
                 </div>
+
                 <div class="col-lg-4">
-                    <div class="content-card">
-                        <h6 class="fw-bold mb-3 small"><i class="fas fa-truck me-2"></i>Pending Deliveries</h6>
-                        <table class="table table-sm extra-small">
-                            <thead><tr><th>PO #</th><th>Supplier</th><th>Status</th></tr></thead>
-                            <tbody>
-                                <?php foreach($pending_deliveries as $d): ?>
-                                <tr>
-                                    <td><?= $d['po_no'] ?></td>
-                                    <td><?= $d['supplier'] ?></td>
-                                    <td class="text-primary fw-bold"><?= $d['status'] ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="custom-table-container h-100">
+                        <h6 class="fw-bold mb-3" style="font-size:13px;"><i class="fas fa-chart-pie me-2 text-primary"></i>Sales by Category</h6>
+                        <?php if(empty($category_sales)): ?>
+                            <p class="text-muted text-center py-4 mb-0">No sales data yet.</p>
+                        <?php else: foreach($category_sales as $cs): ?>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="fw-bold"><?= esc($cs['category']) ?></small>
+                                    <small class="text-muted">₱<?= number_format($cs['total'], 0) ?></small>
+                                </div>
+                                <div class="progress" style="height:6px;"><div class="progress-bar" style="width:<?= $cs['percent'] ?>%; background:#7b1113;"></div></div>
+                            </div>
+                        <?php endforeach; endif; ?>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="custom-table-container h-100">
+                        <h6 class="fw-bold mb-3" style="font-size:13px;"><i class="fas fa-truck me-2 text-success"></i>Pending Deliveries</h6>
+                        <?php if(empty($pending_deliveries)): ?>
+                            <p class="text-muted text-center py-4 mb-0">No deliveries in progress.</p>
+                        <?php else: foreach($pending_deliveries as $pd): ?>
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                <div>
+                                    <p class="mb-0 fw-bold" style="font-size:11px;"><?= esc($pd['order_number']) ?></p>
+                                    <small class="text-muted"><?= esc($pd['client_name']) ?></small>
+                                </div>
+                                <span class="badge bg-light text-dark border"><?= strtoupper($pd['status']) ?></span>
+                            </div>
+                        <?php endforeach; endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="<?= base_url('public/js/admin/main/dashboard.js') ?>"></script>
 <?= view('partials/admin/footer') ?>

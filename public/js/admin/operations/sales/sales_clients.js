@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // ============ SEARCH / CATEGORY (auto-submit) — wired first, independent ============
+    // ============ SEARCH / TYPE (auto-submit) — wired first, independent ============
     const searchForm = document.getElementById('searchForm');
     const liveSearch = document.getElementById('liveSearch');
     const typeFilter = document.getElementById('typeFilter');
@@ -15,6 +15,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function peso(n) {
         return '₱' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function val(v, fallback = 'N/A') {
+        return (v === null || v === undefined || v === '') ? fallback : v;
     }
 
     // ============ VIEW CLIENT — wired first, independent of the New Order drawer ============
@@ -36,33 +40,64 @@ document.addEventListener("DOMContentLoaded", function() {
                 .then(data => {
                     const c = data.client;
                     const ordersHtml = data.orders.map(o => `
-                        <div class="p-3 border rounded-4 mb-2 bg-white shadow-sm text-start">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="fw-bold mb-0" style="font-size:11px">${o.order_number}</h6>
-                                <span class="badge bg-light text-dark border small">${o.status.toUpperCase()}</span>
-                            </div>
-                            <small class="text-muted">${o.created_at}</small>
-                            <h6 class="text-maroon mt-2 mb-0 fw-bold">${peso(parseFloat(o.total))}</h6>
-                        </div>
-                    `).join('');
+    <div class="p-3 border rounded-4 mb-2 bg-white shadow-sm text-start">
+        <div class="d-flex justify-content-between">
+            <h6 class="fw-bold mb-0" style="font-size:11px">${o.order_number}</h6>
+            <span class="badge bg-light text-dark border small">${o.status.toUpperCase()}</span>
+        </div>
+        <small class="text-muted">${o.created_at}</small>
+        <div class="d-flex gap-1 mt-1">
+            <span class="badge ${o.fulfillment_type === 'pickup' ? 'bg-info text-dark' : 'bg-primary'}" style="font-size:9px;">
+                <i class="fas fa-${o.fulfillment_type === 'pickup' ? 'store' : 'truck'} me-1"></i>${o.fulfillment_type === 'pickup' ? 'PICKUP' : 'DELIVERY'}
+            </span>
+            <span class="badge ${o.payment_status === 'paid' ? 'bg-success' : 'bg-secondary'}" style="font-size:9px;">${(o.payment_status || 'unpaid').toUpperCase()}</span>
+        </div>
+        <h6 class="text-maroon mt-2 mb-0 fw-bold">${peso(parseFloat(o.total))}</h6>
+    </div>
+`).join('');
+
+                    const permitHtml = c.permit_path ? `
+                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border mb-2" style="background:#f8f9fa;">
+                            <span style="font-size:11px;"><i class="fas fa-file-invoice me-2 text-success"></i>File on record</span>
+                            <a href="${BASE_URL}/${c.permit_path}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3">View File</a>
+                        </div>` : `
+                        <div class="p-3 rounded-3 border text-muted" style="font-size:11px; background:#f8f9fa;">No document on file.</div>`;
 
                     content.innerHTML = `
                         <div class="p-4 border-bottom bg-light">
                             <h5 class="fw-bold mb-1 text-start">${c.organization}</h5>
-                            <span class="badge bg-dark d-inline-block">${c.client_type.toUpperCase()}</span>
+                            <span class="badge bg-dark d-inline-block">${(c.client_type || '').toUpperCase()}</span>
                             ${c.is_verified ? '<span class="badge bg-success d-inline-block ms-1">Verified</span>' : '<span class="badge bg-warning text-dark d-inline-block ms-1">Unverified</span>'}
                         </div>
                         <div class="p-4">
-                            <div class="row g-2 mb-4 text-start">
-                                <div class="col-6"><label class="info-label">Current Balance</label><p class="info-value text-danger">${peso(parseFloat(c.credit_used))}</p></div>
-                                <div class="col-6"><label class="info-label">Credit Limit</label><p class="info-value">${peso(parseFloat(c.credit_limit))}</p></div>
-                                <div class="col-12"><label class="info-label">Address</label><p class="info-value text-muted" style="font-size:10px">${c.address || 'N/A'}</p></div>
+                            <p class="fw-bold mb-3 text-start" style="font-size:12px;">Business Identity</p>
+                            <div class="row g-3 mb-4 text-start">
+                                <div class="col-6"><label class="info-label">TIN</label><p class="info-value">${val(c.tin)}</p></div>
+                                <div class="col-6"><label class="info-label">Reference #</label><p class="info-value">${val(c.registration_ref)}</p></div>
+                                <div class="col-12"><label class="info-label">Business Address</label><p class="info-value">${val(c.address)}</p></div>
                             </div>
+
+                            <hr>
+                            <p class="fw-bold mb-3 mt-3 text-start" style="font-size:12px;">Contact Information</p>
+                            <div class="row g-3 mb-4 text-start">
+                                <div class="col-6"><label class="info-label">Contact Person</label><p class="info-value">${val(c.contact_person)}</p></div>
+                                <div class="col-6"><label class="info-label">Position</label><p class="info-value">${val(c.position)}</p></div>
+                                <div class="col-6"><label class="info-label">Login Email</label><p class="info-value text-primary">${val(c.login_email)}</p></div>
+                                <div class="col-6"><label class="info-label">Phone</label><p class="info-value">${val(c.phone)}</p></div>
+                                <div class="col-6"><label class="info-label">Alt. Phone</label><p class="info-value">${val(c.alt_phone)}</p></div>
+                                <div class="col-12"><label class="info-label">Delivery Address</label><p class="info-value">${val(c.delivery_address, 'Same as business address')}</p></div>
+                            </div>
+
+                            <hr>
+                            <p class="fw-bold mb-2 mt-3 text-start" style="font-size:12px;">Supporting Document</p>
+                            <div class="mb-4">${permitHtml}</div>
+
                             <button type="button" class="btn btn-maroon w-100 py-2 mb-4 fw-bold btn-new-sales-order" data-id="${c.client_id}" data-name="${c.organization}" data-type="${c.client_type}">
                                 <i class="fas fa-plus me-2"></i>New Sales Order
                             </button>
+
                             <h6 class="fw-bold mb-3 border-bottom pb-2 text-start">ORDER HISTORY</h6>
-                            <div style="max-height: 350px; overflow-y: auto;">
+                            <div style="max-height: 300px; overflow-y: auto;">
                                 ${ordersHtml || '<p class="text-center text-muted py-4 small">No history.</p>'}
                             </div>
                         </div>
@@ -74,9 +109,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             document.getElementById('newOrderClientId').value = this.getAttribute('data-id');
                             document.getElementById('newOrderClientDisplay').textContent =
                                 `${this.getAttribute('data-name')} (${this.getAttribute('data-type').charAt(0).toUpperCase() + this.getAttribute('data-type').slice(1)})`;
-                            if (typeof resetOrderForm === 'function') resetOrderForm();
                             clientDrawer.hide();
-                            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('newOrderDrawer')).show();
+                            openNewOrderDrawer('registered');
                         });
                     }
                 })
@@ -95,6 +129,61 @@ document.addEventListener("DOMContentLoaded", function() {
         const rowsContainer = document.getElementById('orderRowsContainer');
         const discountTypeSelect = document.getElementById('discountTypeSelect');
         const schoolRateDisplay = document.getElementById('schoolRateDisplay');
+
+        const fulfillmentSelect = document.getElementById('fulfillmentTypeSelect');
+        const deliveryAddressWrap = document.getElementById('deliveryAddressWrap');
+        const deliveryAddressInput = document.getElementById('deliveryAddressInput');
+        const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+        const paymentNote = document.getElementById('paymentNote');
+
+        const btnWalkinSale = document.getElementById('btnWalkinSale');
+        const orderModeField = document.getElementById('orderModeField');
+        const registeredClientBlock = document.getElementById('registeredClientBlock');
+        const walkinClientBlock = document.getElementById('walkinClientBlock');
+        const guestNameInput = document.getElementById('guestNameInput');
+
+        function openNewOrderDrawer(mode) {
+            orderModeField.value = mode;
+            if (mode === 'walkin') {
+                registeredClientBlock.style.display = 'none';
+                walkinClientBlock.style.display = 'block';
+                guestNameInput.required = true;
+            } else {
+                registeredClientBlock.style.display = 'block';
+                walkinClientBlock.style.display = 'none';
+                guestNameInput.required = false;
+            }
+            if (typeof resetOrderForm === 'function') resetOrderForm();
+            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('newOrderDrawer')).show();
+        }
+
+        if (btnWalkinSale) {
+            btnWalkinSale.addEventListener('click', function() {
+                openNewOrderDrawer('walkin');
+            });
+        }
+
+        function updateFulfillmentUI() {
+            const isPickup = fulfillmentSelect.value === 'pickup';
+            deliveryAddressWrap.style.display = isPickup ? 'none' : 'block';
+            deliveryAddressInput.required = !isPickup;
+
+            if (isPickup) {
+                paymentNote.innerHTML = '<i class="fas fa-store me-1"></i>Client will pay in person when they pick up the order at the store.';
+                paymentNote.className = 'helper-text mb-3';
+            } else if (['cheque', 'bank_transfer'].includes(paymentMethodSelect.value)) {
+                paymentNote.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i><b>Payment must be confirmed before this order can be dispatched for delivery.</b>';
+                paymentNote.className = 'helper-text mb-3 text-warning';
+            } else {
+                paymentNote.innerHTML = '<i class="fas fa-truck me-1"></i>Standard delivery — no advance payment confirmation required for this method.';
+                paymentNote.className = 'helper-text mb-3';
+            }
+        }
+
+        fulfillmentSelect.addEventListener('change', updateFulfillmentUI);
+        paymentMethodSelect.addEventListener('change', updateFulfillmentUI);
+        updateFulfillmentUI();
+
         if (schoolRateDisplay) schoolRateDisplay.textContent = SCHOOL_DISCOUNT_RATE;
 
         const previewGross = document.getElementById('previewGross');
@@ -129,8 +218,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>`;
         }
 
-        // Mirrors save_order()'s server-side math exactly, so what the admin sees
-        // before submitting is the real total, not an estimate.
         function recalcPreview() {
             let gross = 0;
 
@@ -209,6 +296,7 @@ document.addEventListener("DOMContentLoaded", function() {
             rowsContainer.insertAdjacentHTML('beforeend', buildOrderRow());
             wireRow(rowsContainer.querySelector('.order-row'));
             document.querySelectorAll('#discountIdWrap, #discountHolderWrap, #discountCustomWrap, #discountSchoolWrap').forEach(el => el.style.display = 'none');
+            updateFulfillmentUI();
             recalcPreview();
         };
 

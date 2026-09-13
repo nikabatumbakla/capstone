@@ -10,6 +10,10 @@
     </div>
     
     <div class="header-icons d-flex align-items-center">
+    <a href="<?= base_url('admin/pos-terminal') ?>" target="_blank" rel="noopener" class="icon-btn me-3" title="Open POS">
+        <i class="fas fa-cash-register"></i>
+    </a>
+
     <div class="dropdown me-3">
         <button class="icon-btn position-relative" id="notifBellBtn" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="far fa-bell"></i>
@@ -25,9 +29,5 @@
             <a href="<?= base_url('admin/management/alerts-tasks') ?>" class="d-block text-center p-2 border-top text-decoration-none" style="font-size:11px;">View All Alerts</a>
         </div>
     </div>
-
-    <a href="<?= base_url('admin/pos-terminal') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-maroon rounded-pill px-3 me-3 d-flex align-items-center shadow-sm" style="font-size: 10px; height: 32px; font-weight: 700; text-decoration: none;">
-        <i class="fas fa-cash-register me-2"></i> Open POS
-    </a>
 </div>
 </nav>

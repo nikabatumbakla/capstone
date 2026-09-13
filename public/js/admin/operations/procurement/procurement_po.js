@@ -74,6 +74,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                                 }
 
                                                 const po = data.po;
+
+                                                const walkinBadge = po.guest_supplier_id ? `<span class="badge bg-secondary d-inline-block mt-2"><i class="fas fa-user-plus me-1"></i>WALK-IN SUPPLIER — NO PORTAL ACCOUNT</span>` : '';
                                                 const items = data.items;
                                                 const store = data.store_info;
 
@@ -81,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                                                 const itemsHtml = items.map(i => `
                         <tr>
-                            <td><small class="fw-bold d-block">${i.name}</small><code class="extra-small">${i.sku || '—'}</code></td>
+                            <td><small class="fw-bold d-block">${i.name}</small><small class="text-muted extra-small">${i.barcode_value || '—'}</small></td>
                             <td class="text-center">${i.qty_ordered}</td>
                             ${hasStockContext ? `
                                 <td class="text-center text-muted">${i.current_stock ?? '—'}</td>
@@ -110,6 +112,10 @@ document.addEventListener("DOMContentLoaded", function() {
                         </div>
                     ` : '';
 
+                    // Real lifecycle now — sent -> acknowledged -> in_transit -> received,
+                    // matching what the supplier portal actually does at each stage.
+                    const unresolvedOrPast = (statuses) => statuses.includes(po.status);
+
                     const trackingHtml = `
                         <div class="tracking-timeline mt-4 p-3 bg-white border rounded-4">
                             <h6 class="fw-bold mb-3" style="font-size:11px"><i class="fas fa-map-marker-alt me-2 text-primary"></i>PO Tracking</h6>
@@ -118,16 +124,35 @@ document.addEventListener("DOMContentLoaded", function() {
                                 <p class="mb-0 fw-bold">Order Created</p>
                                 <small class="text-muted">${po.created_at} ${po.creator ? '• by ' + po.creator : ''}</small>
                             </div>
-                            <div class="timeline-item ${['sent','partial','received'].includes(po.status) ? 'active' : ''}">
+                            <div class="timeline-item ${unresolvedOrPast(['sent','acknowledged','in_transit','partial','received']) ? 'active' : ''}">
                                 <div class="t-dot"></div>
                                 <p class="mb-0 fw-bold">Sent to Supplier</p>
                                 <small class="text-muted">${po.sname}</small>
                             </div>
-                            <div class="timeline-item ${po.status === 'received' ? 'active' : ''}">
+                            <div class="timeline-item ${unresolvedOrPast(['acknowledged','in_transit','partial','received']) ? 'active' : ''}">
+                                <div class="t-dot"></div>
+                                <p class="mb-0 fw-bold">Acknowledged by Supplier</p>
+                                <small class="text-muted">${po.acknowledged_at ? po.acknowledged_at + ' • confirmed for ' + (po.expected_date || 'a date') : 'Awaiting supplier response'}</small>
+                            </div>
+                            <div class="timeline-item ${unresolvedOrPast(['in_transit','partial','received']) ? 'active' : ''}">
+                                <div class="t-dot"></div>
+                                <p class="mb-0 fw-bold">Dispatched / In Transit</p>
+                                <small class="text-muted">${po.supplier_dispatched_at ? po.supplier_dispatched_at + (po.supplier_dr_number ? ' • DR# ' + po.supplier_dr_number : '') : 'Not yet dispatched'}</small>
+                            </div>
+                            <div class="timeline-item ${unresolvedOrPast(['partial','received']) ? 'active' : ''}">
                                 <div class="t-dot"></div>
                                 <p class="mb-0 fw-bold">Received & Inspected</p>
                                 <small class="text-muted">${po.received_date || 'Awaiting Delivery'}</small>
                             </div>
+                        </div>`;
+
+                    const paymentHtml = `
+                        <div class="mt-3 p-3 rounded-3 ${po.payment_status === 'paid' ? 'bg-success-subtle' : 'bg-light'}">
+                            <p class="info-label mb-1"><i class="fas fa-money-check-alt me-1"></i>Payment</p>
+                            ${po.payment_status === 'paid' ? `
+                                <p class="mb-0"><span class="badge bg-success">PAID</span> via ${(po.payment_method || '').replace('_',' ').toUpperCase()} · Ref: <code>${po.payment_reference || '—'}</code></p>
+                                <small class="text-muted">${po.paid_at || ''}</small>
+                            ` : `<p class="mb-0"><span class="badge bg-secondary">UNPAID</span> — no payment recorded yet.</p>`}
                         </div>`;
 
                     const notesHtml = po.notes ? `
@@ -177,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             </table>
 
                             ${notesHtml}
+                            ${paymentHtml}
                             ${trackingHtml}
                             ${printBtnHtml}
                         </div>

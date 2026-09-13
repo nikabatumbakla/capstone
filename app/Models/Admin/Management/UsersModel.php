@@ -26,6 +26,7 @@ public function getCounts(): array
         'staff'     => $this->db->table('users')->where('role', 'staff')->countAllResults(),
         'clients'   => $this->db->table('users')->where('role', 'institutional_client')->where('is_verified', 1)->countAllResults(),
         'suppliers' => $this->db->table('users')->where('role', 'supplier')->where('is_verified', 1)->countAllResults(),
+        'customers' => $this->db->table('users')->where('role', 'customer')->countAllResults(),
         'pending'   => $this->db->table('users')->whereIn('role', ['supplier', 'institutional_client'])->where('is_verified', 0)->countAllResults(),
     ];
 }
@@ -39,6 +40,7 @@ public function getRegistry(string $roleGroup = '', string $search = '', int $pa
         if ($roleGroup === 'staff') $b->where('role', 'staff');
         if ($roleGroup === 'clients') $b->where('role', 'institutional_client');
         if ($roleGroup === 'suppliers') $b->where('role', 'supplier');
+        if ($roleGroup === 'customers') $b->where('role', 'customer');
         if ($search !== '') $b->groupStart()->like('full_name', $search)->orLike('email', $search)->groupEnd();
         return $b;
     };

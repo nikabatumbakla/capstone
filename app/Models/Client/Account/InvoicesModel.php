@@ -24,8 +24,10 @@ class InvoicesModel extends Model
 
         return [
             'outstanding_amount' => $outstanding,
-            'unpaid_count'       => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'unpaid')->countAllResults(),
-            'awaiting_clearance' => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'submitted')->countAllResults(),
+            // Genuinely unpaid, no reference submitted yet
+            'unpaid_count'       => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'unpaid')->where('client_payment_ref IS NULL', null, false)->countAllResults(),
+            // Client submitted proof, awaiting admin confirmation
+            'awaiting_clearance' => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'unpaid')->where('client_payment_ref IS NOT NULL', null, false)->countAllResults(),
             'paid_ytd'           => $this->db->table('sales_orders')->where('client_id', $clientId)->where('payment_status', 'paid')->where('YEAR(created_at)', date('Y'))->countAllResults(),
         ];
     }
@@ -35,7 +37,13 @@ class InvoicesModel extends Model
         $offset = ($page - 1) * $perPage;
         $apply = function ($b) use ($clientId, $status) {
             $b->where('client_id', $clientId);
-            if ($status !== '') $b->where('payment_status', $status);
+            if ($status === 'unpaid') {
+                $b->where('payment_status', 'unpaid')->where('client_payment_ref IS NULL', null, false);
+            } elseif ($status === 'submitted') {
+                $b->where('payment_status', 'unpaid')->where('client_payment_ref IS NOT NULL', null, false);
+            } elseif ($status === 'paid') {
+                $b->where('payment_status', 'paid');
+            }
             return $b;
         };
 
@@ -61,7 +69,7 @@ class InvoicesModel extends Model
         if (!$order) return null;
 
         $items = $this->db->table('sales_order_items as soi')
-            ->select('soi.*, p.name')
+            ->select('soi.*, p.name, p.barcode_value')
             ->join('products as p', 'p.product_id = soi.product_id')
             ->where('soi.order_id', $orderId)
             ->get()->getResultArray();
@@ -69,18 +77,13 @@ class InvoicesModel extends Model
         return ['order' => $order, 'items' => $items];
     }
 
-    // Client submits a payment reference (check number) — this does NOT mark the order paid.
-    // It only signals "I've sent payment" so staff/admin can verify and confirm clearance.
-    public function submitPaymentReference(int $orderId, int $clientId, string $reference): bool
-    {
-        $order = $this->db->table('sales_orders')->where('order_id', $orderId)->where('client_id', $clientId)->get()->getRow();
-        if (!$order || $order->payment_status !== 'unpaid') return false;
 
-        $this->db->table('sales_orders')->where('order_id', $orderId)->update([
-            'payment_reference'    => $reference,
-            'payment_submitted_at' => date('Y-m-d H:i:s'),
-            'payment_status'       => 'submitted',
-        ]);
-        return true;
-    }
+    public function getStoreInfo(): array
+{
+    $rows = $this->db->table('store_settings')->get()->getResultArray();
+    $info = [];
+    foreach ($rows as $row) $info[$row['setting_key']] = $row['setting_value'];
+    return $info;
+}
+
 }

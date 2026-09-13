@@ -4,6 +4,10 @@
     include APPPATH . 'Views/shared/pg_header.php'; 
 ?>
 
+<div class="btn-group bg-dark bg-opacity-25 rounded-pill p-1 mb-4">
+        <a href="<?= base_url('partner-gateway') ?>" class="btn btn-sm text-white rounded-pill px-4 fw-bold opacity-50 text-decoration-none">LOGIN</a>
+        <button class="btn btn-sm btn-dark rounded-pill px-4 fw-bold">REGISTER</button>
+    </div>
 
 <div class="glass-card" style="max-width: 650px;">
 
@@ -40,6 +44,8 @@
 
         <div class="mb-3"><label class="formal-label">BUSINESS ADDRESS *</label><input type="text" name="address" class="formal-input" required></div>
 
+        <div class="mb-3"><label class="formal-label">TIN (Tax Identification Number)</label><input type="text" name="tin" class="formal-input" placeholder="e.g. 123-456-789-000"></div>
+        
         <div class="row g-3 mb-4">
             <div class="col-6"><label class="formal-label">PHONE NUMBER *</label><input type="tel" name="phone" class="formal-input" required></div>
             <div class="col-6"><label class="formal-label">BUSINESS EMAIL *</label><input type="email" name="biz_email" class="formal-input" required></div>

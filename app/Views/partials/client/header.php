@@ -10,9 +10,78 @@
     </div>
     
     <div class="header-icons d-flex align-items-center">
-        <button class="icon-btn position-relative me-3">
-            <i class="far fa-bell"></i>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="padding: 3px; border: 2px solid white;"> </span>
-        </button>
+        <a href="<?= base_url('client/orders/place-order') ?>" class="icon-btn position-relative me-3 text-decoration-none">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark" id="cartBadge" style="padding: 3px; border: 2px solid white; font-size:9px; display:none;">0</span>
+        </a>
+
+        <div class="position-relative">
+            <button class="icon-btn position-relative me-3" id="notifBellBtn">
+                <i class="far fa-bell"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notifBadge" style="padding: 3px; border: 2px solid white; display:none;"> </span>
+            </button>
+            <div class="p-0 shadow border bg-white" id="notifDropdown" style="width:320px; display:none; position:absolute; right:0; top:120%; z-index:1050; border-radius:12px;">
+                <div class="p-3 border-bottom fw-bold" style="font-size:12px;">Notifications</div>
+                <div id="notifList" style="max-height:320px; overflow-y:auto; font-size:11px;">
+                    <div class="text-center text-muted p-4">Loading...</div>
+                </div>
+            </div>
+        </div>
     </div>
 </nav>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const baseUrl = (typeof BASE_URL !== 'undefined') ? BASE_URL.replace(/\/+$/, '') : window.location.origin + '/PharMediSync';
+
+    // ============ CART BADGE — loads once on page load, no polling ============
+    const cartBadge = document.getElementById('cartBadge');
+    fetch(`${baseUrl}/client/orders/cart-count`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.count > 0) {
+                cartBadge.textContent = data.count;
+                cartBadge.style.display = 'block';
+            }
+        })
+        .catch(() => {});
+
+    // ============ NOTIFICATIONS ============
+    const bellBtn = document.getElementById('notifBellBtn');
+    const dropdown = document.getElementById('notifDropdown');
+    const badge = document.getElementById('notifBadge');
+    const list = document.getElementById('notifList');
+
+    function loadNotifications() {
+        fetch(`${baseUrl}/client/notifications/header-data`)
+            .then(res => res.json())
+            .then(data => {
+                badge.style.display = data.unread_count > 0 ? 'block' : 'none';
+
+                list.innerHTML = data.items.length ? data.items.map(n => `
+                    <a href="${n.link ? baseUrl + n.link : '#'}" class="d-block p-3 border-bottom text-decoration-none text-dark ${n.is_read == 0 ? 'bg-light' : ''}">
+                        ${n.message}
+                        <br><small class="text-muted">${n.created_at}</small>
+                    </a>
+                `).join('') : `<div class="text-center text-muted p-4">No notifications yet.</div>`;
+            })
+            .catch(() => { list.innerHTML = `<div class="text-center text-danger p-4">Failed to load.</div>`; });
+    }
+
+    bellBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display === 'block';
+        dropdown.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen) {
+            loadNotifications();
+            fetch(`${baseUrl}/client/notifications/mark-read`).then(() => setTimeout(() => { badge.style.display = 'none'; }, 1500));
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
+    });
+
+    loadNotifications();
+});
+</script>

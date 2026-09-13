@@ -1,0 +1,288 @@
+body {
+    background: #f7f7f9;
+    padding-bottom: 78px;
+    font-size: 13px;
+    font-family: -apple-system, sans-serif;
+}
+
+
+/* HEADER — matching reference: white bg, small muted top label, icon + bold title below */
+
+.m-topbar {
+    text-align: left;
+    padding: 5px 0 2px;
+    font-size: 9.5px;
+    color: #999;
+    letter-spacing: .3px;
+    background: #fff;
+}
+
+.m-header {
+    background: #fff;
+    display: flex;
+    align-items: left;
+    justify-content: left;
+    gap: 8px;
+    padding: 20px 26px 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.m-header i.fa-heart-pulse {
+    color: #c1121f;
+    font-size: 26px;
+}
+
+.m-header i.fa-hospital-symbol,
+.m-header i.fa-plus-square {
+    color: #1d3557;
+    font-size: 26px;
+}
+
+.m-header .brand-title {
+    font-weight: 800;
+    color: #1d3557;
+    font-size: 17px;
+    letter-spacing: .3px;
+}
+
+.m-content {
+    padding: 16px;
+}
+
+.m-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 14px;
+}
+
+
+/* BOTTOM NAV — white bg, icon+label items, raised iScan circle in the middle */
+
+.m-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    padding: 10px 0 10px;
+    z-index: 1000;
+}
+
+.m-nav-item {
+    text-align: center;
+    color: #999;
+    text-decoration: none;
+    font-size: 11px;
+    flex: 1;
+    font-weight: 700;
+    letter-spacing: .2px;
+    transition: color .15s ease, transform .15s ease;
+    padding: 6px 0;
+}
+
+.m-nav-item i {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 5px;
+    transition: transform .15s ease;
+}
+
+.m-nav-item:active {
+    transform: scale(0.9);
+    color: #7b1113;
+}
+
+.m-nav-item.active {
+    color: #7b1113;
+}
+
+.m-nav-item.active i {
+    transform: translateY(-2px);
+}
+
+.m-nav-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #7b1113;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: -26px;
+    letter-spacing: .2px;
+    transition: transform .15s ease;
+}
+
+.m-nav-center:active {
+    transform: scale(0.92);
+}
+
+.m-nav-center-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c1121f, #7b1113);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(123, 17, 19, .45);
+    margin-bottom: 4px;
+    padding: 15px;
+    border: 3px solid #fff;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.m-nav-center:active .m-nav-center-circle {
+    box-shadow: 0 2px 6px rgba(123, 17, 19, .5);
+}
+
+.m-nav-center.active .m-nav-center-circle {
+    box-shadow: 0 0 0 3px rgba(192, 18, 31, .25), 0 4px 12px rgba(123, 17, 19, .45);
+}
+
+.m-nav-center-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+
+/* Auth screens — unchanged */
+
+.m-auth-wrap {
+    min-height: 100vh;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 24px;
+    position: relative;
+}
+
+.m-auth-back {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #7b1113;
+    font-weight: 700;
+    font-size: 12px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.m-auth-logo-icon {
+    height: 58px;
+    margin-bottom: 5px;
+}
+
+.m-medkit-img {
+    width: 180px;
+    margin: 2px 0 20px;
+}
+
+.m-brand-name {
+    font-family: 'Georgia', serif;
+    font-size: 37px;
+    color: #1d3557;
+    margin-bottom: 12px;
+}
+
+.m-brand-name .accent {
+    color: #c1121f;
+    font-style: italic;
+}
+
+.m-brand-sub {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: #457b9d;
+    font-weight: 700;
+    margin-bottom: 36px;
+}
+
+.m-auth-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1d3557;
+    margin-bottom: 20px;
+}
+
+.m-btn-pill {
+    width: 100%;
+    padding: 16px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: .5px;
+}
+
+.m-btn-red {
+    background: linear-gradient(135deg, #c1121f, #7b1113);
+    color: #fff;
+}
+
+.m-btn-outline {
+    background: #fff;
+    color: #7b1113;
+    border: 2px solid #7b1113;
+}
+
+.m-auth-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1d3557;
+    letter-spacing: .5px;
+    margin-bottom: 4px;
+    display: block;
+    text-align: left;
+}
+
+.m-auth-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1.5px solid #c1121f;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.m-auth-footer-note {
+    font-size: 9px;
+    color: #999;
+    text-align: center;
+    margin-top: 20px;
+    letter-spacing: .5px;
+}
+
+.m-page-back {
+    color: #7b1113;
+    font-size: 15px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    text-decoration: none;
+    margin-right: 8px;
+    transition: background .15s ease;
+}
+
+.m-page-back:active {
+    background: #f8d7da;
+}

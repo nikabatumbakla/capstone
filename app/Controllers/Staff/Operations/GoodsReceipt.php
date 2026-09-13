@@ -40,23 +40,25 @@ class GoodsReceipt extends BaseController
     }
 
     public function save_grr()
-    {
-        $data = [
-            'po_id'        => (int) $this->request->getPost('po_id'),
-            'product_ids'  => $this->request->getPost('product_ids'),
-            'qty_received' => $this->request->getPost('qty_received'),
-            'qty_expected' => $this->request->getPost('qty_expected'),
-            'unit_costs'   => $this->request->getPost('unit_costs'),
-            'lot_numbers'  => $this->request->getPost('lot_numbers'),
-            'expires_ats'  => $this->request->getPost('expires_ats'),
-            'sell_prices'  => $this->request->getPost('sell_prices'),
-            'delivery_ref' => trim((string) $this->request->getPost('delivery_ref')),
-            'notes'        => trim((string) $this->request->getPost('notes')),
-        ];
+{
+    $data = [
+        'po_id'        => (int) $this->request->getPost('po_id'),
+        'product_ids'  => $this->request->getPost('product_ids'),
+        'qty_received' => $this->request->getPost('qty_received'),
+        'qty_expected' => $this->request->getPost('qty_expected'),
+        'unit_costs'   => $this->request->getPost('unit_costs'),
+        'lot_numbers'  => $this->request->getPost('lot_numbers'),
+        'expires_ats'  => $this->request->getPost('expires_ats'),
+        'sell_prices'  => $this->request->getPost('sell_prices'),
+        'conditions'   => $this->request->getPost('condition_status') ?: [],
+        'qty_rejected' => $this->request->getPost('qty_rejected') ?: [],
+        'delivery_ref' => trim((string) $this->request->getPost('delivery_ref')),
+        'notes'        => trim((string) $this->request->getPost('notes')),
+    ];
 
-        $result = $this->grrModel->saveGrr($data, session()->get('user_id'));
+    $result = $this->grrModel->saveGrr($data, session()->get('user_id'));
 
-        return redirect()->to('staff/operations/goods-receipt')
-            ->with($result['success'] ? 'success' : 'error', $result['message']);
-    }
+    return redirect()->to('staff/operations/goods-receipt')
+        ->with($result['success'] ? 'success' : 'error', $result['message']);
+}
 }

@@ -39,13 +39,14 @@ class DashboardModel extends Model
             ->limit($limit)->get()->getResultArray();
     }
 
-    // Orders where payment came in via check but hasn't been confirmed cleared yet —
-    // the real exposure that matters once "pay before delivery" is the policy.
-    public function getPendingClearance(int $clientId, int $limit = 5): array
+    // Every unpaid portal order needs admin to confirm payment (cash, gcash, bank transfer,
+    // or cheque — none of it is auto-marked paid), so this now covers all of them, not just
+    // one payment method. This was previously filtering on 'check', a value that no longer
+    // exists in the payment_method enum — it was silently returning nothing.
+    public function getAwaitingConfirmation(int $clientId, int $limit = 5): array
     {
         return $this->db->table('sales_orders')
             ->where('client_id', $clientId)
-            ->where('payment_method', 'check')
             ->where('payment_status', 'unpaid')
             ->orderBy('created_at', 'ASC')
             ->limit($limit)->get()->getResultArray();

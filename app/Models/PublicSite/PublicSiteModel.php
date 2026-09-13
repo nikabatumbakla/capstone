@@ -50,11 +50,11 @@ class PublicSiteModel extends Model
         $total = $countBuilder->countAllResults();
 
         $builder = $this->db->table('products as p')
-            ->select("p.product_id, p.name, p.description, p.unit, c.name as cat_name, c.slug as cat_slug,
-                (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id ORDER BY ib.received_at DESC LIMIT 1) as price,
-                (SELECT SUM(quantity_avail) FROM inventory_batches WHERE product_id = p.product_id) as stock,
-                (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
-            ->join('categories as c', 'c.category_id = p.category_id');
+    ->select("p.product_id, p.name, p.description, p.unit, c.name as cat_name, c.slug as cat_slug,
+        (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id ORDER BY ib.received_at DESC LIMIT 1) as price,
+        (SELECT SUM(quantity_avail) FROM inventory_batches WHERE product_id = p.product_id) as stock,
+        (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
+    ->join('categories as c', 'c.category_id = p.category_id');
         $apply($builder);
         $builder->orderBy('p.name', 'ASC')->limit($perPage, $offset);
 

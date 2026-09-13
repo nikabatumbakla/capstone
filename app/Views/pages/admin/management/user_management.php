@@ -1,6 +1,5 @@
 <?= view('partials/admin/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
-<script>const BASE_URL = "<?= base_url() ?>";</script>
 
 <div class="wrapper">
     <?= view('partials/admin/sidebar') ?>
@@ -18,8 +17,8 @@
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Admin · Staff · Supplier · Institutional Client · Walk-In Customer</p>
             </div>
 
-            <div class="row g-4 mb-4">
-    <div class="col-md-3">
+            <div class="row g-3 mb-4">
+    <div class="col">
         <a href="?group=<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative <?= $active_group=='' ? 'border-bottom border-3 border-maroon' : '' ?>">
                 <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
@@ -29,7 +28,7 @@
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <a href="?group=staff<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative <?= $active_group=='staff' ? 'border-bottom border-3 border-primary' : '' ?>">
                 <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
@@ -39,7 +38,7 @@
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <a href="?group=clients<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative <?= $active_group=='clients' ? 'border-bottom border-3 border-success' : '' ?>">
                 <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
@@ -49,12 +48,22 @@
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <a href="?group=suppliers<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
             <div class="inventory-kpi-card position-relative <?= $active_group=='suppliers' ? 'border-bottom border-3 border-maroon' : '' ?>">
                 <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                 <small class="text-muted fw-bold d-block mb-1">SUPPLIERS</small>
                 <h3 class="fw-bold mb-0 text-maroon"><?= $count_suppliers ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="?group=customers<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $active_group=='customers' ? 'border-bottom border-3 border-info' : '' ?>">
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">WALK-IN CUSTOMERS</small>
+                <h3 class="fw-bold mb-0 text-info"><?= $count_customers ?></h3>
                 <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
             </div>
         </a>
@@ -280,5 +289,5 @@
     </div>
 </div>
 
-<script src="<?= base_url('public/js/admin/management/management/users.js') ?>"></script>
+<script src="<?= base_url('public/js/admin/management/users.js') ?>"></script>
 <?= view('partials/admin/footer') ?>

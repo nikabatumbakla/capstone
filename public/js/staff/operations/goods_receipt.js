@@ -32,14 +32,24 @@ document.addEventListener("DOMContentLoaded", function() {
         </td>
         <td class="text-center">${i.qty_ordered} ${i.unit}</td>
         <td><input type="number" name="qty_received[]" class="form-control form-control-sm text-center fw-bold border-maroon grr-qty" data-expected="${i.qty_ordered}" data-row-index="${idx}" value="${i.qty_ordered}" min="0" style="width:75px"><small class="text-muted d-block text-center">${i.unit}</small></td>
+        <td>
+            <select name="condition_status[]" class="form-select form-select-sm grr-condition" data-row-index="${idx}" style="width:120px">
+                <option value="good" selected>Good</option>
+                <option value="damaged">Damaged</option>
+                <option value="wrong_item">Wrong Item</option>
+                <option value="expired">Expired</option>
+            </select>
+            <input type="number" name="qty_rejected[]" class="form-control form-control-sm mt-1 grr-qty-rejected d-none" data-row-index="${idx}" min="0" max="${i.qty_ordered}" value="0" placeholder="Qty affected" style="width:100px">
+        </td>
         <td><input type="text" name="lot_numbers[]" class="form-control form-control-sm" placeholder="From package label" style="width:110px"></td>
         <td><input type="date" name="expires_ats[]" class="form-control form-control-sm" style="width:135px"></td>
-        <td><input type="number" step="0.01" name="sell_prices[]" class="form-control form-control-sm" placeholder="0.00" style="width:90px" required></td>
+        <td><input type="number" step="0.01" name="sell_prices[]" class="form-control form-control-sm" placeholder="0.00" value="${i.last_sell_price ?? ''}" style="width:90px" required></td>
     </tr>`).join('');
 
                     content.innerHTML = `
     <form action="${BASE_URL}/staff/operations/save-grr" method="POST" class="p-4">
-        <input type="hidden" name="po_id" value="${po.po_id}">
+    <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+    <input type="hidden" name="po_id" value="${po.po_id}">
         <div class="p-3 bg-light rounded-4 mb-3">
             <p class="info-label mb-1">Receiving Delivery for:</p>
             <h6 class="fw-bold mb-0">${po.po_number}</h6>
@@ -64,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         <div class="table-responsive">
             <table class="table table-sm" style="font-size:11px">
-                <thead><tr class="table-dark"><th>Product</th><th class="text-center">Ordered</th><th>Received</th><th>Lot No.</th><th>Expiry</th><th>Sell Price *</th></tr></thead>
+                <thead><tr class="table-dark"><th>Product</th><th class="text-center">Ordered</th><th>Received</th><th>Condition</th><th>Lot No.</th><th>Expiry</th><th>Sell Price *</th></tr></thead>
                 <tbody id="grrItemsBody">${itemsTable}</tbody>
             </table>
         </div>
@@ -94,7 +104,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         progressLabel.textContent = `${counted} of ${qtyInputs.length} items counted`;
 
                         const anyMismatch = Array.from(qtyInputs).some(i => parseInt(i.value || 0) !== parseInt(i.getAttribute('data-expected')));
-                        warningBox.classList.toggle('d-none', !anyMismatch);
+                        const anyFlagged = Array.from(document.querySelectorAll('.grr-condition')).some(s => s.value !== 'good');
+                        warningBox.classList.toggle('d-none', !(anyMismatch || anyFlagged));
                     }
 
                     qtyInputs.forEach((input, idx) => {
@@ -106,6 +117,37 @@ document.addEventListener("DOMContentLoaded", function() {
                                 if (next) next.focus();
                             }
                         });
+                    });
+
+                    document.querySelectorAll('.grr-condition').forEach(select => {
+                        select.addEventListener('change', function() {
+                            const idx = this.getAttribute('data-row-index');
+                            const rejectedInput = document.querySelector(`.grr-qty-rejected[data-row-index="${idx}"]`);
+                            const receivedInput = document.querySelector(`.grr-qty[data-row-index="${idx}"]`);
+
+                            if (this.value === 'good') {
+                                rejectedInput.classList.add('d-none');
+                                rejectedInput.value = 0;
+                            } else {
+                                rejectedInput.classList.remove('d-none');
+                                if (parseInt(rejectedInput.value || 0) === 0) rejectedInput.value = receivedInput.value;
+                            }
+                            updateProgress();
+                        });
+                    });
+
+                    content.querySelector('form').addEventListener('submit', function(e) {
+                        let hasError = false;
+                        document.querySelectorAll('.grr-condition').forEach(select => {
+                            if (select.value === 'good') return;
+                            const idx = select.getAttribute('data-row-index');
+                            const rejectedInput = document.querySelector(`.grr-qty-rejected[data-row-index="${idx}"]`);
+                            if (parseInt(rejectedInput.value || 0) <= 0) hasError = true;
+                        });
+                        if (hasError) {
+                            e.preventDefault();
+                            alert('Please enter the quantity affected for every item flagged as Damaged, Wrong Item, or Expired.');
+                        }
                     });
 
 
@@ -126,14 +168,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         this.value = '';
                     });
 
-                    updateProgress();
-                    document.querySelectorAll('.grr-qty').forEach(input => {
-                        input.addEventListener('input', function() {
-                            const anyMismatch = Array.from(document.querySelectorAll('.grr-qty'))
-                                .some(i => parseInt(i.value || 0) !== parseInt(i.getAttribute('data-expected')));
-                            warningBox.classList.toggle('d-none', !anyMismatch);
-                        });
-                    });
                 })
                 .catch(err => {
                     content.innerHTML = `<div class="text-center text-danger p-5">Failed to load PO details.</div>`;

@@ -33,6 +33,7 @@ class Users extends BaseController
     $data['count_clients'] = $counts['clients'];
     $data['count_suppliers'] = $counts['suppliers'];
     $data['count_pending'] = $counts['pending'];
+    $data['count_customers'] = $counts['customers'];
 
     $data['title'] = "User Access Control";
     $data['fullname'] = session()->get('full_name');

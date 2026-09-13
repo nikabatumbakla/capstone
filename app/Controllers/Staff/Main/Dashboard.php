@@ -20,10 +20,11 @@ class Dashboard extends BaseController
 
         $kpis = $this->dashboardModel->getKpis($userId);
 
-        $data['pos_txns']         = $kpis['pos_txns'];
-        $data['pending_grr']      = $kpis['pending_grr'];
+        $data['pos_txns']          = $kpis['pos_txns'];
+        $data['pos_total']         = $kpis['pos_total'];
+        $data['pending_grr']       = $kpis['pending_grr'];
         $data['orders_to_process'] = $kpis['orders_to_process'];
-        $data['assigned_alerts']  = $kpis['assigned_alerts'];
+        $data['assigned_alerts']   = $kpis['assigned_alerts'];
 
         $data['tasks'] = $this->dashboardModel->getTodaysTasks($userId, 5);
         $data['low_stock'] = $this->dashboardModel->getLowStock(5);

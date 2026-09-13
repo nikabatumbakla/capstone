@@ -1,6 +1,5 @@
 <?= view('partials/supplier/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
-<script>const BASE_URL = "<?= base_url() ?>";</script>
 
 <div class="wrapper">
     <?= view('partials/supplier/sidebar') ?>
@@ -18,6 +17,18 @@
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Mark acknowledged orders as dispatched with a delivery reference</p>
             </div>
 
+            <div class="alert alert-light border" style="font-size:11px;">
+                <i class="fas fa-info-circle me-1 text-primary"></i>
+                Orders can only be marked In-Transit once Robin Rose Trading has completed payment. Acknowledged orders awaiting payment will show here as <span class="badge bg-secondary">AWAITING PAYMENT</span>.
+            </div>
+
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
+
             <div class="custom-table-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h6 class="fw-bold mb-0" style="font-size:13px;">Acknowledged Orders — Ready for Dispatch</h6>
@@ -28,19 +39,29 @@
 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
-                        <thead class="table-dark"><tr><th class="ps-4">PO #</th><th>Expected</th><th>Status</th><th>DR Number</th><th class="text-center">Action</th></tr></thead>
+                        <thead class="table-dark"><tr><th class="ps-4">PO #</th><th>Expected</th><th>Status</th><th>Payment</th><th>DR Number</th><th>Carrier</th><th class="text-center">Action</th></tr></thead>
                         <tbody>
                             <?php if(empty($orders)): ?>
-                                <tr><td colspan="5" class="text-center py-5 text-muted">No orders ready for dispatch.</td></tr>
-                            <?php else: foreach($orders as $o): ?>
+                                <tr><td colspan="7" class="text-center py-5 text-muted">No orders ready for dispatch.</td></tr>
+                            <?php else: foreach($orders as $o): $isPaid = ($o['payment_status'] ?? 'unpaid') === 'paid'; ?>
                             <tr>
                                 <td class="ps-4 fw-bold"><?= esc($o['po_number']) ?></td>
                                 <td><?= $o['expected_date'] ? date('M d, Y', strtotime($o['expected_date'])) : '—' ?></td>
                                 <td><span class="badge <?= $o['status']=='in_transit'?'bg-info':'bg-primary' ?> px-3"><?= strtoupper($o['status']) ?></span></td>
+                                <td>
+                                    <?php if($isPaid): ?>
+                                        <span class="badge bg-success">PAID</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">AWAITING PAYMENT</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><code><?= esc($o['supplier_dr_number'] ?: '—') ?></code></td>
+                                <td><?= esc($o['carrier_name'] ?: '—') ?></td>
                                 <td class="text-center">
-                                    <?php if($o['status'] === 'acknowledged'): ?>
+                                    <?php if($o['status'] === 'acknowledged' && $isPaid): ?>
                                         <button class="btn btn-xs btn-success rounded-pill px-3 btn-mark-dispatch" data-id="<?= $o['po_id'] ?>" data-no="<?= esc($o['po_number']) ?>">Mark In-Transit</button>
+                                    <?php elseif($o['status'] === 'acknowledged'): ?>
+                                        <span class="text-muted" title="Waiting for Robin Rose Trading to complete payment"><i class="fas fa-lock me-1"></i>Locked</span>
                                     <?php else: ?>
                                         <span class="text-muted">Dispatched</span>
                                     <?php endif; ?>
@@ -72,15 +93,30 @@
     </div>
     <div class="offcanvas-body p-4">
         <form action="<?= base_url('supplier/orders/update-delivery') ?>" method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="po_id" id="dispatch_po_id">
             <div class="mb-3"><label class="formal-label">PO Number</label><input type="text" id="dispatch_po_no" class="formal-input read-only-input" readonly></div>
             <div class="mb-3"><label class="formal-label">Dispatch Date</label><input type="date" name="dispatch_date" class="formal-input" value="<?= date('Y-m-d') ?>"></div>
-            <div class="mb-4"><label class="formal-label">Delivery Reference / DR Number *</label><input type="text" name="dr_number" class="formal-input" placeholder="Courier tracking # or DR #" required></div>
-            <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-pill shadow">✓ CONFIRM DISPATCH</button>
+            <div class="mb-3"><label class="formal-label">Delivery Reference / DR Number *</label><input type="text" name="dr_number" class="formal-input" placeholder="Courier tracking # or DR #" required></div>
+            <div class="mb-3"><label class="formal-label">Carrier / Courier Name</label><input type="text" name="carrier_name" class="formal-input" placeholder="e.g. LBC, own delivery van, Lalamove"></div>
+            <div class="mb-4"><label class="formal-label">Driver / Rider Contact</label><input type="text" name="driver_contact" class="formal-input" placeholder="Optional — name or phone number"></div>
+            <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-pill shadow">✓ MARK AS IN-TRANSIT</button>
         </form>
     </div>
 </div>
 
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }
+        });
+    }, 5000);
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const dispatchDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('dispatchDrawer'));

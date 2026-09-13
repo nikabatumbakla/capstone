@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 const rows = items.map(i => `
             <tr>
-                <td>${i.name}<br><small>${i.sku || '—'}</small></td>
+                <td>${i.name}<br><small>${i.barcode_value || '—'}</small></td>
                 <td style="text-align:center;">${i.quantity}</td>
                 <td style="text-align:right;">${peso(i.unit_price)}</td>
                 <td style="text-align:right;">${peso(i.subtotal)}</td>
@@ -49,10 +49,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 <table style="width:100%; font-size:11px; margin-bottom:15px;">
                     <tr><td><b>Invoice No:</b> ${o.invoice_number || o.order_number}</td><td style="text-align:right;"><b>Date:</b> ${o.created_at}</td></tr>
                     <tr><td><b>Order No:</b> ${o.order_number}</td><td style="text-align:right;"><b>Status:</b> ${o.status.toUpperCase()}</td></tr>
-                    <tr><td colspan="2"><b>Billed To:</b> ${o.organization}</td></tr>
+                    <tr><td colspan="2"><b>Billed To:</b> ${o.organization}${o.guest_client_id ? ' (Walk-in — No Account)' : ''}</td></tr>
                     <tr><td colspan="2">${o.client_addr || ''} ${o.phone ? '| ' + o.phone : ''} ${o.client_tin ? '| TIN: ' + o.client_tin : ''}</td></tr>
                     ${fulfillmentRow}
-                    <tr><td><b>Payment Method:</b> ${o.payment_method.toUpperCase()}</td><td style="text-align:right;"><b>Payment Status:</b> ${o.payment_status.toUpperCase()}</td></tr>
+                    <tr><td><b>Payment Method:</b> ${(o.payment_method || '').toUpperCase()}</td><td style="text-align:right;"><b>Payment Status:</b> ${o.payment_status.toUpperCase()}</td></tr>
                 </table>
                 ${discountHolderLine}
                 <table style="width:100%; border-collapse: collapse; font-size:11px;" border="1" cellpadding="6">
@@ -91,21 +91,32 @@ document.addEventListener("DOMContentLoaded", function() {
                                     content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
 
                                     fetch(`${BASE_URL}/admin/sales/get-order-details/${id}`)
-                                        .then(res => res.json())
+                                        .then(async res => {
+                                            const text = await res.text();
+                                            try {
+                                                return JSON.parse(text);
+                                            } catch (e) {
+                                                console.error('[Sales Orders] Server did not return valid JSON:', text);
+                                                throw new Error('Server returned an unexpected response — check the console for details.');
+                                            }
+                                        })
                                         .then(data => {
                                                 if (data.error) {
                                                     content.innerHTML = `<div class="alert alert-danger m-3 small text-center">${data.error}</div>`;
                                                     return;
                                                 }
-
                                                 const o = data.order;
                                                 const items = data.items;
                                                 const store = data.store_info;
                                                 const isPickup = o.fulfillment_type === 'pickup';
+                                                const isPaid = o.payment_status === 'paid'; // was MISSING — this was the actual bug
 
                                                 const fulfillmentBadge = isPickup ?
-                                                    `<span class="badge bg-success"><i class="fas fa-store me-1"></i>Store Pickup</span>` :
+                                                    `<span class="badge bg-info text-dark"><i class="fas fa-store me-1"></i>Store Pickup</span>` :
                                                     `<span class="badge bg-primary"><i class="fas fa-truck me-1"></i>Delivery</span>`;
+
+                                                const originBadge = o.guest_client_id ?
+                                                    `<span class="badge bg-secondary ms-1"><i class="fas fa-user-plus me-1"></i>Walk-in — No Account</span>` : '';
 
                                                 const fulfillmentRow = isPickup ?
                                                     `<div class="col-12"><small class="info-label">Fulfillment</small><p class="mb-0">Store Pickup — client to claim in person</p></div>` :
@@ -113,11 +124,82 @@ document.addEventListener("DOMContentLoaded", function() {
 
                                                 const itemsHtml = items.map(i => `
                         <tr>
-                            <td style="border-bottom:1px solid #eee; padding:8px;"><b>${i.name}</b><br><small>${i.sku || '—'}</small></td>
+                            <td style="border-bottom:1px solid #eee; padding:8px;"><b>${i.name}</b><br><small>${i.barcode_value || '—'}</small></td>
                             <td style="border-bottom:1px solid #eee; padding:8px; text-align:center;">${i.quantity}</td>
                             <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.unit_price)}</td>
                             <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.subtotal)}</td>
                         </tr>`).join('');
+
+                                                // Status progression
+                                                let statusActionHtml = '';
+                                                if (o.status === 'pending') {
+                                                    if (isPickup) {
+                                                        statusActionHtml = `
+            <form action="${BASE_URL}/admin/sales/update-order-status" method="POST" class="mt-3">
+                <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+                <input type="hidden" name="order_id" value="${o.order_id}">
+                <input type="hidden" name="status" value="ready_for_pickup">
+                <button type="submit" class="btn btn-info text-dark w-100"><i class="fas fa-box-open me-2"></i>Mark Ready for Pickup</button>
+            </form>`;
+                                                    } else {
+                                                        const blocked = ['cheque', 'bank_transfer'].includes(o.payment_method) && !isPaid;
+                                                        statusActionHtml = blocked ? `
+            <div class="alert alert-warning small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Confirm payment before this order can be dispatched — paid via ${(o.payment_method||'').replace('_',' ').toUpperCase()}.</div>` : `
+            <form action="${BASE_URL}/admin/sales/update-order-status" method="POST" class="mt-3">
+                <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+                <input type="hidden" name="order_id" value="${o.order_id}">
+                <input type="hidden" name="status" value="out_for_delivery">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-truck me-2"></i>Dispatch for Delivery</button>
+            </form>`;
+                                                    }
+                                                } else if (o.status === 'ready_for_pickup') {
+                                                    // Pickup — settled in person at the counter; disabled until admin confirms payment below.
+                                                    statusActionHtml = `
+        <form action="${BASE_URL}/admin/sales/update-order-status" method="POST" class="mt-3">
+            <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+            <input type="hidden" name="order_id" value="${o.order_id}">
+            <input type="hidden" name="status" value="delivered">
+            <button type="submit" class="btn btn-success w-100" ${!isPaid ? 'disabled title="Confirm payment first"' : ''}>
+                <i class="fas fa-check-circle me-2"></i>Mark as Picked Up
+            </button>
+        </form>
+        ${!isPaid ? `<p class="text-muted small mt-1 mb-0"><i class="fas fa-info-circle me-1"></i>Confirm payment below once the client arrives, then mark picked up.</p>` : ''}`;
+                                                                                                } else if (o.status === 'out_for_delivery') {
+                                                    statusActionHtml = `
+        <div class="alert alert-info small mt-3 mb-2"><i class="fas fa-hourglass-half me-1"></i>Waiting for the client to confirm receipt in their portal. Flagged items will automatically appear in Sales Returns once they do.</div>
+        <form action="${BASE_URL}/admin/sales/update-order-status" method="POST">
+            <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+            <input type="hidden" name="order_id" value="${o.order_id}">
+            <input type="hidden" name="status" value="delivered">
+            <button type="submit" class="btn btn-outline-dark w-100 btn-sm" onclick="return confirm('This marks the order Delivered WITHOUT client confirmation — use only if the client cannot access the portal. Continue?')">
+                <i class="fas fa-exclamation-triangle me-2"></i>Force Mark Delivered (No Client Verification)
+            </button>
+        </form>`;
+                                                } else if (o.status === 'return_pending') {
+                                                    statusActionHtml = `
+        <div class="alert alert-warning small mt-3 mb-0"><i class="fas fa-undo-alt me-1"></i>The client reported an issue with this delivery. Review and resolve it under <b>Sales Returns</b> — approving the return there will finalize this order's outcome.</div>`;
+                                                }
+                                                // Confirm Payment Received — gated so it never shows for pickup
+                                                // before the order is actually Ready for Pickup.
+                                                const needsAdminPaymentUI = isPickup
+                                                    ? (o.status === 'ready_for_pickup' && !isPaid)
+                                                    : !isPaid;
+
+                                                const paymentFormHtml = needsAdminPaymentUI ? `
+    <form action="${BASE_URL}/admin/sales/confirm-payment" method="POST" class="p-3 bg-light rounded-4 mt-3">
+        <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+        <input type="hidden" name="order_id" value="${o.order_id}">
+        <label class="formal-label">Confirm Payment Received</label>
+        ${o.client_payment_ref ? `<div class="alert alert-info py-2 small mb-2"><i class="fas fa-info-circle me-1"></i>Client submitted reference: <b>${o.client_payment_ref}</b> on ${o.client_payment_submitted_at || ''}</div>` : ''}
+        <select name="payment_method" class="form-select formal-input mb-2" required>
+            <option value="" disabled ${!o.payment_method ? 'selected' : ''}>Select method actually used</option>
+            <option value="cash" ${o.payment_method === 'cash' ? 'selected' : ''}>Cash</option>
+            <option value="bank_transfer" ${o.payment_method === 'bank_transfer' ? 'selected' : ''}>Bank Transfer</option>
+            <option value="cheque" ${o.payment_method === 'cheque' ? 'selected' : ''}>Cheque</option>
+        </select>
+        <input type="text" name="payment_reference" class="formal-input mb-2" value="${o.client_payment_ref || ''}" placeholder="Reference # (required for bank transfer/cheque)">
+        <button type="submit" class="btn btn-success w-100">✓ Mark as Paid</button>
+    </form>` : '';
 
                                                 content.innerHTML = `
                         <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
@@ -128,9 +210,9 @@ document.addEventListener("DOMContentLoaded", function() {
                             <div class="row g-2 mb-4 bg-light p-3 rounded-4">
                                 <div class="col-6"><small class="info-label">Organization</small><p class="mb-0 fw-bold">${o.organization}</p></div>
                                 <div class="col-6 text-end"><small class="info-label">Total Amount</small><h5 class="fw-bold text-maroon">${peso(o.total)}</h5></div>
-                                <div class="col-6"><small class="info-label">Payment</small><p class="mb-0">${o.payment_method.toUpperCase()} — ${o.payment_status.toUpperCase()}</p></div>
-                                <div class="col-6 text-end"><small class="info-label">Status</small><p class="mb-0">${o.status.toUpperCase()}</p></div>
-                                <div class="col-12 mb-1">${fulfillmentBadge}</div>
+                                <div class="col-6"><small class="info-label">Payment</small><p class="mb-0">${(o.payment_method||'').toUpperCase()} — ${o.payment_status.toUpperCase()}</p></div>
+                                <div class="col-6 text-end"><small class="info-label">Status</small><p class="mb-0">${o.status === 'return_pending' ? 'RETURN UNDER REVIEW' : o.status.replace('_',' ').toUpperCase()}</p></div>
+                                <div class="col-12 mb-1">${fulfillmentBadge}${originBadge}</div>
                                 ${fulfillmentRow}
                             </div>
                             <table class="table table-sm border-bottom" style="font-size:11px">
@@ -138,15 +220,10 @@ document.addEventListener("DOMContentLoaded", function() {
     <tbody>${itemsHtml}</tbody>
 </table>
 
-                           ${o.payment_status !== 'paid' ? `
-    <form action="${BASE_URL}/staff/operations/confirm-payment" method="POST" class="p-3 bg-light rounded-4 mt-3">
-        <input type="hidden" name="order_id" value="${o.order_id}">
-        <label class="formal-label">Confirm Payment Received</label>
-        <input type="text" name="payment_reference" class="formal-input mb-2" placeholder="Reference # (optional for cash/pickup)">
-        <button type="submit" class="btn btn-success w-100">✓ Mark as Paid</button>
-    </form>` : ''}
+                            ${paymentFormHtml}
+                            ${statusActionHtml}
 
-<div class="mt-5">
+<div class="mt-4">
     <button class="btn btn-dark w-100 py-3 fw-bold rounded-pill" id="btnPrintInvoice">PRINT INVOICE</button>
 </div>
                         </div>`;

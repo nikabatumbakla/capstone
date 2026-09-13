@@ -4,13 +4,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const list = document.getElementById('notifList');
     if (!bellBtn) return;
 
-    const typeMeta = {
-        low_stock: { icon: 'fa-box-open', color: '#e74c3c' },
-        near_expiry: { icon: 'fa-hourglass-half', color: '#f1c40f' },
-        expired: { icon: 'fa-ban', color: '#7b1113' },
-        po_approval: { icon: 'fa-file-alt', color: '#3498db' },
-        assigned_task: { icon: 'fa-clipboard-check', color: '#3498db' },
-    };
+    const iconMap = { low_stock: 'fa-box-open', near_expiry: 'fa-hourglass-half', expired: 'fa-ban', po_approval: 'fa-file-alt', po_pending: 'fa-truck-loading', assigned_task: 'fa-clipboard-check' };
+    const colorMap = { low_stock: '#e74c3c', near_expiry: '#f1c40f', expired: '#7b1113', po_approval: '#3498db', po_pending: '#8e44ad', assigned_task: '#3498db' };
 
     function loadNotifications() {
         fetch(`${BASE_URL}/admin/management/alerts/header-notifications`)
@@ -23,24 +18,20 @@ document.addEventListener("DOMContentLoaded", function() {
                     badge.classList.add('d-none');
                 }
 
-                list.innerHTML = data.recent.length ? data.recent.map(a => {
-                    const meta = typeMeta[a.alert_type] || { icon: 'fa-bell', color: '#6c757d' };
-                    return `
+                list.innerHTML = data.recent.length ? data.recent.map(n => `
+                    <a href="${n.link}" class="d-block text-decoration-none text-dark">
                         <div class="p-3 border-bottom d-flex align-items-start">
-                            <i class="fas ${meta.icon} me-2 mt-1" style="color:${meta.color}; font-size:11px;"></i>
+                            <i class="fas ${iconMap[n.type] || 'fa-bell'} me-2 mt-1" style="color:${colorMap[n.type] || '#6c757d'}; font-size:11px;"></i>
                             <div>
-                                <p class="mb-0" style="font-size:11px;">${a.message}</p>
-                                <small class="text-muted" style="font-size:9px;">${new Date(a.created_at).toLocaleString()}</small>
+                                <p class="mb-0" style="font-size:11px;">${n.message}</p>
+                                <small class="text-muted" style="font-size:9px;">${new Date(n.time).toLocaleString()}</small>
                             </div>
-                        </div>`;
-                }).join('') : `<div class="text-center text-muted p-4" style="font-size:11px;">No open alerts.</div>`;
+                        </div>
+                    </a>`).join('') : `<div class="text-center text-muted p-4" style="font-size:11px;">You're all caught up.</div>`;
             })
-            .catch(err => {
-                list.innerHTML = `<div class="text-center text-danger p-4" style="font-size:11px;">Failed to load.</div>`;
-                console.error(err);
-            });
+            .catch(err => console.error(err));
     }
 
     loadNotifications();
-    bellBtn.addEventListener('click', loadNotifications); // refresh each time it's opened
+    bellBtn.addEventListener('click', loadNotifications);
 });

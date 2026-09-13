@@ -49,7 +49,9 @@
                             <?php if(empty($pending_receipts)): ?>
                                 <tr><td colspan="5" class="text-center py-5 text-muted">No pending deliveries to record.</td></tr>
                             <?php endif; ?>
-                            <?php foreach($pending_receipts as $po): ?>
+                            <?php foreach($pending_receipts as $po):
+                                $isPaid = ($po['payment_status'] ?? 'unpaid') === 'paid';
+                            ?>
                             <tr>
                                 <td class="ps-4 fw-bold"><?= $po['po_number'] ?></td>
                                 <td><?= $po['supplier_name'] ?></td>
@@ -58,7 +60,7 @@
                                 <?php
     $grrStatusMeta = [
         'sent'         => ['label' => 'Sent — Awaiting Supplier', 'class' => 'bg-secondary'],
-        'acknowledged' => ['label' => 'Acknowledged by Supplier', 'class' => 'bg-info'],
+        'acknowledged' => ['label' => $isPaid ? 'Paid — Awaiting Dispatch' : 'Acknowledged — Awaiting Payment', 'class' => $isPaid ? 'bg-warning text-dark' : 'bg-secondary'],
         'in_transit'   => ['label' => 'In Transit', 'class' => 'bg-primary'],
     ];
     $meta = $grrStatusMeta[$po['status']] ?? ['label' => ucwords($po['status']), 'class' => 'bg-secondary'];
@@ -66,8 +68,16 @@
 <td><span class="badge <?= $meta['class'] ?>"><?= $meta['label'] ?></span></td>
                                 
                                 <td class="text-center">
-    <button class="btn btn-sm btn-dark rounded-pill px-3 btn-record-grr" data-id="<?= $po['po_id'] ?>">
-        <i class="fas fa-box-open me-2"></i>Verify Delivery</button>
+    <?php if($po['status'] === 'in_transit'): ?>
+        <button class="btn btn-sm btn-dark rounded-pill px-3 btn-record-grr" data-id="<?= $po['po_id'] ?>">
+            <i class="fas fa-box-open me-2"></i>Verify Delivery</button>
+    <?php elseif($po['status'] === 'sent'): ?>
+        <span class="text-muted" title="Waiting for the supplier to review and acknowledge this order"><i class="fas fa-hourglass-half me-1"></i>Awaiting Acknowledgment</span>
+    <?php elseif($po['status'] === 'acknowledged' && !$isPaid): ?>
+        <span class="text-muted" title="Payment must be completed before the supplier can dispatch"><i class="fas fa-money-check-alt me-1"></i>Payment Needed</span>
+    <?php elseif($po['status'] === 'acknowledged' && $isPaid): ?>
+        <span class="text-muted" title="Paid — waiting for the supplier to mark this dispatched"><i class="fas fa-lock me-1"></i>Awaiting Dispatch</span>
+    <?php endif; ?>
 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -112,7 +122,7 @@
 </div>
 
 <!-- GRR FORM DRAWER -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="grrDrawer" style="width: 700px;">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="grrDrawer" style="width: 850px;">
     <div class="offcanvas-header border-bottom bg-light">
         <h6 class="fw-bold mb-0">Record Incoming Goods</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>

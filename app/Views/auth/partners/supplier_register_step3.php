@@ -1,5 +1,10 @@
 <?php include APPPATH . 'Views/shared/pg_header.php'; ?>
 
+<div class="btn-group bg-dark bg-opacity-25 rounded-pill p-1 mb-4">
+        <a href="<?= base_url('partner-gateway') ?>" class="btn btn-sm text-white rounded-pill px-4 fw-bold opacity-50 text-decoration-none">LOGIN</a>
+        <button class="btn btn-sm btn-dark rounded-pill px-4 fw-bold">REGISTER</button>
+    </div>
+
 <div class="glass-card" style="max-width: 650px;">
     <div class="pg-steps mb-5">
         <div class="pg-step done"><span class="num"><i class="fas fa-check"></i></span> Organization</div>

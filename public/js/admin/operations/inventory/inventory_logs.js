@@ -1,90 +1,93 @@
 document.addEventListener("DOMContentLoaded", function() {
-    const viewLogBtns = document.querySelectorAll('.btn-view-log');
-    const logDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('logDrawer'));
-    const content = document.getElementById('logDrawerContent');
+            const viewLogBtns = document.querySelectorAll('.btn-view-log');
+            const logDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('logDrawer'));
+            const content = document.getElementById('logDrawerContent');
 
-    function val(v, fallback = '—') {
-        return (v === null || v === undefined || v === '' || v === 'null') ? fallback : v;
-    }
+            function val(v, fallback = '—') {
+                return (v === null || v === undefined || v === '' || v === 'null') ? fallback : v;
+            }
 
-    const searchInput = document.getElementById('logSearch');
-    if (searchInput) {
-        let debounceTimer;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const params = new URLSearchParams(window.location.search);
-                params.set('page', 1);
-                const term = searchInput.value.trim();
-                if (term !== '') params.set('search', term);
-                else params.delete('search');
-                window.location.href = window.location.pathname + '?' + params.toString();
-            }, 500);
-        });
-    }
+            const searchInput = document.getElementById('logSearch');
+            if (searchInput) {
+                let debounceTimer;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        const params = new URLSearchParams(window.location.search);
+                        params.set('page', 1);
+                        const term = searchInput.value.trim();
+                        if (term !== '') params.set('search', term);
+                        else params.delete('search');
+                        window.location.href = window.location.pathname + '?' + params.toString();
+                    }, 500);
+                });
+            }
 
-    let currentLogData = null; // for the print function
+            let currentLogData = null; // for the print function
 
-    viewLogBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            logDrawer.show();
-            content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
+            viewLogBtns.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                                    const id = this.getAttribute('data-id');
+                                    logDrawer.show();
+                                    content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
 
-            fetch(`${BASE_URL}/admin/inventory/get-log-details/${id}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        content.innerHTML = `<div class="text-center text-danger p-5">${data.error}</div>`;
-                        return;
-                    }
+                                    fetch(`${BASE_URL}/admin/inventory/get-log-details/${id}`)
+                                        .then(res => res.json())
+                                        .then(data => {
+                                                if (data.error) {
+                                                    content.innerHTML = `<div class="text-center text-danger p-5">${data.error}</div>`;
+                                                    return;
+                                                }
 
-                    currentLogData = data;
-                    const diff = data.qty_after - data.qty_before;
-                    const diffFormatted = diff > 0 ? `+${diff}` : diff;
+                                                currentLogData = data;
+                                                const diff = data.qty_after - data.qty_before;
+                                                const diffFormatted = diff > 0 ? `+${diff}` : diff;
 
-                    const formattedDate = data.adjusted_at ?
-                        new Date(data.adjusted_at.replace(' ', 'T')).toLocaleString('en-US', {
-                            month: 'short',
-                            day: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true
-                        }) :
-                        '—';
+                                                const formattedDate = data.adjusted_at ?
+                                                    new Date(data.adjusted_at.replace(' ', 'T')).toLocaleString('en-US', {
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    }) :
+                                                    '—';
 
-                    content.innerHTML = `
-                        <div class="text-center mb-4 p-4 bg-light rounded-4">
-                            <i class="fas fa-clipboard-check fs-1 text-maroon opacity-25 mb-3"></i>
-                            <h6 class="fw-bold mb-1">${val(data.product_name)}</h6>
-                            <p class="text-muted small">${val(data.sku, 'No SKU on record')}</p>
-                        </div>
+                                                content.innerHTML = `
+    <div class="text-center mb-4 p-4 bg-light rounded-4">
+        <div style="width:90px; height:90px; margin:0 auto 12px; border-radius:16px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center;">
+            ${data.image_path
+                ? `<img src="${BASE_URL}/${data.image_path}" style="width:100%; height:100%; object-fit:cover;">`
+                : `<i class="fas fa-box-open" style="font-size:32px; color:#ccc;"></i>`}
+        </div>
+        <h6 class="fw-bold mb-0">${val(data.product_name)}</h6>
+    </div>
 
-                        <div class="row g-3 mb-4">
-                            <div class="col-6"><p class="info-label mb-0">Adjusted By</p><p class="info-value text-primary">${val(data.full_name)}</p></div>
-                            <div class="col-6"><p class="info-label mb-0">Timestamp</p><p class="info-value">${formattedDate}</p></div>
-                            <div class="col-6"><p class="info-label mb-0">Batch Link</p><p class="info-value">${val(data.batch_number, 'Global')}</p></div>
-                            <div class="col-6"><p class="info-label mb-0">Reason Category</p><p class="info-value text-dark">${val(data.reason, 'Not specified')}</p></div>
-                        </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6"><p class="info-label mb-0">Adjusted By</p><p class="info-value text-primary">${val(data.full_name)}</p></div>
+        <div class="col-6"><p class="info-label mb-0">Timestamp</p><p class="info-value">${formattedDate}</p></div>
+        <div class="col-6"><p class="info-label mb-0">Batch Link</p><p class="info-value">${val(data.batch_number, 'Global')}</p></div>
+        <div class="col-6"><p class="info-label mb-0">Reason Category</p><p class="info-value text-dark">${val(data.reason, 'Not specified')}</p></div>
+    </div>
 
-                        <div class="p-3 rounded-4 bg-dark text-white mb-4 shadow">
-                            <div class="row text-center">
-                                <div class="col-4 border-end border-white-10"><small class="opacity-50">BEFORE</small><h4 class="mb-0">${val(data.qty_before, 0)}</h4></div>
-                                <div class="col-4 border-end border-white-10"><small class="opacity-50">AFTER</small><h4 class="mb-0">${val(data.qty_after, 0)}</h4></div>
-                                <div class="col-4"><small class="opacity-50">DELTA</small><h4 class="mb-0 text-warning">${diffFormatted}</h4></div>
-                            </div>
-                        </div>
+    <div class="p-3 rounded-4 bg-dark text-white mb-4 shadow">
+        <div class="row text-center">
+            <div class="col-4 border-end border-white-10"><small class="opacity-50">BEFORE</small><h4 class="mb-0">${val(data.qty_before, 0)}</h4></div>
+            <div class="col-4 border-end border-white-10"><small class="opacity-50">AFTER</small><h4 class="mb-0">${val(data.qty_after, 0)}</h4></div>
+            <div class="col-4"><small class="opacity-50">DELTA</small><h4 class="mb-0 text-warning">${diffFormatted}</h4></div>
+        </div>
+    </div>
 
-                        <div class="bg-light p-3 rounded-4 border">
-                            <p class="info-label mb-2">Staff Remarks / Notes</p>
-                            <p class="mb-0 text-dark" style="font-size: 12px; line-height: 1.6;">"${val(data.notes, 'No detailed remarks provided for this adjustment.')}"</p>
-                        </div>
+    <div class="bg-light p-3 rounded-4 border">
+        <p class="info-label mb-2">Staff Remarks / Notes</p>
+        <p class="mb-0 text-dark" style="font-size: 12px; line-height: 1.6;">"${val(data.notes, 'No detailed remarks provided for this adjustment.')}"</p>
+    </div>
 
-                        <button class="btn btn-outline-dark w-100 mt-5 py-2 fw-bold" id="btnPrintVoucher">
-                            <i class="fas fa-print me-2"></i>PRINT ADJUSTMENT VOUCHER
-                        </button>
-                    `;
+    <button class="btn btn-outline-dark w-100 mt-5 py-2 fw-bold" id="btnPrintVoucher">
+        <i class="fas fa-print me-2"></i>PRINT ADJUSTMENT VOUCHER
+    </button>
+`;
 
                     document.getElementById('btnPrintVoucher').addEventListener('click', function() {
                         printVoucher(data, formattedDate, diffFormatted);
@@ -211,8 +214,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 <tr>
                     <td class="label">Product</td>
                     <td>${val(data.product_name)}</td>
-                    <td class="label">SKU</td>
-                    <td>${val(data.sku, 'No SKU on record')}</td>
                 </tr>
                 <tr>
                     <td class="label">Batch Reference</td>

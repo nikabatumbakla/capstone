@@ -40,10 +40,10 @@ class ProfileModel extends Model
     }
 
     public function getStats(int $clientId): array
-{
-    return [
-        'total_orders' => $this->db->table('sales_orders')->where('client_id', $clientId)->countAllResults(),
-        'member_since' => $this->db->table('institutional_clients')->select('created_at')->where('client_id', $clientId)->get()->getRow()->created_at ?? null,
-    ];
-}
+    {
+        return [
+            'total_orders' => $this->db->table('sales_orders')->where('client_id', $clientId)->countAllResults(),
+            'member_since' => $this->db->table('institutional_clients')->select('created_at')->where('client_id', $clientId)->get()->getRow()->created_at ?? null,
+        ];
+    }
 }

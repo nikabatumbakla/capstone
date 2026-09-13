@@ -84,3 +84,4 @@ public function get_cash_receipts_journal()
 }
 
 }
+

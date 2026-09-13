@@ -19,15 +19,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const pickupRadio = document.getElementById('fulfillPickup');
     const addressGroup = document.getElementById('deliveryAddressGroup');
     const addressInput = document.getElementById('deliveryAddressInput');
+    const pickupInfoBox = document.getElementById('pickupInfoBox');
 
     function toggleFulfillment() {
-        if (pickupRadio && pickupRadio.checked) {
-            addressGroup.style.display = 'none';
-            addressInput.removeAttribute('required');
-        } else {
-            addressGroup.style.display = '';
-            addressInput.setAttribute('required', 'required');
-        }
+        const isPickup = pickupRadio && pickupRadio.checked;
+        addressGroup.style.display = isPickup ? 'none' : '';
+        pickupInfoBox.style.display = isPickup ? 'block' : 'none';
+        if (isPickup) addressInput.removeAttribute('required');
+        else addressInput.setAttribute('required', 'required');
+        updatePrepaymentNote();
     }
     if (deliveryRadio && pickupRadio) {
         deliveryRadio.addEventListener('change', toggleFulfillment);
@@ -35,14 +35,23 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleFulfillment();
     }
 
-    // ============ CHEQUE CLEARANCE NOTE ============
+    // ============ CHEQUE CLEARANCE NOTE + PREPAYMENT WARNING ============
     const paymentSelect = document.getElementById('paymentMethodSelect');
     const chequeNote = document.getElementById('chequeNote');
+    const prepaymentNote = document.getElementById('prepaymentNote');
+
+    function updatePrepaymentNote() {
+        if (!paymentSelect) return;
+        const isDelivery = deliveryRadio && deliveryRadio.checked;
+        const needsPrepay = isDelivery && ['bank_transfer', 'cheque'].includes(paymentSelect.value);
+        prepaymentNote.style.display = needsPrepay ? 'block' : 'none';
+    }
 
     function toggleChequeNote() {
         if (paymentSelect && chequeNote) {
-            chequeNote.style.display = paymentSelect.value === 'check' ? 'block' : 'none';
+            chequeNote.style.display = paymentSelect.value === 'cheque' ? 'block' : 'none';
         }
+        updatePrepaymentNote();
     }
     if (paymentSelect) {
         paymentSelect.addEventListener('change', toggleChequeNote);

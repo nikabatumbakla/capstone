@@ -48,7 +48,7 @@
                     <li><a href="<?= base_url('admin/procurement/suppliers') ?>" class="<?= ($page_name == 'suppliers') ? 'active-sub' : '' ?>">Suppliers</a></li>
                     <li><a href="<?= base_url('admin/procurement/purchase-orders') ?>" class="<?= ($page_name == 'purchase-orders') ? 'active-sub' : '' ?>">Purchase Orders</a></li>
                     <li><a href="<?= base_url('admin/procurement/goods-receipt') ?>" class="<?= ($page_name == 'goods-receipt') ? 'active-sub' : '' ?>">Goods Receipt (GRR)</a></li>
-                    <li><a href="<?= base_url('admin/sales/supplier-returns') ?>" class="<?= ($page_name == 'supplier-returns') ? 'active-sub' : '' ?>">Supplier Returns</a></li>
+                    <li><a href="<?= base_url('admin/procurement/supplier-returns') ?>" class="<?= ($page_name == 'supplier-returns') ? 'active-sub' : '' ?>">Supplier Returns</a></li>
                 </ul>
             </li>
 

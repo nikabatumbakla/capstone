@@ -1,6 +1,10 @@
 <?= view('partials/staff/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
 <script>const BASE_URL = "<?= base_url() ?>";</script>
+<script>
+    const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
+    const CSRF_HASH = "<?= csrf_hash() ?>";
+</script>
 
 <div class="wrapper">
     <?= view('partials/staff/sidebar') ?>
@@ -17,6 +21,13 @@
                 <h6 class="fw-bold mb-1"><i class="fas fa-truck-loading me-2"></i>Goods Receipt Recording (GRR)</h6>
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Verify delivered items against the PO · Flag discrepancies · Updates inventory automatically</p>
             </div>
+
+            <?php if(session()->getFlashdata('error')): ?>
+    <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+<?php endif; ?>
+<?php if(session()->getFlashdata('success')): ?>
+    <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+<?php endif; ?>
 
             <div class="custom-table-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -70,6 +81,15 @@
     </div>
     <div class="offcanvas-body" id="grrContent"></div>
 </div>
+
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) { el.style.transition = 'opacity 0.5s ease'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }
+        });
+    }, 5000);
+</script>
 
 <script src="<?= base_url('public/js/staff/operations/goods_receipt.js') ?>"></script>
 <?= view('partials/staff/footer') ?>

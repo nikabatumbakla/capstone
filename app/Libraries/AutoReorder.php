@@ -68,5 +68,27 @@ class AutoReorder
             'qty_ordered' => $suggestedQty,
             'unit_cost'   => $unitCost
         ]);
+
+        $totalStock = $db->table('inventory_batches')->selectSum('quantity_avail')->where('product_id', $productId)->get()->getRow()->quantity_avail ?? 0;
+
+    if ($totalStock <= 0) {
+        $product = $db->table('products')->where('product_id', $productId)->get()->getRow();
+        $pendingPo = $db->table('purchase_order_items as poi')
+            ->select('po.po_id, po.po_number, po.status')
+            ->join('purchase_orders as po', 'po.po_id = poi.po_id')
+            ->where('poi.product_id', $productId)
+            ->whereIn('po.status', ['pending_approval', 'approved', 'sent', 'acknowledged', 'in_transit'])
+            ->orderBy('po.created_at', 'DESC')->get()->getRow();
+
+        // A short-lived flag row admin's dashboard polls for — auto-expires by simply
+        // being marked seen once shown, so it doesn't nag on every page load forever.
+        $db->table('stockout_events')->insert([
+            'product_id'  => $productId,
+            'product_name'=> $product->name ?? 'Unknown product',
+            'po_id'       => $pendingPo->po_id ?? null,
+            'po_number'   => $pendingPo->po_number ?? null,
+            'is_seen'     => 0,
+        ]);
+    }
     }
 }

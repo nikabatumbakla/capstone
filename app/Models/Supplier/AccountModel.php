@@ -15,18 +15,9 @@ class AccountModel extends Model
     }
 
     public function getScorecard(int $supplierId)
-    {
-        $row = $this->db->table('supplier_scorecards')->where('supplier_id', $supplierId)->get()->getRow();
-        if (!$row) {
-            return (object) [
-                'on_time_rate'         => null,
-                'accuracy_rate'        => null,
-                'total_orders'         => 0,
-                'avg_lead_time_actual' => null,
-            ];
-        }
-        return $row;
-    }
+{
+    return \App\Libraries\ScorecardCalculator::calculate($this->db, $supplierId);
+}
 
     public function getPoHistory(int $supplierId, int $limit = 10): array
     {
@@ -47,25 +38,65 @@ class AccountModel extends Model
 
     public function getProfile(int $supplierId)
     {
-        return $this->db->table('suppliers as s')
+        $supplier = $this->db->table('suppliers as s')
             ->select('s.*, u.email as login_email')
             ->join('users as u', 'u.user_id = s.user_id', 'left')
             ->where('s.supplier_id', $supplierId)
             ->get()->getRow();
+
+        if ($supplier) {
+            $supplier->category_ids = array_column(
+                $this->db->table('supplier_categories')->where('supplier_id', $supplierId)->get()->getResultArray(),
+                'category_id'
+            );
+        }
+        return $supplier;
     }
+
+    public function getAllCategories(): array
+{
+    return $this->db->table('categories')->orderBy('name', 'ASC')->get()->getResultArray();
+}
 
     public function emailExists(string $email, int $userId): bool
     {
         return $this->db->table('users')->where('email', $email)->where('user_id !=', $userId)->countAllResults() > 0;
     }
 
-    public function updateProfile(int $supplierId, int $userId, array $supplierPayload, array $userPayload): void
-    {
-        $this->db->transStart();
-        $this->db->table('suppliers')->where('supplier_id', $supplierId)->update($supplierPayload);
-        if (!empty($userPayload)) {
-            $this->db->table('users')->where('user_id', $userId)->update($userPayload);
-        }
-        $this->db->transComplete();
+    public function updateProfile(int $supplierId, int $userId, array $supplierPayload, array $userPayload, array $existingCategoryIds = []): void
+{
+    $this->db->transStart();
+
+    $this->db->table('suppliers')->where('supplier_id', $supplierId)->update($supplierPayload);
+
+    if (!empty($userPayload)) {
+        $this->db->table('users')->where('user_id', $userId)->update($userPayload);
     }
+
+    $this->db->table('supplier_categories')->where('supplier_id', $supplierId)->delete();
+
+    foreach ($existingCategoryIds as $categoryId) {
+        $this->db->table('supplier_categories')->insert([
+            'supplier_id' => $supplierId,
+            'category_id' => (int) $categoryId,
+        ]);
+    }
+
+    $this->db->transComplete();
+}
+
+    public function getSupplierCategories(int $supplierId): array
+{
+    return $this->db->table('supplier_categories as sc')
+        ->select('c.category_id, c.name, c.is_active')
+        ->join('categories as c', 'c.category_id = sc.category_id')
+        ->where('sc.supplier_id', $supplierId)
+        ->get()->getResultArray();
+}
+
+public function getComputedScorecard(int $supplierId)
+{
+    return \App\Libraries\ScorecardCalculator::calculate($this->db, $supplierId);
+}
+
 }

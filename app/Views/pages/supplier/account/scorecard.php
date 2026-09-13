@@ -25,8 +25,8 @@
             <?php else: ?>
             <div class="row g-3 mb-4 text-center">
                 <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">TOTAL ORDERS</small><h3 class="fw-bold mb-0"><?= $scorecard->total_orders ?></h3></div></div>
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">ON-TIME DELIVERY</small><h3 class="fw-bold mb-0 text-success"><?= number_format($scorecard->on_time_rate, 1) ?>%</h3></div></div>
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">ORDER ACCURACY</small><h3 class="fw-bold mb-0 text-primary"><?= number_format($scorecard->accuracy_rate, 1) ?>%</h3></div></div>
+                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">ON-TIME DELIVERY</small><h3 class="fw-bold mb-0 text-success"><?= $scorecard->on_time_rate !== null ? number_format($scorecard->on_time_rate, 1) . '%' : 'N/A' ?></h3></div></div>
+<div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">ORDER ACCURACY</small><h3 class="fw-bold mb-0 text-primary"><?= $scorecard->accuracy_rate !== null ? number_format($scorecard->accuracy_rate, 1) . '%' : 'N/A' ?></h3></div></div>
                 <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">AVG LEAD TIME</small><h3 class="fw-bold mb-0"><?= $scorecard->avg_lead_time_actual ? round($scorecard->avg_lead_time_actual) . ' Days' : 'N/A' ?></h3></div></div>
             </div>
 
@@ -35,13 +35,13 @@
                     <div class="custom-table-container h-100">
                         <h6 class="fw-bold mb-4" style="font-size:13px;">Performance Breakdown</h6>
                         <div class="mb-4">
-                            <div class="d-flex justify-content-between mb-1"><small class="fw-bold">On-Time Delivery Rate</small><small class="text-success fw-bold"><?= number_format($scorecard->on_time_rate, 1) ?>%</small></div>
-                            <div class="progress" style="height:8px;"><div class="progress-bar bg-success" style="width: <?= $scorecard->on_time_rate ?>%"></div></div>
-                        </div>
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between mb-1"><small class="fw-bold">Order Accuracy Rate</small><small class="text-primary fw-bold"><?= number_format($scorecard->accuracy_rate, 1) ?>%</small></div>
-                            <div class="progress" style="height:8px;"><div class="progress-bar bg-primary" style="width: <?= $scorecard->accuracy_rate ?>%"></div></div>
-                        </div>
+    <div class="d-flex justify-content-between mb-1"><small class="fw-bold">On-Time Delivery Rate</small><small class="text-success fw-bold"><?= $scorecard->on_time_rate !== null ? number_format($scorecard->on_time_rate, 1) . '%' : 'N/A' ?></small></div>
+    <div class="progress" style="height:8px;"><div class="progress-bar bg-success" style="width: <?= $scorecard->on_time_rate ?? 0 ?>%"></div></div>
+</div>
+<div class="mb-4">
+    <div class="d-flex justify-content-between mb-1"><small class="fw-bold">Order Accuracy Rate</small><small class="text-primary fw-bold"><?= $scorecard->accuracy_rate !== null ? number_format($scorecard->accuracy_rate, 1) . '%' : 'N/A' ?></small></div>
+    <div class="progress" style="height:8px;"><div class="progress-bar bg-primary" style="width: <?= $scorecard->accuracy_rate ?? 0 ?>%"></div></div>
+</div>
                     </div>
                 </div>
                 <div class="col-lg-6">

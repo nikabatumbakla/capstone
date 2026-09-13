@@ -19,100 +19,116 @@ class StockModel extends Model
         return $this->db->table('categories')->orderBy('sort_order', 'ASC')->get()->getResultArray();
     }
 
+    // One row per product, total stock summed across every batch — same fix
+    // applied to admin Stock Management. A product isn't "low stock" just
+    // because its OLDEST batch is nearly empty if a newer batch still has plenty.
     public function getInventory(string $search = '', string $catId = '', string $status = '', int $page = 1, int $perPage = 10): array
-{
-    $offset = ($page - 1) * $perPage;
-    $apply = function ($b) use ($search, $catId, $status) {
-        $b->where('p.is_active', 1);
-        if ($search !== '') {
-            $b->groupStart()->like('p.name', $search)->orLike('p.sku', $search)->groupEnd();
+    {
+        $offset = ($page - 1) * $perPage;
+
+        $builder = $this->db->table('products as p')
+            ->select("p.product_id, p.name as product_name, p.barcode_value, p.unit, c.name as cat_name,
+                COALESCE(SUM(ib.quantity_avail), 0) as total_stock,
+                COALESCE(MAX(ib.reorder_level), 5) as reorder_level,
+                MIN(CASE WHEN ib.expires_at IS NOT NULL THEN ib.expires_at END) as nearest_expiry,
+                COUNT(ib.batch_id) as batch_count,
+                (SELECT ib2.sell_price FROM inventory_batches ib2 WHERE ib2.product_id = p.product_id AND ib2.quantity_avail > 0 ORDER BY ib2.expires_at ASC LIMIT 1) as sell_price")
+            ->join('categories as c', 'c.category_id = p.category_id')
+            ->join('inventory_batches as ib', 'ib.product_id = p.product_id', 'left')
+            ->where('p.is_active', 1);
+
+        if ($search !== '') $builder->groupStart()->like('p.name', $search)->orLike('p.barcode_value', $search)->groupEnd();
+        if ($catId !== '') $builder->where('p.category_id', $catId);
+
+        $builder->groupBy('p.product_id');
+        $builder->orderBy('p.name', 'ASC');
+
+        // Pull everything, filter status + paginate in PHP — avoids the HAVING/alias
+        // pitfalls CodeIgniter's countAllResults() has with correlated subqueries.
+        $allRows = $builder->get()->getResultArray();
+
+        $today = date('Y-m-d');
+        $sixMonths = date('Y-m-d', strtotime('+6 months'));
+
+        if ($status !== '') {
+            $allRows = array_values(array_filter($allRows, function ($r) use ($status, $today, $sixMonths) {
+                $stock = (int) $r['total_stock'];
+                if ($status === 'no_stock') return $stock <= 0;
+                if ($status === 'has_stock') return $stock > 0;
+                if ($status === 'low_stock') return $stock > 0 && $stock <= (int) $r['reorder_level'];
+                if ($status === 'near_expiry') return $r['nearest_expiry'] && $r['nearest_expiry'] >= $today && $r['nearest_expiry'] <= $sixMonths;
+                return true;
+            }));
         }
-        if ($catId !== '') $b->where('p.category_id', $catId);
 
-        if ($status === 'no_stock') {
-    $b->where("p.product_id NOT IN (SELECT product_id FROM inventory_batches WHERE quantity_avail > 0)", null, false);
-} elseif ($status === 'has_stock') {
-    $b->where("p.product_id IN (SELECT product_id FROM inventory_batches WHERE quantity_avail > 0)", null, false);
-} elseif ($status === 'low_stock') {
-    $b->where("p.product_id IN (SELECT product_id FROM inventory_batches WHERE quantity_avail <= reorder_level AND quantity_avail > 0)", null, false);
-} elseif ($status === 'near_expiry') {
-    $b->where("p.product_id IN (SELECT product_id FROM inventory_batches WHERE expires_at IS NOT NULL AND expires_at >= '" . date('Y-m-d') . "' AND expires_at <= '" . date('Y-m-d', strtotime('+6 months')) . "')", null, false);
-}
-        return $b;
-    };
+        usort($allRows, function ($a, $b) {
+            $rank = fn($r) => $r['total_stock'] <= 0 ? 0 : ($r['total_stock'] <= $r['reorder_level'] ? 1 : 2);
+            return $rank($a) <=> $rank($b) ?: strcmp($a['product_name'], $b['product_name']);
+        });
 
-    $countBuilder = $this->db->table('products as p');
-    $apply($countBuilder);
-    $total = $countBuilder->countAllResults();
+        $total = count($allRows);
+        $data = array_slice($allRows, $offset, $perPage);
 
-    $builder = $this->db->table('products as p')
-        ->select("p.product_id, p.name as product_name, p.sku, p.barcode_value, p.unit, c.name as cat_name,
-            ib.batch_id, ib.batch_number, ib.quantity_avail, ib.reorder_level, ib.sell_price, ib.expires_at")
-        ->join('categories as c', 'c.category_id = p.category_id')
-        ->join('inventory_batches as ib', "ib.batch_id = (SELECT ib2.batch_id FROM inventory_batches ib2 WHERE ib2.product_id = p.product_id ORDER BY ib2.received_at DESC LIMIT 1)", 'left');
-    $apply($builder);
-    $builder->orderBy("CASE WHEN ib.batch_id IS NULL THEN 0 WHEN ib.quantity_avail <= ib.reorder_level THEN 1 ELSE 2 END", 'ASC', false)
-        ->orderBy('p.name', 'ASC')
-        ->limit($perPage, $offset);
-
-    return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
-}
-    public function getKpis(string $search = '', string $catId = ''): array
-{
-    $apply = function ($b) use ($search, $catId) {
-        if ($search !== '') $b->groupStart()->like('p.name', $search)->orLike('p.sku', $search)->groupEnd();
-        if ($catId !== '') $b->where('p.category_id', $catId);
-        return $b;
-    };
-
-    $totalBuilder = $this->db->table('products as p')->where('p.is_active', 1);
-    $apply($totalBuilder);
-    $totalItems = $totalBuilder->countAllResults();
-
-    $noStockBuilder = $this->db->table('products as p')->where('p.is_active', 1);
-    $apply($noStockBuilder);
-    $noStock = $noStockBuilder
-        ->where("p.product_id NOT IN (SELECT product_id FROM inventory_batches WHERE quantity_avail > 0)", null, false)
-        ->countAllResults();
-
-    $hasStockBuilder = $this->db->table('products as p')->where('p.is_active', 1);
-    $apply($hasStockBuilder);
-    $hasStock = $hasStockBuilder
-        ->where("p.product_id IN (SELECT product_id FROM inventory_batches WHERE quantity_avail > 0)", null, false)
-        ->countAllResults();
-
-    $lowStockBuilder = $this->db->table('inventory_batches as ib')->join('products as p', 'p.product_id = ib.product_id')->where('p.is_active', 1);
-    $apply($lowStockBuilder);
-    $lowStock = $lowStockBuilder->where('ib.quantity_avail <= ib.reorder_level', null, false)->where('ib.quantity_avail >', 0)->countAllResults();
-
-    $nearExpiryBuilder = $this->db->table('inventory_batches as ib')->join('products as p', 'p.product_id = ib.product_id')->where('p.is_active', 1);
-    $apply($nearExpiryBuilder);
-    $nearExpiry = $nearExpiryBuilder
-        ->where('ib.expires_at IS NOT NULL', null, false)
-        ->where('ib.expires_at >=', date('Y-m-d'))
-        ->where('ib.expires_at <=', date('Y-m-d', strtotime('+6 months')))
-        ->countAllResults();
-
-    return ['total_items' => $totalItems, 'has_stock' => $hasStock, 'low_stock' => $lowStock, 'near_expiry' => $nearExpiry, 'no_stock' => $noStock];
-}
-
-    public function getBatchDetails(int $batchId)
-{
-    $row = $this->db->table('inventory_batches as ib')
-        ->select('ib.*, p.product_id, p.name, p.description, p.sku, p.barcode_value, p.brand, p.manufacturer, p.unit, p.notes, c.name as cat_name, s.name as supplier_name, s.contact_person as supplier_contact, s.phone as supplier_phone')
-        ->join('products as p', 'p.product_id = ib.product_id')
-        ->join('categories as c', 'c.category_id = p.category_id')
-        ->join('suppliers as s', 's.supplier_id = p.supplier_id', 'left')
-        ->where('ib.batch_id', $batchId)
-        ->get()->getRow();
-
-    if ($row) {
-        $img = $this->db->table('product_images')->where('product_id', $row->product_id)->where('is_primary', 1)->get()->getRow();
-        $row->image_path = $img ? $img->image_path : null;
+        return ['data' => $data, 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
     }
 
-    return $row;
-}
+    public function getKpis(string $search = '', string $catId = ''): array
+    {
+        $builder = $this->db->table('products as p')
+            ->select("p.product_id, COALESCE(SUM(ib.quantity_avail),0) as total_stock, COALESCE(MAX(ib.reorder_level),5) as reorder_level,
+                MIN(CASE WHEN ib.expires_at IS NOT NULL THEN ib.expires_at END) as nearest_expiry")
+            ->join('inventory_batches as ib', 'ib.product_id = p.product_id', 'left')
+            ->where('p.is_active', 1);
+
+        if ($search !== '') $builder->groupStart()->like('p.name', $search)->orLike('p.barcode_value', $search)->groupEnd();
+        if ($catId !== '') $builder->where('p.category_id', $catId);
+        $builder->groupBy('p.product_id');
+
+        $rows = $builder->get()->getResultArray();
+        $today = date('Y-m-d');
+        $sixMonths = date('Y-m-d', strtotime('+6 months'));
+
+        $totalItems = count($rows);
+        $hasStock = 0; $noStock = 0; $lowStock = 0; $nearExpiry = 0;
+
+        foreach ($rows as $r) {
+            $stock = (int) $r['total_stock'];
+            if ($stock > 0) {
+                $hasStock++;
+                if ($stock <= (int) $r['reorder_level']) $lowStock++;
+            } else {
+                $noStock++;
+            }
+            if ($r['nearest_expiry'] && $r['nearest_expiry'] >= $today && $r['nearest_expiry'] <= $sixMonths) {
+                $nearExpiry++;
+            }
+        }
+
+        return ['total_items' => $totalItems, 'has_stock' => $hasStock, 'low_stock' => $lowStock, 'near_expiry' => $nearExpiry, 'no_stock' => $noStock];
+    }
+
+    // NEW — full batch breakdown for one product, powers the View drawer
+    public function getProductBatches(int $productId)
+    {
+        $product = $this->db->table('products as p')
+            ->select('p.product_id, p.name, p.description, p.barcode_value, p.brand, p.manufacturer, p.unit, p.notes, c.name as cat_name, s.name as supplier_name, s.contact_person as supplier_contact, s.phone as supplier_phone')
+            ->join('categories as c', 'c.category_id = p.category_id')
+            ->join('suppliers as s', 's.supplier_id = p.supplier_id', 'left')
+            ->where('p.product_id', $productId)
+            ->get()->getRow();
+
+        if (!$product) return null;
+
+        $img = $this->db->table('product_images')->where('product_id', $productId)->where('is_primary', 1)->get()->getRow();
+        $product->image_path = $img ? $img->image_path : null;
+
+        $product->batches = $this->db->table('inventory_batches')
+            ->where('product_id', $productId)
+            ->orderBy('received_at', 'DESC')
+            ->get()->getResultArray();
+
+        return $product;
+    }
 
     public function adjustStock(int $batchId, int $productId, int $qtyBefore, int $qtyAfter, string $reason, string $notes, int $staffUserId): void
     {
@@ -175,19 +191,18 @@ class StockModel extends Model
     }
 
     public function getProductInfo(int $productId)
-{
-    return $this->db->table('products as p')
-        ->select('p.product_id, p.name, p.description, p.sku, p.barcode_value, p.brand, p.manufacturer, p.unit, p.notes, c.name as cat_name, s.name as supplier_name, s.contact_person as supplier_contact, s.phone as supplier_phone')
-        ->join('categories as c', 'c.category_id = p.category_id')
-        ->join('suppliers as s', 's.supplier_id = p.supplier_id', 'left')
-        ->where('p.product_id', $productId)
-        ->get()->getRow();
-}
+    {
+        return $this->db->table('products as p')
+            ->select('p.product_id, p.name, p.description, p.barcode_value, p.brand, p.manufacturer, p.unit, p.notes, c.name as cat_name, s.name as supplier_name, s.contact_person as supplier_contact, s.phone as supplier_phone')
+            ->join('categories as c', 'c.category_id = p.category_id')
+            ->join('suppliers as s', 's.supplier_id = p.supplier_id', 'left')
+            ->where('p.product_id', $productId)
+            ->get()->getRow();
+    }
 
-public function getProductImage(int $productId): ?string
-{
-    $img = $this->db->table('product_images')->where('product_id', $productId)->where('is_primary', 1)->get()->getRow();
-    return $img ? $img->image_path : null;
-}
-
+    public function getProductImage(int $productId): ?string
+    {
+        $img = $this->db->table('product_images')->where('product_id', $productId)->where('is_primary', 1)->get()->getRow();
+        return $img ? $img->image_path : null;
+    }
 }

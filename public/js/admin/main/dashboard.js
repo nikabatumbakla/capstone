@@ -1,29 +1,22 @@
 document.addEventListener("DOMContentLoaded", function() {
 
-    // --- 1. SIDEBAR SCROLL PERSISTENCE (THE "STAY STILL" FIX) ---
+    // --- 1. SIDEBAR SCROLL PERSISTENCE ---
     const sidebarNav = document.getElementById('sidebarScrollContainer');
-
     if (sidebarNav) {
-        // Restore scroll position IMMEDIATELY upon page load
         const scrollPos = localStorage.getItem('sidebarScrollPosition');
-        if (scrollPos) {
-            sidebarNav.scrollTop = scrollPos;
-        }
+        if (scrollPos) sidebarNav.scrollTop = scrollPos;
 
-        // Save scroll position whenever ANY link inside the sidebar is clicked
-        const allSidebarLinks = document.querySelectorAll('#sidebar a');
-        allSidebarLinks.forEach(link => {
+        document.querySelectorAll('#sidebar a').forEach(link => {
             link.addEventListener('click', function() {
                 localStorage.setItem('sidebarScrollPosition', sidebarNav.scrollTop);
             });
         });
     }
 
-    // --- 2. SIDEBAR & CONTENT TOGGLE (Burger Menu) ---
+    // --- 2. SIDEBAR & CONTENT TOGGLE ---
     const sidebar = document.getElementById('sidebar');
     const content = document.getElementById('content');
     const toggle = document.getElementById('sidebarToggle');
-
     if (toggle) {
         toggle.addEventListener('click', function() {
             sidebar.classList.toggle('active');
@@ -32,7 +25,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // --- 3. ACCORDION DROPDOWN LOGIC ---
-    // Ensures only one folder is open at a time (Accordion behavior)
     const collapseElements = document.querySelectorAll('.collapse');
     collapseElements.forEach(el => {
         el.addEventListener('show.bs.collapse', function() {
@@ -45,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // --- 4. REAL-TIME DASHBOARD CHART (Chart.js) ---
+    // --- 4. SALES TREND CHART — animated on load, with clear peso-formatted tooltips ---
     const chartElement = document.getElementById('salesChart');
     if (chartElement) {
         const labels = JSON.parse(chartElement.getAttribute('data-labels'));
@@ -56,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Sales (₱)',
+                    label: 'Sales',
                     data: values,
                     backgroundColor: '#7b1113',
                     hoverBackgroundColor: '#4a0000',
@@ -67,8 +59,26 @@ document.addEventListener("DOMContentLoaded", function() {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+                animation: {
+                    duration: 900,
+                    easing: 'easeOutQuart',
+                    delay: (ctx) => ctx.dataIndex * 60
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => '₱' + ctx.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2 })
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => '₱' + val.toLocaleString() }
+                    }
+                }
             }
         });
     }

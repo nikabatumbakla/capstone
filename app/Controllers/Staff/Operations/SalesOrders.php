@@ -29,10 +29,10 @@ class SalesOrders extends BaseController
         $data['status_filter'] = $status;
         $data['search'] = $search;
 
-        $data['count_pending'] = $counts['pending'];
-        $data['count_processing'] = $counts['processing'];
-        $data['count_shipped'] = $counts['shipped'];
-        $data['count_delivered'] = $counts['delivered'];
+        $data['count_pending']     = $counts['pending'];
+        $data['count_in_progress'] = $counts['in_progress'];
+        $data['count_returns']     = $counts['returns'];
+        $data['count_delivered']   = $counts['delivered'];
 
         $data['title'] = "Distribution Queue";
         $data['fullname'] = session()->get('full_name');
@@ -52,24 +52,29 @@ class SalesOrders extends BaseController
     {
         $orderId = (int) $this->request->getPost('order_id');
         $newStatus = $this->request->getPost('status');
-        $notes = $this->request->getPost('notes');
 
-        $allowed = ['processing', 'shipped', 'delivered', 'cancelled'];
+        $allowed = ['ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'];
         if (!in_array($newStatus, $allowed)) {
             return redirect()->back()->with('error', 'Invalid status.');
         }
 
-        $this->salesOrdersModel->updateStatus($orderId, $newStatus, session()->get('user_id'), $notes);
+        $result = $this->salesOrdersModel->updateStatus($orderId, $newStatus, session()->get('user_id'));
+        if (!$result['success']) {
+            return redirect()->back()->with('error', $result['message']);
+        }
         return redirect()->to('staff/operations/sales-orders')->with('success', 'Order status updated.');
     }
 
     public function confirm_payment()
-{
-    $orderId = (int) $this->request->getPost('order_id');
-    $reference = trim((string) $this->request->getPost('payment_reference'));
+    {
+        $orderId = (int) $this->request->getPost('order_id');
+        $method = $this->request->getPost('payment_method');
+        $reference = trim((string) $this->request->getPost('payment_reference'));
 
-    $this->salesOrdersModel->confirmPayment($orderId, $reference, session()->get('user_id'));
-    return redirect()->back()->with('success', 'Payment confirmed.');
-}
-
+        $result = $this->salesOrdersModel->confirmPayment($orderId, $method, $reference, session()->get('user_id'));
+        if (!$result['success']) {
+            return redirect()->back()->with('error', $result['message']);
+        }
+        return redirect()->back()->with('success', 'Payment confirmed.');
+    }
 }

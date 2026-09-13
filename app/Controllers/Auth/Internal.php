@@ -54,6 +54,7 @@ class Internal extends BaseController
             'avatar_path' => $user['avatar_path'] ?? null,
             'isLoggedIn'  => true,
         ]);
+        \App\Libraries\SessionTrackerService::recordLogin($user['user_id'], $user['role'], $this->request);
         return $this->_redirectUser($user['role']);
     }
 
@@ -93,6 +94,7 @@ class Internal extends BaseController
             'isLoggedIn'  => true,
         ]);
 
+        \App\Libraries\SessionTrackerService::recordLogin($user['user_id'], $user['role'], $this->request);
         return $this->_redirectUser($user['role'])->with('info', 'Verified successfully. You can update your password anytime from your account settings.');
     }
 
@@ -104,6 +106,7 @@ class Internal extends BaseController
     {
         $session = session();
         $role = $session->get('role');
+        \App\Libraries\SessionTrackerService::endSession();
         $session->destroy();
 
         if (in_array($role, ['admin', 'staff'])) {

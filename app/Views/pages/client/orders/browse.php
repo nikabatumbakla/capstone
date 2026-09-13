@@ -23,6 +23,16 @@
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Add items to your cart, then proceed to Place Order to submit your request</p>
             </div>
 
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('warning')): ?>
+                <div class="alert alert-warning py-2 small" id="flashWarning"><?= session()->getFlashdata('warning') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
+
             <div class="d-flex justify-content-end gap-2 mb-4">
                 <form action="" method="GET" class="d-flex gap-2">
                     <select name="category" class="form-select form-select-sm" style="width:190px;" onchange="this.form.submit()">
@@ -38,58 +48,51 @@
                 </form>
             </div>
 
-            <div class="row g-3">
+            <div class="row g-2">
                 <?php if(empty($products)): ?>
-                    <p class="text-center text-muted py-5">No products found.</p>
+                    <div class="col-12 text-center text-muted py-5">
+                        <i class="fas fa-box-open fs-1 opacity-25 mb-3 d-block"></i>
+                        No products currently available.
+                    </div>
                 <?php else: ?>
                     <?php foreach($products as $p):
-                        $isLowStock = $p['total_stock'] > 0 && $p['reorder_level'] && $p['total_stock'] <= $p['reorder_level'];
-                        $isOutOfStock = $p['total_stock'] <= 0;
+                        $qtyInCart = $cart[$p['product_id']] ?? 0;
                     ?>
-                    <div class="col-md-3">
-                        <div class="custom-table-container h-100 d-flex flex-column p-0 overflow-hidden">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+                        <div class="border rounded-3 h-100 d-flex flex-column bg-white overflow-hidden position-relative">
 
-                            <div class="position-relative" style="height:140px; background:#f4f4f4; overflow:hidden;" onmouseover="this.querySelector('.hover-view-btn').style.opacity=1" onmouseout="this.querySelector('.hover-view-btn').style.opacity=0">
+                            <?php if($qtyInCart > 0): ?>
+                                <span class="badge bg-dark position-absolute" style="top:6px; left:6px; z-index:2; font-size:8px;">
+                                    In Cart: <?= $qtyInCart ?>
+                                </span>
+                            <?php endif; ?>
+
+                            <div class="position-relative" style="height:110px; background:#ffffff; display:flex; align-items:center; justify-content:center;">
                                 <?php if($p['image_path']): ?>
-                                    <img src="<?= base_url($p['image_path']) ?>" alt="<?= esc($p['name']) ?>" style="width:100%; height:100%; object-fit:cover;">
+                                    <img src="<?= base_url($p['image_path']) ?>" alt="<?= esc($p['name']) ?>" style="max-width:100%; max-height:100%; object-fit:contain;">
                                 <?php else: ?>
-                                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                                        <i class="fas fa-box-open" style="font-size:32px; color:#ccc;"></i>
-                                    </div>
+                                    <i class="fas fa-box-open" style="font-size:26px; color:#ddd;"></i>
                                 <?php endif; ?>
-                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background:rgba(0,0,0,0.35);">
-                                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3 fw-bold btn-view-product hover-view-btn" data-id="<?= $p['product_id'] ?>" style="opacity:0; transition:opacity 0.2s;">
-                                        <i class="fas fa-eye me-1"></i>View
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-light btn-sm rounded-circle shadow-sm position-absolute btn-view-product" data-id="<?= $p['product_id'] ?>" style="top:6px; right:6px; width:26px; height:26px; padding:0; font-size:10px;" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
 
-                            <div class="p-3 d-flex flex-column flex-grow-1">
-                                <small class="text-muted"><?= esc($p['category_name']) ?></small>
-                                <h6 class="fw-bold mb-1"><?= esc($p['name']) ?></h6>
-                                <div class="mb-2" style="font-size:9.5px; color:#888;">
-                                    <?php if($p['brand'] || $p['manufacturer']): ?>
-                                        <?= esc($p['brand'] ?: $p['manufacturer']) ?> · <?php endif; ?>Per <?= esc($p['unit']) ?>
-                                </div>
-                                <p class="fw-bold text-maroon mb-2" style="font-size:15px;">₱<?= number_format($p['sell_price'] ?? 0, 2) ?></p>
-                                <div class="mb-3">
-                                    <?php if($isOutOfStock): ?>
-                                        <span class="badge rounded-pill" style="background:#fde2e2; color:#c0392b; font-weight:600;">Out of Stock</span>
-                                    <?php elseif($isLowStock): ?>
-                                        <span class="badge rounded-pill" style="background:#fdecd2; color:#b9770e; font-weight:600;">Limited Stock</span>
-                                    <?php else: ?>
-                                        <span class="badge rounded-pill" style="background:#d9f2e3; color:#1e8449; font-weight:600;">Available</span>
-                                    <?php endif; ?>
-                                </div>
-                                <form action="<?= base_url('client/orders/add-to-cart') ?>" method="POST" class="mt-auto d-flex gap-2">
+                            <div class="p-2 d-flex flex-column flex-grow-1">
+                                <small class="text-muted" style="font-size:9px;"><?= esc($p['category_name']) ?></small>
+                                <p class="fw-bold mb-1" style="font-size:11px; line-height:1.25;"><?= esc($p['name']) ?></p>
+                                <p class="fw-bold text-maroon mb-2" style="font-size:13px;">
+                                    ₱<?= number_format($p['sell_price'] ?? 0, 2) ?>
+                                    <small class="text-muted fw-normal" style="font-size:8.5px;">/ <?= esc($p['unit']) ?></small>
+                                </p>
+                                <form action="<?= base_url('client/orders/add-to-cart') ?>" method="POST" class="mt-auto d-flex gap-1">
                                     <input type="hidden" name="product_id" value="<?= $p['product_id'] ?>">
-                                    <input type="number" name="qty" value="1" min="1" max="<?= $p['total_stock'] ?>" class="form-control form-control-sm" style="width:65px;" <?= $isOutOfStock ? 'disabled' : '' ?>>
-                                    <button type="submit" class="btn btn-sm btn-dark rounded-pill flex-grow-1" <?= $isOutOfStock ? 'disabled' : '' ?>>
-                                        <i class="fas fa-cart-plus me-1"></i>Add to Cart
+                                    <input type="number" name="qty" value="1" min="1" max="<?= $p['total_stock'] ?>" class="form-control form-control-sm" style="width:42px; font-size:10px; padding:2px 4px;">
+                                    <button type="submit" class="btn btn-dark btn-sm rounded-pill flex-grow-1" style="font-size:9.5px; padding:3px 6px;">
+                                        <i class="fas fa-cart-plus"></i> Add
                                     </button>
                                 </form>
                             </div>
-
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -123,5 +126,17 @@
     </div>
 </div>
 
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashWarning', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }
+        });
+    }, 5000);
+</script>
 <script src="<?= base_url('public/js/client/browse.js') ?>"></script>
 <?= view('partials/client/footer') ?>

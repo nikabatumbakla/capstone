@@ -19,12 +19,50 @@
             </div>
 
 
-            <div class="row g-4 mb-4">
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">TOTAL POSTS</small><h3 class="fw-bold mb-0"><?= $counts['total'] ?></h3></div></div>
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">PINNED</small><h3 class="fw-bold mb-0 text-danger"><?= $counts['pinned'] ?></h3></div></div>
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">PUBLISHED</small><h3 class="fw-bold mb-0 text-success"><?= $counts['published'] ?></h3></div></div>
-                <div class="col-md-3"><div class="inventory-kpi-card"><small class="text-muted fw-bold d-block mb-1">DRAFTS</small><h3 class="fw-bold mb-0 text-muted"><?= $counts['drafts'] ?></h3></div></div>
+           <div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <a href="?<?= $search ? 'search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter=='' ? 'border-bottom border-3 border-maroon' : '' ?>">
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">TOTAL POSTS</small>
+                <h3 class="fw-bold mb-0"><?= $counts['total'] ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
             </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="?status=pinned<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter=='pinned' ? 'border-bottom border-3 border-danger' : '' ?>">
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">PINNED</small>
+                <h3 class="fw-bold mb-0 text-danger"><?= $counts['pinned'] ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="?status=published<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $status_filter=='published' ? 'border-bottom border-3 border-success' : '' ?>">
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">PUBLISHED</small>
+                <h3 class="fw-bold mb-0 text-success"><?= $counts['published'] ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+            </div>
+        </a>
+    </div>
+</div>
+
+<?php if ($status_filter): ?>
+<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3" style="font-size: 11px;">
+    <span><strong>
+        <?php
+            $labels = ['pinned' => 'Pinned Posts', 'published' => 'Published Posts', 'drafts' => 'Draft Posts'];
+            echo $labels[$status_filter] ?? strtoupper($status_filter);
+        ?>
+    </strong></span>
+    <a href="?<?= $search ? 'search='.urlencode($search) : '' ?>" class="text-danger fw-bold text-decoration-none"> ×</a>
+</div>
+<?php endif; ?>
 
             <div class="custom-table-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">

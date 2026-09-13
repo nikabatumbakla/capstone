@@ -18,6 +18,13 @@
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Confirm items and fulfillment details before submitting — final pricing is verified upon submission</p>
             </div>
 
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
+
             <?php if(empty($cart_items)): ?>
                 <div class="custom-table-container text-center py-5">
                     <p class="text-muted mb-3">Your cart is empty.</p>
@@ -38,7 +45,9 @@
                             <?php foreach($cart_items as $item): ?>
                             <tr data-price="<?= $item['sell_price'] ?>">
                                 <td><?= esc($item['name']) ?><input type="hidden" name="product_ids[]" value="<?= $item['product_id'] ?>"></td>
-                                <td class="text-center"><input type="number" name="qtys[]" class="form-control form-control-sm qty-input text-center" value="<?= $item['qty'] ?>" min="1" max="<?= $item['total_stock'] ?>" style="width:80px; margin:auto;"></td>
+                                <td class="text-center">
+    <input type="number" name="qtys[]" class="form-control form-control-sm qty-input text-center" value="<?= $item['qty'] ?>" min="1" max="<?= $item['total_stock'] ?>" style="width:80px; margin:auto;">
+</td>
                                 <td class="text-end">₱<?= number_format($item['sell_price'], 2) ?></td>
                                 <td class="text-end fw-bold row-subtotal">₱<?= number_format($item['sell_price'] * $item['qty'], 2) ?></td>
                                 <td class="text-center"><a href="<?= base_url('client/orders/remove-from-cart/'.$item['product_id']) ?>" class="text-danger"><i class="fas fa-times-circle"></i></a></td>
@@ -76,6 +85,11 @@
                             <textarea name="delivery_address" class="formal-input" rows="2" id="deliveryAddressInput" required></textarea>
                         </div>
                     </div>
+
+                    <div id="pickupInfoBox" class="p-3 rounded-4 mt-2" style="background:#eefbf0; border:1px solid #c9f0d1; display:none;">
+                        <p class="fw-bold mb-1" style="font-size:12px; color:#1a7431;"><i class="fas fa-map-marker-alt me-2"></i>Pickup Location</p>
+                        <p class="mb-0" style="font-size:11px; color:#333;"><?= esc($store_info['store_address'] ?? 'Address not on file — contact Robin Rose Trading for pickup details.') ?></p>
+                    </div>
                 </div>
 
                 <div class="custom-table-container mb-4">
@@ -84,9 +98,11 @@
                         <div class="col-6">
                             <label class="formal-label">Payment Method *</label>
                             <select name="payment_method" class="form-select formal-input" id="paymentMethodSelect" required>
-                                <option value="check">Check</option>
+                                <option value="" disabled selected>Select payment method</option>
                                 <option value="cash">Cash</option>
                                 <option value="gcash">GCash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
                             </select>
                         </div>
                         <div class="col-6" id="chequeNote" style="display:none;">
@@ -95,6 +111,10 @@
                                 Cheque payments are subject to bank clearance before the order is processed. This is not a credit facility — full payment is required upon clearance.
                             </div>
                         </div>
+                    </div>
+                    <div id="prepaymentNote" class="alert alert-warning mt-3 py-2 small mb-0" style="display:none;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        For delivery orders, this payment method requires you to submit a payment reference from <b>My Orders</b> after placing this order — your order won't be dispatched until Robin Rose Trading confirms it.
                     </div>
                 </div>
 
@@ -109,5 +129,18 @@
         </div>
     </div>
 </div>
+
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }
+        });
+    }, 5000);
+</script>
 <script src="<?= base_url('public/js/client/place_order.js') ?>"></script>
 <?= view('partials/client/footer') ?>

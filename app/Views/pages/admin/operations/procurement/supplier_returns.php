@@ -9,20 +9,22 @@
 
         <div class="container-fluid p-4" style="font-size: 11px;">
 
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center">
-                <button class="btn btn-sm btn-white shadow-sm rounded-pill px-3 me-3" onclick="history.back()"><i class="fas fa-arrow-left me-2"></i> Back</button>
-                <h5 class="fw-bold mb-0">Supplier Returns</h5>
-            </div>
-            <button class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="offcanvas" data-bs-target="#supplierReturnDrawer">
-                <i class="fas fa-plus me-2"></i>New Return Request
-            </button>
+        <div class="d-flex align-items-center mb-4">
+            <button class="btn btn-sm btn-white shadow-sm rounded-pill px-3 me-3" onclick="history.back()"><i class="fas fa-arrow-left me-2"></i> Back</button>
+            <h5 class="fw-bold mb-0">Supplier Returns</h5>
         </div>
 
         <div class="procurement-banner mb-4 p-3 text-white shadow-sm">
             <h6 class="fw-bold mb-1"><i class="fas fa-truck-loading me-2"></i>Supplier Return Management</h6>
-            <p class="mb-0 opacity-75" style="font-size: 10px;">Submit → Approve/Reject → Auto-Deduct Inventory</p>
+            <p class="mb-0 opacity-75" style="font-size: 10px;">Auto-filed from Goods Receipt inspection → Approve → Return to Supplier → Replacement</p>
         </div>
+
+        <?php if(session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+        <?php endif; ?>
+        <?php if(session()->getFlashdata('success')): ?>
+            <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+        <?php endif; ?>
 
         <div class="bg-light p-1 rounded-pill d-inline-flex mb-4 border w-100 justify-content-between">
             <a href="?status=pending" class="btn btn-sm rounded-pill flex-grow-1 px-4 <?= ($active_status == 'pending') ? 'btn-white shadow-sm fw-bold text-warning' : 'text-muted' ?>"><i class="fas fa-hourglass-half me-1"></i>Pending</a>
@@ -44,33 +46,51 @@
                 <table class="table table-hover align-middle" style="font-size:10.5px">
                     <thead class="table-dark">
                         <tr>
-                            <th class="ps-4">Return #</th><th>PO #</th><th>Supplier</th><th>Product</th><th class="text-center">Qty</th><th>Reason</th><th>Requested</th><th>Status</th><th class="text-center">Action</th>
+                            <th class="ps-4">Return #</th><th>PO #</th><th>Supplier</th><th>Product</th><th class="text-center">Qty</th><th>Resolution</th><th>Return Progress</th><th>Requested</th><th>Status</th><th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <?php
+                            $progressMeta = [
+                                'not_sent'          => ['label' => '—', 'class' => 'text-muted'],
+                                'sent_to_supplier'  => ['label' => 'Sent — Awaiting Supplier', 'class' => 'bg-secondary'],
+                                'received_by_supplier' => ['label' => 'Received by Supplier', 'class' => 'bg-info text-dark'],
+                            ];
+                        ?>
                         <?php if(empty($returns)): ?>
-                            <tr><td colspan="9" class="text-center py-5 text-muted">No returns found.</td></tr>
-                        <?php else: foreach($returns as $r): ?>
+                            <tr><td colspan="10" class="text-center py-5 text-muted">No returns found.</td></tr>
+                        <?php else: foreach($returns as $r):
+                            $pm = $progressMeta[$r['supplier_return_status'] ?? 'not_sent'] ?? $progressMeta['not_sent'];
+                        ?>
                         <tr>
                             <td class="ps-4 text-muted">SRT-<?= str_pad($r['return_id'], 4, '0', STR_PAD_LEFT) ?></td>
                             <td class="fw-bold"><?= $r['po_number'] ?></td>
                             <td><?= $r['supplier_name'] ?></td>
                             <td><?= $r['product_name'] ?></td>
                             <td class="text-center fw-bold"><?= $r['quantity'] ?></td>
-                            <td><span class="text-muted"><?= esc(substr($r['reason'], 0, 25)) ?>...</span></td>
+                            <td>
+                                <?php if(($r['resolution_type'] ?? 'exchange') === 'exchange'): ?>
+                                    <span class="badge bg-info text-dark">Exchange</span>
+                                <?php else: ?>
+                                    <span class="badge bg-light text-dark border">Refund</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if($r['status'] === 'approved'): ?>
+                                    <span class="badge <?= $pm['class'] ?>"><?= $pm['label'] ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?= date('M d, Y', strtotime($r['created_at'])) ?></td>
                             <td>
                                 <?php $b = ($r['status'] == 'approved') ? 'bg-success' : (($r['status'] == 'rejected') ? 'bg-danger' : 'bg-warning text-dark'); ?>
                                 <span class="badge rounded-pill <?= $b ?> px-3"><?= strtoupper($r['status']) ?></span>
                             </td>
                             <td class="text-center">
-                                <div class="d-flex gap-1 justify-content-center">
-                                    <?php if($r['status'] == 'pending'): ?>
-                                        <a href="<?= base_url('admin/procurement/approve-supplier-return/'.$r['return_id']) ?>" class="btn btn-xs btn-success rounded-2" title="Approve" onclick="return confirm('Approve — this will deduct stock and mark it for return to supplier.');"><i class="fas fa-check"></i></a>
-                                        <a href="<?= base_url('admin/procurement/reject-supplier-return/'.$r['return_id']) ?>" class="btn btn-xs btn-danger rounded-2 text-white" title="Reject" onclick="return confirm('Reject this return request?');"><i class="fas fa-times"></i></a>
-                                    <?php endif; ?>
-                                    <button class="btn btn-xs btn-outline-dark rounded-2 btn-view-return" data-id="<?= $r['return_id'] ?>" title="View"><i class="fas fa-eye"></i></button>
-                                </div>
+                                <button class="btn btn-xs btn-dark rounded-2 btn-view-return" data-id="<?= $r['return_id'] ?>" title="View Details">
+    <i class="fas fa-eye"></i>
+</button>
                             </td>
                         </tr>
                         <?php endforeach; endif; ?>
@@ -106,56 +126,7 @@
     </div>
 </div>
 
-<!-- ONE FORM, ONE PROCESS: file a supplier return request -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="supplierReturnDrawer" style="width: 600px;">
-    <div class="offcanvas-header border-bottom">
-        <h6 class="fw-bold mb-0"><i class="fas fa-undo-alt me-2"></i>New Supplier Return</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body p-4">
-        <form action="<?= base_url('admin/procurement/save-supplier-return') ?>" method="POST">
-            
-        <div class="mb-3">
-    <label class="formal-label">Reference PO # *</label>
-    <select name="po_id" id="returnPoSelect" class="form-select formal-input" required>
-        <option value="" disabled selected>Select PO</option>
-        <?php foreach($received_pos as $po): ?>
-            <option value="<?= $po['po_id'] ?>"><?= $po['po_number'] ?> (<?= $po['sname'] ?>)</option>
-        <?php endforeach; ?>
-    </select>
-</div>
-<div class="mb-3">
-    <label class="formal-label">Product *</label>
-    <select name="product_id" id="returnPoProductSelect" class="form-select formal-input" required>
-        <option value="">Select PO first</option>
-    </select>
-    <input type="hidden" name="batch_id" id="returnPoBatchId">
-</div>
-<div class="mb-3">
-    <label class="formal-label">Defective / Return Qty *</label>
-    <input type="number" name="qty" id="returnPoQty" class="formal-input" min="1" required>
-</div>
-<div class="mb-3">
-    <label class="formal-label">Expected Refund / Credit (₱, optional)</label>
-    <input type="number" step="0.01" name="refund_amount" id="returnPoRefund" class="formal-input" placeholder="Auto-suggested from unit cost">
-</div>
-<div class="mb-3">
-    <label class="formal-label">Supplier Credit Note # (once issued)</label>
-    <input type="text" name="credit_note_number" class="formal-input" placeholder="e.g. CN-2026-0091">
-</div>
-<div class="mb-3">
-    <label class="formal-label">Reason *</label>
-    <textarea name="notes" class="formal-input" rows="3" required placeholder="e.g. 5 units arrived damaged, packaging compromised"></textarea>
-</div>
-
-            <button type="submit" class="btn btn-dark w-100 py-3 fw-bold">
-                <i class="fas fa-paper-plane me-2"></i>Submit for Approval
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- VIEW RETURN DETAILS -->
+<!-- VIEW RETURN DETAILS — all actions (approve/reject/mark-sent/replacement) live here now -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="viewReturnDrawer" style="width: 500px;">
     <div class="offcanvas-header border-bottom bg-light">
         <h6 class="fw-bold mb-0">Return Details</h6>
@@ -164,5 +135,17 @@
     <div class="offcanvas-body" id="viewReturnContent"></div>
 </div>
 
-<script src="<?= base_url('public/js/admin/operations/procurement/procurement_returns.js') ?>"></script>
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }
+        });
+    }, 5000);
+</script>
+<script src="<?= base_url('public/js/admin/operations/procurement/procurement_return.js') ?>"></script>
 <?= view('partials/admin/footer') ?>

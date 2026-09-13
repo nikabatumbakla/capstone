@@ -15,31 +15,33 @@ class Bulletin extends BaseController
     }
 
     public function index()
-    {
-        $this->bulletinModel->archiveExpiredPosts();
+{
+    $this->bulletinModel->archiveExpiredPosts();
 
-        $audience = $this->request->getGet('audience') ?: '';
-        $search = trim((string) ($this->request->getGet('search') ?? ''));
-        $page = (int) ($this->request->getGet('page') ?? 1);
+    $audience = $this->request->getGet('audience') ?: '';
+    $status = $this->request->getGet('status') ?: '';
+    $search = trim((string) ($this->request->getGet('search') ?? ''));
+    $page = (int) ($this->request->getGet('page') ?? 1);
 
-        $feed = $this->bulletinModel->getFeed($audience, $search, $page, 8);
+    $feed = $this->bulletinModel->getFeed($audience, $status, $search, $page, 8);
 
-        foreach ($feed['data'] as &$post) {
-            $post['status'] = $this->bulletinModel->getStatus($post);
-        }
-
-        $data['posts'] = $feed['data'];
-        $data['total_pages'] = $feed['total_pages'];
-        $data['current_page'] = $page;
-        $data['audience_filter'] = $audience;
-        $data['search'] = $search;
-        $data['counts'] = $this->bulletinModel->getCounts();
-
-        $data['title'] = "Bulletin Board Management";
-        $data['fullname'] = session()->get('full_name');
-        $data['page_name'] = "bulletin";
-        return view('pages/admin/management/bulletin_board', $data);
+    foreach ($feed['data'] as &$post) {
+        $post['status'] = $this->bulletinModel->getStatus($post);
     }
+
+    $data['posts'] = $feed['data'];
+    $data['total_pages'] = $feed['total_pages'];
+    $data['current_page'] = $page;
+    $data['audience_filter'] = $audience;
+    $data['status_filter'] = $status;
+    $data['search'] = $search;
+    $data['counts'] = $this->bulletinModel->getCounts();
+
+    $data['title'] = "Bulletin Board Management";
+    $data['fullname'] = session()->get('full_name');
+    $data['page_name'] = "bulletin";
+    return view('pages/admin/management/bulletin_board', $data);
+}
 
     public function save()
 {

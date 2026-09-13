@@ -21,52 +21,92 @@
                 <p class="mb-0 opacity-75" style="font-size: 10px;">Schools · Hospitals · Barangays · SK · LGU</p>
             </div>
 
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
+
+            <?php
+                $baseQuery = ($search !== '' ? 'search=' . urlencode($search) . '&' : '') . ($type_filter !== '' ? 'type=' . urlencode($type_filter) . '&' : '');
+            ?>
+
             <!-- KPI Row -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <div class="inventory-kpi-card p-3 shadow-sm bg-white d-flex justify-content-between align-items-center">
-                        <div><small class="fw-bold text-muted" style="font-size:9px">SCHOOLS</small><h3 class="fw-bold mb-0"><?= $count_schools ?></h3></div>
-                        <i class="fas fa-school fs-2 text-primary opacity-25"></i>
-                    </div>
+                    <a href="?<?= $baseQuery ?>" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative p-3 shadow-sm bg-white d-flex justify-content-between align-items-center <?= !$status_filter ? 'border-bottom border-3 border-maroon' : '' ?>">
+                            <div>
+                                <small class="fw-bold text-muted d-block mb-1" style="font-size:9px">TOTAL CLIENTS</small>
+                                <h3 class="fw-bold mb-0"><?= $count_total ?></h3>
+                                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+                            </div>
+                            <i class="fas fa-users fs-2 text-maroon opacity-25"></i>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="inventory-kpi-card p-3 shadow-sm bg-white d-flex justify-content-between align-items-center">
-                        <div><small class="fw-bold text-muted" style="font-size:9px">HOSPITALS / CLINICS</small><h3 class="fw-bold mb-0 text-danger"><?= $count_hospitals ?></h3></div>
-                        <i class="fas fa-hospital fs-2 text-danger opacity-25"></i>
-                    </div>
+                    <a href="?<?= $baseQuery ?>status=unverified" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative p-3 shadow-sm bg-white d-flex justify-content-between align-items-center <?= $status_filter == 'unverified' ? 'border-bottom border-3 border-danger' : '' ?>">
+                            <div>
+                                <small class="fw-bold text-muted d-block mb-1" style="font-size:9px">UNVERIFIED</small>
+                                <h3 class="fw-bold mb-0 text-danger"><?= $count_unverified ?></h3>
+                                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+                            </div>
+                            <i class="fas fa-user-clock fs-2 text-danger opacity-25"></i>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="inventory-kpi-card p-3 shadow-sm bg-white d-flex justify-content-between align-items-center">
-                        <div><small class="fw-bold text-muted" style="font-size:9px">LGU / SK</small><h3 class="fw-bold mb-0 text-info"><?= $count_lgu ?></h3></div>
-                        <i class="fas fa-landmark fs-2 text-info opacity-25"></i>
-                    </div>
+                    <a href="?<?= $baseQuery ?>status=no_orders" class="text-decoration-none kpi-filter-link">
+                        <div class="inventory-kpi-card position-relative p-3 shadow-sm bg-white d-flex justify-content-between align-items-center <?= $status_filter == 'no_orders' ? 'border-bottom border-3 border-warning' : '' ?>">
+                            <div>
+                                <small class="fw-bold text-muted d-block mb-1" style="font-size:9px">NO ORDERS YET</small>
+                                <h3 class="fw-bold mb-0 text-warning"><?= $count_no_orders ?></h3>
+                                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
+                            </div>
+                            <i class="fas fa-box-open fs-2 text-warning opacity-25"></i>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="inventory-kpi-card p-3 shadow-sm bg-white d-flex justify-content-between align-items-center">
-                        <div><small class="fw-bold text-muted" style="font-size:9px">BARANGAYS</small><h3 class="fw-bold mb-0 text-success"><?= $count_brgy ?></h3></div>
-                        <i class="fas fa-map-marker-alt fs-2 text-success opacity-25"></i>
+                    <div class="inventory-kpi-card position-relative p-3 shadow-sm bg-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="fw-bold text-muted d-block mb-1" style="font-size:9px">ORGANIZATION TYPES</small>
+                            <h3 class="fw-bold mb-0 text-info"><?= $count_types ?></h3>
+                        </div>
+                        <i class="fas fa-layer-group fs-2 text-info opacity-25"></i>
                     </div>
                 </div>
             </div>
+
+            <?php if ($status_filter): ?>
+            <div class="alert alert-light border d-flex justify-content-between align-items-center mb-3" style="font-size: 12px;">
+                <span><strong><?= $status_filter == 'unverified' ? 'Unverified Clients' : 'Clients With No Orders Yet' ?></strong></span>
+                <a href="?<?= $baseQuery ?>" class="text-danger fw-bold text-decoration-none">×</a>
+            </div>
+            <?php endif; ?>
 
             <div class="custom-table-container">
                 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="fw-bold mb-0" style="font-size:12px"><i class="fas fa-users me-2 text-maroon"></i>Client Directory</h6>
 
     <form id="searchForm" action="" method="GET" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="status" value="<?= esc($status_filter) ?>">
         <select name="type" id="typeFilter" class="form-select form-select-sm rounded-pill border" style="height:38px; font-size:11px; width:170px;">
             <option value="">All Types</option>
             <option value="school" <?= ($type_filter == 'school') ? 'selected' : '' ?>>School</option>
             <option value="hospital_clinic" <?= ($type_filter == 'hospital_clinic') ? 'selected' : '' ?>>Hospital / Clinic</option>
             <option value="barangay" <?= ($type_filter == 'barangay') ? 'selected' : '' ?>>Barangay</option>
             <option value="lgu_sk" <?= ($type_filter == 'lgu_sk') ? 'selected' : '' ?>>LGU / SK</option>
-            <option value="other" <?= ($type_filter == 'other') ? 'selected' : '' ?>>Other</option>
         </select>
         <div class="position-relative">
             <input type="text" name="search" id="liveSearch" class="form-control form-control-sm rounded-pill ps-4 border" placeholder="Search clients..." style="height:38px; font-size:11px; width:220px;" value="<?= esc($search) ?>">
             <i class="fas fa-search position-absolute text-muted" style="left:14px; top:11px; font-size:10px;"></i>
         </div>
     </form>
+
 </div>
 
                 <p class="text-muted mb-3" style="font-size:10px;">Showing verified partners only — accounts must be registered via the Partner Gateway with complete contact information.</p>
@@ -74,12 +114,12 @@
                     <table class="table table-hover align-middle" style="font-size:11px">
                         <thead class="table-dark">
                             <tr>
-                                <th class="ps-4">Organization</th><th>Type</th><th>Contact</th><th>Login Email</th><th>Credit Limit</th><th>Balance</th><th>Account</th><th class="text-center">Action</th>
+                                <th class="ps-4">Organization</th><th>Type</th><th>Contact</th><th>Login Email</th><th>Account</th><th class="text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody id="clientTableBody">
                             <?php if(empty($clients)): ?>
-                                <tr><td colspan="8" class="text-center py-5 text-muted">No verified clients match this filter.</td></tr>
+                                <tr><td colspan="6" class="text-center py-5 text-muted">No verified clients match this filter.</td></tr>
                             <?php else: ?>
                                 <?php foreach($clients as $c): ?>
                                 <tr>
@@ -87,8 +127,6 @@
                                     <td><?= ucfirst($c['client_type']) ?></td>
                                     <td><?= $c['phone'] ?></td>
                                     <td class="text-muted"><?= $c['login_email'] ?></td>
-                                    <td class="fw-bold">₱<?= number_format($c['credit_limit'], 2) ?></td>
-                                    <td class="text-danger fw-bold">₱<?= number_format($c['credit_used'], 2) ?></td>
                                     <td>
                                         <?= $c['is_verified']
                                             ? '<span class="badge rounded-pill bg-success px-3">Verified</span>'
@@ -109,7 +147,8 @@
                     $rangeEnd    = min($current_page * $per_page, $total_rows);
                     $searchQuery = $search !== '' ? '&search=' . urlencode($search) : '';
                     $typeQuery   = $type_filter !== '' ? '&type=' . urlencode($type_filter) : '';
-                    $pageQuery   = $searchQuery . $typeQuery;
+                    $statusQuery = $status_filter !== '' ? '&status=' . urlencode($status_filter) : '';
+                    $pageQuery   = $searchQuery . $typeQuery . $statusQuery;
 
                     $windowSize   = 3;
                     $currentBlock = (int) ceil($current_page / $windowSize);
@@ -139,7 +178,7 @@
     </div>
 </div>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="clientDrawer" style="width: 500px;"><div class="offcanvas-body" id="clientDrawerContent"></div></div>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="clientDrawer" style="width: 550px;"><div class="offcanvas-body" id="clientDrawerContent"></div></div>
 
 <!-- NEW SALES ORDER DRAWER — launched only from a client's View panel -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="newOrderDrawer" style="width: 700px;">
@@ -149,28 +188,52 @@
     </div>
     <div class="offcanvas-body p-4">
         <form action="<?= base_url('admin/sales/save-order') ?>" method="POST" id="newOrderForm">
-            <input type="hidden" name="client_id" id="newOrderClientId">
+            <?= csrf_field() ?>
 
-            <div class="p-3 bg-light rounded-3 mb-3">
-                <p class="info-label mb-1">Ordering for</p>
-                <h6 class="fw-bold mb-0" id="newOrderClientDisplay">—</h6>
-            </div>
+            <input type="hidden" name="order_mode" id="orderModeField" value="registered">
 
-            <div class="row g-3 mb-3">
-                <div class="col-6">
-                    <label class="formal-label">Delivery Address</label>
-                    <input type="text" name="address" class="formal-input" placeholder="e.g. Iriga City, Camarines Sur">
-                </div>
-                <div class="col-6">
-                    <label class="formal-label">Payment Method</label>
-                    <select name="payment_method" class="form-select formal-input">
-                        <option value="cash">Cash</option>
-                        <option value="gcash">GCash</option>
-                        <option value="check">Check</option>
-                        <option value="cod">Cash on Delivery</option>
-                    </select>
-                </div>
-            </div>
+<div id="registeredClientBlock" class="p-3 bg-light rounded-3 mb-3">
+    <p class="info-label mb-1">Ordering for</p>
+    <h6 class="fw-bold mb-0" id="newOrderClientDisplay">—</h6>
+    <input type="hidden" name="client_id" id="newOrderClientId">
+</div>
+
+<div id="walkinClientBlock" class="mb-3" style="display:none;">
+    <p class="text-maroon fw-bold small border-bottom pb-1 mb-3">CUSTOMER INFORMATION (WALK-IN)</p>
+    <div class="row g-3">
+        <div class="col-6"><label class="formal-label">Customer / Organization Name *</label><input type="text" name="guest_name" id="guestNameInput" class="formal-input"></div>
+        <div class="col-6"><label class="formal-label">Contact Person</label><input type="text" name="guest_contact" class="formal-input"></div>
+        <div class="col-6"><label class="formal-label">Phone</label><input type="text" name="guest_phone" class="formal-input"></div>
+        <div class="col-6"><label class="formal-label">Email</label><input type="email" name="guest_email" class="formal-input"></div>
+        <div class="col-6"><label class="formal-label">Address</label><input type="text" name="guest_address" class="formal-input"></div>
+        <div class="col-6"><label class="formal-label">TIN</label><input type="text" name="guest_tin" class="formal-input"></div>
+    </div>
+    <p class="helper-text mt-2">If this customer has ordered before under the same name, their record is reused automatically.</p>
+</div>
+
+            <div class="row g-3 mb-1">
+    <div class="col-6">
+        <label class="formal-label">Fulfillment Type *</label>
+        <select name="fulfillment_type" id="fulfillmentTypeSelect" class="form-select formal-input" required>
+            <option value="delivery" selected>Delivery</option>
+            <option value="pickup">Store Pickup</option>
+        </select>
+    </div>
+    <div class="col-6" id="deliveryAddressWrap">
+        <label class="formal-label">Delivery Address</label>
+        <input type="text" name="address" id="deliveryAddressInput" class="formal-input" placeholder="e.g. Iriga City, Camarines Sur">
+    </div>
+</div>
+<div class="mb-1">
+    <label class="formal-label">Payment Method</label>
+    <select name="payment_method" id="paymentMethodSelect" class="form-select formal-input">
+        <option value="cash">Cash</option>
+        <option value="gcash">GCash</option>
+        <option value="bank_transfer">Bank Transfer</option>
+        <option value="cheque">Cheque</option>
+    </select>
+</div>
+<p class="helper-text mb-3" id="paymentNote"></p>
 
             <p class="text-maroon fw-bold small border-bottom pb-1 mb-3">DISCOUNT</p>
             <div class="row g-3 mb-3">
@@ -230,6 +293,18 @@
     </div>
 </div>
 
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }
+        });
+    }, 5000);
+</script>
 <script>
   const PRODUCT_CATEGORIES = <?= json_encode($categories) ?>;
   const CLIENT_PRODUCTS = <?= json_encode($products) ?>;

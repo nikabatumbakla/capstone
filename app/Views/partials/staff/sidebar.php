@@ -35,16 +35,16 @@
             <li class="nav-label">OPERATIONS</li>
             <?php $ops_active = in_array($page_name, ['pos', 'orders', 'returns', 'grr']); ?>
             <li class="nav-item">
-                <a href="#opsCollapse" data-bs-toggle="collapse" class="nav-link-custom <?= $ops_active ? 'active' : 'collapsed' ?>">
-                    <i class="fas fa-cash-register"></i> <span>Operations</span>
-                </a>
-                <ul class="collapse list-unstyled sub-menu-glass <?= $ops_active ? 'show' : '' ?>" id="opsCollapse" data-bs-parent="#staffAccordion">
-                    <li><a href="<?= base_url('staff/operations/pos') ?>" target="_blank" class="<?= ($page_name == 'pos') ? 'active-sub' : '' ?>">Point of Sale</a></li>
-                    <li><a href="<?= base_url('staff/operations/sales-orders') ?>" class="<?= ($page_name == 'orders') ? 'active-sub' : '' ?>">Sales Orders</a></li>
-                    <li><a href="<?= base_url('staff/operations/sales-returns') ?>" class="<?= ($page_name == 'returns') ? 'active-sub' : '' ?>">Sales Returns</a></li>
-                    <li><a href="<?= base_url('staff/operations/goods-receipt') ?>" class="<?= ($page_name == 'grr') ? 'active-sub' : '' ?>">Goods Receipt (GRR)</a></li>
-                </ul>
-            </li>
+    <a href="#opsCollapse" data-bs-toggle="collapse" class="nav-link-custom <?= $ops_active ? 'active' : 'collapsed' ?>">
+        <i class="fas fa-cash-register"></i> <span>Operations</span>
+    </a>
+    <ul class="collapse list-unstyled sub-menu-glass <?= $ops_active ? 'show' : '' ?>" id="opsCollapse" data-bs-parent="#staffAccordion">
+        <li><a href="<?= base_url('staff/operations/pos') ?>" target="_blank" class="<?= ($page_name == 'pos') ? 'active-sub' : '' ?>">Point of Sale</a></li>
+        <li><a href="<?= base_url('staff/operations/sales-orders') ?>" class="<?= ($page_name == 'orders') ? 'active-sub' : '' ?>">Sales Orders</a></li>
+        <li><a href="<?= base_url('staff/operations/sales-returns') ?>" class="<?= ($page_name == 'returns') ? 'active-sub' : '' ?>">Sales Returns</a></li>
+        <li><a href="<?= base_url('staff/operations/goods-receipt') ?>" class="<?= ($page_name == 'grr') ? 'active-sub' : '' ?>">Goods Receipt (GRR)</a></li>
+    </ul>
+</li>
 
             <li class="nav-label">INFO</li>
 
@@ -55,7 +55,7 @@
 </li>
 
 <li class="nav-item">
-    <a href="<?= base_url('staff/info/support-queue') ?>" class="nav-link-custom <?= ($page_name == 'chatbot') ? 'active' : '' ?>">
+    <a href="<?= base_url('staff/info/support-queue') ?>" class="nav-link-custom <?= ($page_name == 'support-queue') ? 'active' : '' ?>">
         <i class="fas fa-headset"></i> <span>Support Queue</span>
     </a>
 </li>

@@ -1,6 +1,10 @@
 <?= view('partials/staff/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
 <script>const BASE_URL = "<?= base_url() ?>";</script>
+<script>
+    const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
+    const CSRF_HASH = "<?= csrf_hash() ?>";
+</script>
 
 <div class="wrapper">
     <?= view('partials/staff/sidebar') ?>
@@ -15,14 +19,21 @@
 
             <div class="dashboard-banner mb-4 p-3 text-white shadow-sm">
                 <h6 class="fw-bold mb-1"><i class="fas fa-undo-alt me-2"></i>Sales Returns</h6>
-                <p class="mb-0 opacity-75" style="font-size: 10px;">Submit a return request — an admin will review and approve before inventory is restored.</p>
+                <p class="mb-0 opacity-75" style="font-size: 10px;">For walk-in/no-account customers with no portal access — submit a return on their behalf for admin approval.</p>
             </div>
+
+            <?php if(session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger py-2 small" id="flashError"><?= session()->getFlashdata('error') ?></div>
+            <?php endif; ?>
+            <?php if(session()->getFlashdata('success')): ?>
+                <div class="alert alert-success py-2 small" id="flashSuccess"><?= session()->getFlashdata('success') ?></div>
+            <?php endif; ?>
 
             <div class="row g-4 mb-4">
                 <div class="col-md-4">
                     <a href="?status=pending<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
                         <div class="inventory-kpi-card position-relative <?= $status_filter=='pending'?'border-bottom border-3 border-warning':'' ?>">
-                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <i class="fas fa-hourglass-half position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                             <small class="text-muted fw-bold d-block mb-1">PENDING APPROVAL</small>
                             <h3 class="fw-bold mb-0 text-warning"><?= $count_pending ?></h3>
                             <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -32,7 +43,7 @@
                 <div class="col-md-4">
                     <a href="?status=approved<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
                         <div class="inventory-kpi-card position-relative <?= $status_filter=='approved'?'border-bottom border-3 border-success':'' ?>">
-                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <i class="fas fa-check-circle position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                             <small class="text-muted fw-bold d-block mb-1">APPROVED</small>
                             <h3 class="fw-bold mb-0 text-success"><?= $count_approved ?></h3>
                             <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -42,7 +53,7 @@
                 <div class="col-md-4">
                     <a href="?status=rejected<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
                         <div class="inventory-kpi-card position-relative <?= $status_filter=='rejected'?'border-bottom border-3 border-danger':'' ?>">
-                            <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                            <i class="fas fa-times-circle position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
                             <small class="text-muted fw-bold d-block mb-1">REJECTED</small>
                             <h3 class="fw-bold mb-0 text-danger"><?= $count_rejected ?></h3>
                             <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
@@ -79,7 +90,7 @@
 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
-                        <thead class="table-dark"><tr><th class="ps-4">Date</th><th>Reference SO</th><th>Institution</th><th>Product</th><th class="text-center">Qty</th><th>Reason</th><th>Status</th></tr></thead>
+                        <thead class="table-dark"><tr><th class="ps-4">Date</th><th>Reference SO</th><th>Customer</th><th>Product</th><th class="text-center">Qty</th><th>Reason</th><th>Status</th></tr></thead>
                         <tbody>
                             <?php if(empty($returns)): ?>
                                 <tr><td colspan="7" class="text-center py-5 text-muted">No returns found.</td></tr>
@@ -89,10 +100,13 @@
                             <tr>
                                 <td class="ps-4 text-muted"><?= date('M d, Y', strtotime($r['created_at'])) ?></td>
                                 <td class="fw-bold"><?= esc($r['order_number']) ?></td>
-                                <td><?= esc($r['organization']) ?></td>
+                                <td>
+                                    <?= esc($r['organization']) ?>
+                                    <?php if(!empty($r['guest_client_id'])): ?><br><span class="badge bg-secondary" style="font-size:8px;">WALK-IN</span><?php endif; ?>
+                                </td>
                                 <td><?= esc($r['product_name'] ?? '—') ?></td>
                                 <td class="text-center fw-bold"><?= $r['quantity'] ?></td>
-                                <td><span class="text-muted"><?= esc(substr($r['reason'], 0, 30)) ?>...</span></td>
+                                <td><span class="text-muted"><?= esc(strlen($r['reason']) > 30 ? substr($r['reason'], 0, 30) . '...' : $r['reason']) ?></span></td>
                                 <td><span class="badge <?= $statusMeta[$r['status']] ?? 'bg-secondary' ?> px-3"><?= strtoupper($r['status']) ?></span></td>
                             </tr>
                             <?php endforeach; endif; ?>
@@ -119,23 +133,27 @@
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="returnDrawer" style="width: 550px;">
     <div class="offcanvas-header border-bottom">
-        <h6 class="fw-bold mb-0"><i class="fas fa-undo-alt me-2"></i>Process Client Return</h6>
+        <h6 class="fw-bold mb-0"><i class="fas fa-undo-alt me-2"></i>Process Customer Return</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-4">
         <form action="<?= base_url('staff/operations/process-return') ?>" method="POST">
+            <?= csrf_field() ?>
             <div class="row g-3">
                 <div class="col-6">
                     <label class="formal-label">Original Sales Order *</label>
-                    <select name="order_id" id="returnOrderSelect" class="form-select formal-input" required>
-                        <option value="" disabled selected>Select Order</option>
-                        <?php foreach($eligible_orders as $eo): ?>
-                            <option value="<?= $eo['order_id'] ?>"><?= esc($eo['order_number']) ?> — <?= esc($eo['organization']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+<select name="order_id" id="returnOrderSelect" class="form-select formal-input" required>
+    <option value="" disabled selected>Select Order</option>
+    <?php foreach($eligible_orders as $eo): ?>
+        <option value="<?= $eo['order_id'] ?>"><?= esc($eo['order_number']) ?> — <?= esc($eo['organization']) ?></option>
+    <?php endforeach; ?>
+</select
+                    <?php if(empty($eligible_orders)): ?>
+                        <p class="helper-text mb-0 mt-1 text-muted">No delivered orders are currently eligible for a return.</p>
+                    <?php endif; ?>
                 </div>
                 <div class="col-6">
-                    <label class="formal-label">Client (auto-filled)</label>
+                    <label class="formal-label">Customer (auto-filled)</label>
                     <input type="text" id="returnClientAuto" class="formal-input read-only-input" readonly>
                 </div>
                 <div class="col-6">
@@ -147,7 +165,7 @@
                 </div>
                 <div class="col-6">
                     <label class="formal-label">Return Quantity *</label>
-                    <input type="number" name="qty" class="formal-input" min="1" required>
+                    <input type="number" name="qty" id="returnQty" class="formal-input" min="1" required>
                 </div>
                 <div class="col-6">
                     <label class="formal-label">Item Condition *</label>
@@ -157,10 +175,12 @@
                         <option value="expired">Expired</option>
                         <option value="disposed">Disposed / Write-off</option>
                     </select>
+                    <p class="helper-text mb-0 mt-1">Only "Resellable" restores stock on approval — anything else generates a free replacement order for the customer instead.</p>
                 </div>
                 <div class="col-12">
                     <label class="formal-label">Reason for Return *</label>
-                    <select name="reason_cat" class="form-select formal-input">
+                    <select name="reason_cat" class="form-select formal-input" required>
+                        <option value="" disabled selected>Select reason</option>
                         <option value="Damaged">Damaged Goods</option>
                         <option value="Expired">Expired</option>
                         <option value="Wrong Item">Wrong Item Delivered</option>
@@ -169,7 +189,7 @@
                 </div>
                 <div class="col-12">
                     <label class="formal-label">Description / Details *</label>
-                    <textarea name="notes" class="formal-input" rows="4" required></textarea>
+                    <textarea name="notes" class="formal-input" rows="4" required placeholder="Describe what the customer reported..."></textarea>
                 </div>
             </div>
             <div class="mt-4">
@@ -179,5 +199,13 @@
     </div>
 </div>
 
+<script>
+    setTimeout(function() {
+        ['flashError', 'flashSuccess'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) { el.style.transition = 'opacity 0.5s ease'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }
+        });
+    }, 5000);
+</script>
 <script src="<?= base_url('public/js/staff/operations/sales_returns.js') ?>"></script>
 <?= view('partials/staff/footer') ?>

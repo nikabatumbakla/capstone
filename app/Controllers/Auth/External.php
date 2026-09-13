@@ -65,6 +65,7 @@ class External extends BaseController
         }
 
         $session->set($sessionData);
+        \App\Libraries\SessionTrackerService::recordLogin($user['user_id'], $user['role'], $this->request);
         return $this->_redirectUser($user['role']);
     }
 
@@ -110,6 +111,7 @@ class External extends BaseController
 
         $session = session();
         $session->set($sessionData);
+        \App\Libraries\SessionTrackerService::recordLogin($user['user_id'], $user['role'], $this->request);
         return $this->_redirectUser($user['role'])->with('info', 'Verified successfully. You can update your password anytime from your account settings.');
     }
 

@@ -1,5 +1,10 @@
 <?php include APPPATH . 'Views/shared/pg_header.php'; ?>
 
+<div class="btn-group bg-dark bg-opacity-25 rounded-pill p-1 mb-4">
+        <a href="<?= base_url('partner-gateway') ?>" class="btn btn-sm text-white rounded-pill px-4 fw-bold opacity-50 text-decoration-none">LOGIN</a>
+        <button class="btn btn-sm btn-dark rounded-pill px-4 fw-bold">REGISTER</button>
+    </div>
+
 <div class="glass-card" style="max-width: 650px;">
 
     <!-- PROGRESS STEPS (Step 2 is Active) -->
@@ -32,6 +37,11 @@
                 <input type="tel" name="alt_phone" class="formal-input" placeholder="Landline or Secondary Mobile">
             </div>
         </div>
+
+        <div class="mb-3">
+    <label class="formal-label text-uppercase">Position / Title</label>
+    <input type="text" name="position" class="formal-input" placeholder="e.g. Procurement Officer, Administrator">
+</div>
 
         <div class="mb-3">
             <label class="formal-label text-uppercase">Official Email Address *</label>

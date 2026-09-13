@@ -19,39 +19,144 @@
             </div>
 
             <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <a href="?status=open&type=low_stock" class="text-decoration-none">
-                        <div class="inventory-kpi-card <?= $type_filter=='low_stock' ? 'border-bottom border-3 border-warning' : '' ?>">
-                            <small class="text-muted fw-bold d-block mb-1">LOW STOCK</small>
-                            <h3 class="fw-bold mb-0 text-warning"><?= $count_low_stock ?></h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="?status=open&type=near_expiry" class="text-decoration-none">
-                        <div class="inventory-kpi-card <?= $type_filter=='near_expiry' ? 'border-bottom border-3 border-info' : '' ?>">
-                            <small class="text-muted fw-bold d-block mb-1">NEAR EXPIRY</small>
-                            <h3 class="fw-bold mb-0 text-info"><?= $count_near_expiry ?></h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="?status=open&type=expired" class="text-decoration-none">
-                        <div class="inventory-kpi-card <?= $type_filter=='expired' ? 'border-bottom border-3 border-dark' : '' ?>">
-                            <small class="text-muted fw-bold d-block mb-1">EXPIRED</small>
-                            <h3 class="fw-bold mb-0 text-dark"><?= $count_expired ?></h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="?status=open&type=po_approval" class="text-decoration-none">
-                        <div class="inventory-kpi-card <?= $type_filter=='po_approval' ? 'border-bottom border-3 border-danger' : '' ?>">
-                            <small class="text-muted fw-bold d-block mb-1">PO PENDING</small>
-                            <h3 class="fw-bold mb-0 text-danger"><?= $count_po ?></h3>
-                        </div>
-                    </a>
-                </div>
+
+    <!-- LOW STOCK -->
+    <div class="col-md-3">
+        <a href="?status=open&type=low_stock<?= $priority_filter ? '&priority='.urlencode($priority_filter) : '' ?><?= $assigned_filter ? '&assigned_to='.urlencode($assigned_filter) : '' ?>"
+           class="text-decoration-none kpi-filter-link">
+
+            <div class="inventory-kpi-card position-relative <?= $type_filter == 'low_stock' ? 'border-bottom border-3 border-warning' : '' ?>">
+
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon"
+                   style="top:10px; right:12px; font-size:10px;"></i>
+
+                <small class="text-muted fw-bold d-block mb-1">
+                    LOW STOCK
+                </small>
+
+                <h3 class="fw-bold mb-0 text-warning">
+                    <?= $count_low_stock ?>
+                </h3>
+
+                <small class="text-muted kpi-hint" style="font-size:9px;">
+                    Click to view
+                </small>
+
             </div>
+        </a>
+    </div>
+
+
+    <!-- NEAR EXPIRY -->
+    <div class="col-md-3">
+        <a href="?status=open&type=near_expiry<?= $priority_filter ? '&priority='.urlencode($priority_filter) : '' ?><?= $assigned_filter ? '&assigned_to='.urlencode($assigned_filter) : '' ?>"
+           class="text-decoration-none kpi-filter-link">
+
+            <div class="inventory-kpi-card position-relative <?= $type_filter == 'near_expiry' ? 'border-bottom border-3 border-info' : '' ?>">
+
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon"
+                   style="top:10px; right:12px; font-size:10px;"></i>
+
+                <small class="text-muted fw-bold d-block mb-1">
+                    NEAR EXPIRY
+                </small>
+
+                <h3 class="fw-bold mb-0 text-info">
+                    <?= $count_near_expiry ?>
+                </h3>
+
+                <small class="text-muted kpi-hint" style="font-size:9px;">
+                    Click to view
+                </small>
+
+            </div>
+        </a>
+    </div>
+
+
+    <!-- EXPIRED -->
+    <div class="col-md-3">
+        <a href="?status=open&type=expired<?= $priority_filter ? '&priority='.urlencode($priority_filter) : '' ?><?= $assigned_filter ? '&assigned_to='.urlencode($assigned_filter) : '' ?>"
+           class="text-decoration-none kpi-filter-link">
+
+            <div class="inventory-kpi-card position-relative <?= $type_filter == 'expired' ? 'border-bottom border-3 border-dark' : '' ?>">
+
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon"
+                   style="top:10px; right:12px; font-size:10px;"></i>
+
+                <small class="text-muted fw-bold d-block mb-1">
+                    EXPIRED
+                </small>
+
+                <h3 class="fw-bold mb-0 text-dark">
+                    <?= $count_expired ?>
+                </h3>
+
+                <small class="text-muted kpi-hint" style="font-size:9px;">
+                    Click to view
+                </small>
+
+            </div>
+        </a>
+    </div>
+
+
+    <!-- PO PENDING -->
+    <div class="col-md-3">
+        <a href="?status=open&type=po_approval<?= $priority_filter ? '&priority='.urlencode($priority_filter) : '' ?><?= $assigned_filter ? '&assigned_to='.urlencode($assigned_filter) : '' ?>"
+           class="text-decoration-none kpi-filter-link">
+
+            <div class="inventory-kpi-card position-relative <?= $type_filter == 'po_approval' ? 'border-bottom border-3 border-danger' : '' ?>">
+
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon"
+                   style="top:10px; right:12px; font-size:10px;"></i>
+
+                <small class="text-muted fw-bold d-block mb-1">
+                    PO PENDING
+                </small>
+
+                <h3 class="fw-bold mb-0 text-danger">
+                    <?= $count_po ?>
+                </h3>
+
+                <small class="text-muted kpi-hint" style="font-size:9px;">
+                    Click to view
+                </small>
+
+            </div>
+        </a>
+    </div>
+
+</div>
+
+<?php if ($type_filter): ?>
+
+<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3"
+     style="font-size: 11px;">
+
+    <span>
+        <strong>
+            <?php
+                $labels = [
+                    'low_stock'   => 'Low Stock',
+                    'near_expiry' => 'Near Expiry',
+                    'expired'     => 'Expired',
+                    'po_approval' => 'PO Pending'
+                ];
+
+                echo $labels[$type_filter] ?? strtoupper($type_filter);
+            ?>
+        </strong>
+    </span>
+
+    <a href="?status=<?= urlencode($status_filter) ?>"
+       class="text-danger fw-bold text-decoration-none">
+        ×
+    </a>
+
+</div>
+
+<?php endif; ?>
 
             <div class="row g-4">
                 <div class="col-lg-8">

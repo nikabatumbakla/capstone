@@ -1,6 +1,10 @@
 <?= view('partials/staff/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
 <script>const BASE_URL = "<?= base_url() ?>";</script>
+<script>
+    const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
+    const CSRF_HASH = "<?= csrf_hash() ?>";
+</script>
 
 <div class="wrapper">
     <?= view('partials/staff/sidebar') ?>
@@ -86,7 +90,7 @@
                             <?php endforeach; ?>
                         </select>
                         <div class="position-relative">
-                            <input type="text" name="search" id="liveSearch" class="form-control form-control-sm rounded-pill ps-4" placeholder="Search item or SKU..." style="width: 200px;" value="<?= esc($search) ?>">
+                            <input type="text" name="search" id="liveSearch" class="form-control form-control-sm rounded-pill ps-4" placeholder="Search item or barcode..." style="width: 200px;" value="<?= esc($search) ?>">
                             <i class="fas fa-search position-absolute text-muted" style="left: 12px; top: 10px; font-size: 10px;"></i>
                         </div>
                     </form>
@@ -96,25 +100,23 @@
                     <table class="table table-hover align-middle">
 
                         <thead class="table-dark">
-    <tr><th class="ps-4">Product</th><th>Category</th><th>Batch No.</th><th class="text-center">Available</th><th>Sell Price</th><th>Expiry</th><th class="text-center">Status</th></tr>
+    <tr><th class="ps-4">Product</th><th>Category</th><th>Batches</th><th class="text-center">Total Stock</th><th>Sell Price</th><th class="text-center">Status</th></tr>
 </thead>
 <tbody>
     <?php if(empty($inventory)): ?>
-        <tr><td colspan="7" class="text-center py-5 text-muted">No matching stock records.</td></tr>
-    <?php else: foreach($inventory as $item): ?>
+        <tr><td colspan="6" class="text-center py-5 text-muted">No matching stock records.</td></tr>
+    <?php else: foreach($inventory as $item):
+        $isLow = $item['total_stock'] > 0 && $item['total_stock'] <= $item['reorder_level'];
+        $isOut = $item['total_stock'] <= 0;
+    ?>
     <tr>
-        <td class="ps-4"><span class="fw-bold d-block"><?= esc($item['product_name']) ?></span><small class="text-muted"><?= esc($item['sku']) ?></small></td>
+        <td class="ps-4"><span class="fw-bold d-block"><?= esc($item['product_name']) ?></span><small class="text-muted"><?= esc($item['barcode_value']) ?></small></td>
         <td><span class="badge bg-light text-dark border"><?= esc($item['cat_name']) ?></span></td>
-        <td><code><?= $item['batch_id'] ? esc($item['batch_number']) : '—' ?></code></td>
-        <td class="text-center fw-bold text-maroon" style="font-size:13px"><?= $item['quantity_avail'] ?? 0 ?> <small class="fw-normal text-muted"><?= esc($item['unit']) ?></small></td>
+        <td><?= $item['batch_count'] ?> batch<?= $item['batch_count'] != 1 ? 'es' : '' ?></td>
+        <td class="text-center fw-bold text-maroon" style="font-size:13px"><?= $item['total_stock'] ?> <small class="fw-normal text-muted"><?= esc($item['unit']) ?></small></td>
         <td class="fw-bold">₱<?= number_format($item['sell_price'] ?? 0, 2) ?></td>
-        <td>
-            <?php if($item['expires_at']): ?>
-                <span class="<?= (strtotime($item['expires_at']) < strtotime('+3 months')) ? 'text-danger fw-bold' : '' ?>"><?= date('M Y', strtotime($item['expires_at'])) ?></span>
-            <?php else: ?><span class="text-muted">N/A</span><?php endif; ?>
-        </td>
         <td class="text-center">
-            <?php if(!$item['batch_id']): ?>
+            <?php if($isOut): ?>
                 <button class="btn btn-sm btn-success rounded-circle btn-add-batch" title="No Stock — Add Batch"
                     data-product-id="<?= $item['product_id'] ?>"
                     data-product-name="<?= esc($item['product_name']) ?>"
@@ -122,17 +124,17 @@
                     style="width:34px; height:34px;">
                     <i class="fas fa-plus"></i>
                 </button>
-            <?php elseif($item['quantity_avail'] <= $item['reorder_level']): ?>
+            <?php elseif($isLow): ?>
                 <button class="btn btn-sm btn-warning text-dark rounded-circle btn-view-details" title="Restock Required — View Details"
-                    data-id="<?= $item['batch_id'] ?>" style="width:34px; height:34px;">
+                    data-id="<?= $item['product_id'] ?>" style="width:34px; height:34px;">
                     <i class="fas fa-exclamation-triangle"></i>
                 </button>
             <?php else: ?>
-    <button class="btn btn-sm btn-success rounded-circle btn-view-details" title="Available — View Details"
-        data-id="<?= $item['batch_id'] ?>" style="width:34px; height:34px;">
-        <i class="fas fa-eye"></i>
-    </button>
-<?php endif; ?>
+                <button class="btn btn-sm btn-success rounded-circle btn-view-details" title="Available — View Details"
+                    data-id="<?= $item['product_id'] ?>" style="width:34px; height:34px;">
+                    <i class="fas fa-eye"></i>
+                </button>
+            <?php endif; ?>
         </td>
     </tr>
     <?php endforeach; endif; ?>
@@ -158,7 +160,7 @@
     </div>
 </div>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="detailsDrawer" style="width: 450px;">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailsDrawer" style="width: 600px;">
     <div class="offcanvas-header border-bottom bg-light"><h6 class="offcanvas-title fw-bold">Item Details</h6><button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button></div>
     <div class="offcanvas-body" id="drawerContent"></div>
 </div>

@@ -1,77 +1,84 @@
 <?= $this->extend('public_site/layouts/main') ?>
+
 <?= $this->section('content') ?>
 
-<style>
-    .pc-hero { background: linear-gradient(135deg, #7b1113, #4a0000); color: #fff; padding: 60px 20px; text-align: center; }
-    .pc-hero h1 { font-family: 'Playfair Display', serif; font-size: 32px; margin-bottom: 8px; }
-    .pc-wrap { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-    .pc-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 30px; justify-content: center; }
-    .pc-filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: #fff; color: #333; font-size: 12px; text-decoration: none; transition: 0.2s; }
-    .pc-filter-btn.active, .pc-filter-btn:hover { background: #7b1113; color: #fff; border-color: #7b1113; }
-    .pc-search { max-width: 400px; margin: 0 auto 30px; }
-    .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
-    .pc-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); transition: transform 0.2s; }
-    .pc-card:hover { transform: translateY(-4px); }
-    .pc-card img { width: 100%; height: 160px; object-fit: cover; background: #f5f5f5; }
-    .pc-card-body { padding: 16px; }
-    .pc-card-body h5 { font-size: 14px; margin-bottom: 4px; color: #222; }
-    .pc-card-body small { color: #888; font-size: 11px; }
-    .pc-price { color: #7b1113; font-weight: 700; font-size: 15px; margin-top: 8px; }
-    .pc-stock { font-size: 10px; margin-top: 4px; }
-    .pc-pager { display: flex; justify-content: center; gap: 8px; margin-top: 40px; }
-    .pc-pager a { padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; color: #333; font-size: 12px; }
-    .pc-pager a.active { background: #7b1113; color: #fff; border-color: #7b1113; }
-</style>
-
-<div class="pc-hero">
+<div class="page-hero">
     <h1>Product Catalog</h1>
     <p>Quality medical supplies for hospitals, clinics, schools, and communities</p>
+    <div class="breadcrumb">
+        <a href="<?= base_url('/') ?>">Home</a> <i class="fa fa-chevron-right"></i> Products
+    </div>
 </div>
 
-<div class="pc-wrap">
-    <form action="" method="GET" class="pc-search">
-        <input type="text" name="search" placeholder="Search products..." value="<?= esc($search) ?>" class="form-control" style="border-radius: 20px; padding: 10px 18px;">
-    </form>
+<section class="section">
+    <div class="sec-wrap">
+        <div class="sec-head reveal">
+            <div class="sec-tag">Browse</div>
+            <h2 class="sec-title">Our <span>Products</span></h2>
+            <p class="sec-sub">Everything your healthcare facility needs — all in one trusted supplier.</p>
+        </div>
 
-    <div class="pc-filters">
-        <a href="<?= base_url('products') ?>" class="pc-filter-btn <?= $active_cat == 'all' ? 'active' : '' ?>">All</a>
-        <?php foreach($categories as $cat): ?>
-            <a href="<?= base_url('products?cat=' . $cat['slug']) ?>" class="pc-filter-btn <?= $active_cat == $cat['slug'] ? 'active' : '' ?>"><?= esc($cat['name']) ?></a>
-        <?php endforeach; ?>
-    </div>
+        <div style="display:flex; justify-content:center; margin-bottom:2rem;">
+            <form action="" method="GET" style="max-width:400px; width:100%;">
+                <input type="text" name="search" placeholder="Search products..." value="<?= esc($search) ?>"
+                    style="width:100%; padding:.75rem 1.25rem; border-radius:30px; border:1px solid #ddd; font-family:var(--font-b);">
+            </form>
+        </div>
 
-    <div class="pc-grid">
         <?php if(empty($products)): ?>
-            <p style="grid-column: 1/-1; text-align:center; color:#888;">No products found in this category.</p>
-        <?php else: foreach($products as $p): ?>
-        <div class="pc-card reveal">
-            <?php if($p['image_path']): ?>
-                <img src="<?= base_url($p['image_path']) ?>" alt="<?= esc($p['name']) ?>">
-            <?php else: ?>
-                <img src="<?= base_url('public/images/product-placeholder.png') ?>" alt="No image">
-            <?php endif; ?>
-            <div class="pc-card-body">
-                <small><?= esc($p['cat_name']) ?></small>
-                <h5><?= esc($p['name']) ?></h5>
-                <div class="pc-price"><?= $p['price'] ? '₱' . number_format($p['price'], 2) : 'Contact for pricing' ?></div>
-                <div class="pc-stock" style="color: <?= ($p['stock'] > 0) ? '#2e7d32' : '#999' ?>;">
-                    <?= ($p['stock'] > 0) ? 'In Stock' : 'Contact for availability' ?>
+            <div style="text-align:center; padding:4rem 1rem; color:var(--gray);">
+                <i class="fa fa-box-open" style="font-size:3rem; opacity:.25; margin-bottom:1rem; display:block;"></i>
+                <p>No products found in this category.</p>
+            </div>
+        <?php else: ?>
+        <div class="prod-grid">
+            <?php foreach($products as $p): ?>
+            <div class="prod-card reveal">
+                <div class="prod-img">
+                    <?php if($p['image_path']): ?>
+                        <img src="<?= base_url($p['image_path']) ?>" alt="<?= esc($p['name']) ?>" style="max-height:140px;object-fit:contain;">
+                    <?php else: ?>
+                        <i class="fa fa-box-open" style="font-size:3rem;color:var(--blue-light);"></i>
+                    <?php endif; ?>
+                    <span class="prod-stock <?= $p['stock'] > 0 ? 'in' : 'out' ?>"><?= $p['stock'] > 0 ? 'In Stock' : 'Out of Stock' ?></span>
+                </div>
+                <div class="prod-body">
+                    <div class="prod-sku"><?= esc($p['cat_name']) ?></div>
+                    <div class="prod-name"><?= esc($p['name']) ?></div>
+                    <div class="prod-desc"><?= esc(substr($p['description'] ?? '', 0, 90)) ?><?= strlen($p['description'] ?? '') > 90 ? '...' : '' ?></div>
+                    <div class="prod-foot">
+                        <span class="prod-price"><?= $p['price'] ? '₱'.number_format($p['price'], 2) : 'Request Quote' ?></span>
+                        <a href="<?= base_url('contact') ?>" class="btn-q">
+                            <?= $p['price'] ? 'Order Now' : 'Get Quote' ?>
+                        </a>
+                    </div>
                 </div>
             </div>
+            <?php endforeach; ?>
         </div>
-        <?php endforeach; endif; ?>
-    </div>
 
-    <?php if($total_pages > 1): ?>
-    <div class="pc-pager">
-        <?php
-            $q = ($active_cat !== 'all' ? '&cat=' . $active_cat : '') . ($search ? '&search=' . urlencode($search) : '');
-            for ($i = 1; $i <= $total_pages; $i++):
-        ?>
-            <a href="?page=<?= $i . $q ?>" class="<?= $i == $current_page ? 'active' : '' ?>"><?= $i ?></a>
-        <?php endfor; ?>
+        <?php if($total_pages > 1): ?>
+        <div style="display:flex; justify-content:center; gap:.5rem; margin-top:3rem;">
+            <?php
+                $q = ($active_cat !== 'all' ? '&cat='.$active_cat : '') . ($search ? '&search='.urlencode($search) : '');
+                for($p = 1; $p <= $total_pages; $p++):
+            ?>
+                <a href="?page=<?= $p.$q ?>" class="btn <?= $p == $current_page ? 'btn-red' : 'btn-outline' ?>" style="padding:.5rem 1rem; min-width:auto;"><?= $p ?></a>
+            <?php endfor; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
+</section>
+
+<div class="cta-banner">
+    <h2>Can't find what you're looking for?</h2>
+    <p>Contact us directly — we carry over 500 products and can source specific items on request.</p>
+    <div class="btns">
+        <a href="tel:09292379053" class="btn btn-white"><i class="fa fa-phone"></i> Call Now</a>
+        <a href="<?= base_url('contact') ?>" class="btn btn-outline-w"><i class="fa fa-envelope"></i> Full Inquiry Form</a>
+    </div>
 </div>
 
 <?= $this->endSection() ?>

@@ -22,25 +22,38 @@
 
             <!-- KPI row -->
             <div class="row g-4 mb-4">
-                <div class="col-md-4">
-                    <div class="inventory-kpi-card">
-                        <small class="text-muted fw-bold d-block mb-1">TOTAL LOGGED ADJUSTMENTS</small>
-                        <h3 class="fw-bold mb-0"><?= $total_logs ?></h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="inventory-kpi-card">
-                        <small class="text-muted fw-bold d-block mb-1">LAST 24 HOURS</small>
-                        <h3 class="fw-bold mb-0 text-warning"><?= $recent_adjustments ?></h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="inventory-kpi-card">
-                        <small class="text-muted fw-bold d-block mb-1">THIS WEEK</small>
-                        <h3 class="fw-bold mb-0 text-warning"><?= $week_adjustments ?></h3>
-                    </div>
-                </div>
+    <div class="col-md-3">
+        <div class="inventory-kpi-card position-relative">
+            <i class="fas fa-fingerprint position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+            <small class="text-muted fw-bold d-block mb-1">TOTAL LOGGED ADJUSTMENTS</small>
+            <h3 class="fw-bold mb-0"><?= $total_logs ?></h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-kpi-card position-relative">
+            <i class="fas fa-clock position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+            <small class="text-muted fw-bold d-block mb-1">LAST 24 HOURS</small>
+            <h3 class="fw-bold mb-0 text-warning"><?= $recent_adjustments ?></h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-kpi-card position-relative">
+            <i class="fas fa-calendar-week position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+            <small class="text-muted fw-bold d-block mb-1">THIS WEEK</small>
+            <h3 class="fw-bold mb-0 text-warning"><?= $week_adjustments ?></h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <a href="?reason=Loss<?= $search ? '&search='.urlencode($search) : '' ?>" class="text-decoration-none kpi-filter-link">
+            <div class="inventory-kpi-card position-relative <?= $reason_filter == 'Loss' ? 'border-bottom border-3 border-danger' : '' ?>">
+                <i class="fas fa-filter position-absolute text-muted kpi-filter-icon" style="top:10px; right:12px; font-size:10px;"></i>
+                <small class="text-muted fw-bold d-block mb-1">LOSS / THEFT FLAGGED</small>
+                <h3 class="fw-bold mb-0 text-danger"><?= $loss_flagged ?></h3>
+                <small class="text-muted kpi-hint" style="font-size:9px;">Click to view</small>
             </div>
+        </a>
+    </div>
+</div>
 
             <div class="custom-table-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -72,7 +85,7 @@
                         <thead>
                             <tr>
                                 <th class="ps-4">Timestamp</th>
-                                <th>Product / SKU</th>
+                                <th>Product</th>
                                 <th>Adjusted By</th>
                                 <th class="text-center">Before</th>
                                 <th class="text-center">After</th>
@@ -91,14 +104,16 @@
                                 <td class="ps-4 text-muted" style="font-size: 10px;"><?= date('M d, Y • h:i A', strtotime($l['adjusted_at'])) ?></td>
                                 <td>
                                     <div class="fw-bold text-dark"><?= esc($l['product_name']) ?></div>
-                                    <small class="text-muted"><?= !empty($l['sku']) ? esc($l['sku']) : '—' ?></small>
                                 </td>
                                 <td><span class="badge bg-light text-dark border"><?= esc($l['staff_name']) ?></span></td>
                                 <td class="text-center fw-bold text-muted"><?= $l['qty_before'] ?></td>
                                 <td class="text-center fw-bold text-dark"><?= $l['qty_after'] ?></td>
                                 <td class="text-center fw-bold <?= $diffClass ?>">
-                                    <i class="fas <?= $diffIcon ?> me-1"></i><?= ($diff > 0) ? '+'.$diff : $diff ?>
-                                </td>
+    <i class="fas <?= $diffIcon ?> me-1"></i><?= ($diff > 0) ? '+'.$diff : $diff ?>
+    <?php if($diff < -20 && $l['reason'] === 'Loss'): ?>
+        <span class="badge bg-danger ms-1" style="font-size:8px;">HIGH RISK</span>
+    <?php endif; ?>
+</td>
                                 <td><span class="badge rounded-pill bg-light text-dark border"><?= !empty($l['reason']) ? esc($l['reason']) : 'Not specified' ?></span></td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-outline-dark rounded-pill px-3 btn-view-log" data-id="<?= $l['log_id'] ?>" style="font-size: 10px;">Details</button>
@@ -160,8 +175,8 @@
 </div>
 
 <script>
-  const BASE_URL = "<?= rtrim(base_url(), '/') ?>";
   window.STORE_INFO = <?= json_encode($store_info) ?>;
+  <script>const BASE_URL = "<?= base_url() ?>";</script>
 </script>
 <script src="<?= base_url('public/js/admin/operations/inventory/inventory_logs.js') ?>"></script>
 <?= view('partials/admin/footer') ?>

@@ -15,19 +15,9 @@ class DashboardModel extends Model
     }
 
     public function getScorecard(int $supplierId)
-    {
-        $row = $this->db->table('supplier_scorecards')->where('supplier_id', $supplierId)->get()->getRow();
-
-        // No scorecard yet (brand-new supplier, zero delivery history) — return honest zeros, not a crash
-        if (!$row) {
-            return (object) [
-                'on_time_rate'  => null,
-                'accuracy_rate' => null,
-                'total_orders'  => 0,
-            ];
-        }
-        return $row;
-    }
+{
+    return \App\Libraries\ScorecardCalculator::calculate($this->db, $supplierId);
+}
 
     public function getKpis(int $supplierId): array
     {
@@ -59,4 +49,24 @@ class DashboardModel extends Model
             ->orderBy('is_pinned', 'DESC')->orderBy('created_at', 'DESC')
             ->limit($limit)->get()->getResultArray();
     }
+
+    public function getFilteredPos(int $supplierId, ?string $statusFilter, int $limit = 10): array
+{
+    $builder = $this->db->table('purchase_orders as po')
+        ->select("po.po_id, po.po_number, po.total_amount, po.expected_date, po.status,
+            (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.po_id) as items")
+        ->where('po.supplier_id', $supplierId);
+
+    if ($statusFilter === 'open') {
+        $builder->whereIn('po.status', ['sent', 'acknowledged', 'in_transit']);
+    } elseif ($statusFilter === 'pending') {
+        $builder->where('po.status', 'sent');
+    } elseif ($statusFilter === 'completed') {
+        $builder->where('po.status', 'received')->where('YEAR(po.created_at)', date('Y'));
+    }
+
+    $builder->orderBy('po.created_at', 'DESC')->limit($limit);
+    return $builder->get()->getResultArray();
+}
+
 }

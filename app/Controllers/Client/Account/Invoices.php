@@ -39,33 +39,16 @@ class Invoices extends BaseController
         return view('pages/client/account/invoices', $data);
     }
 
-    public function get_invoice_details($orderId)
-    {
-        $clientId = session()->get('client_id');
-        $result = $this->invoicesModel->getInvoiceDetails((int) $orderId, $clientId);
-        if (!$result) return $this->response->setStatusCode(404)->setJSON(['error' => 'Invoice not found']);
-        return $this->response->setJSON($result);
-    }
 
-    public function submit_payment()
+public function get_invoice_details($orderId)
 {
     $clientId = session()->get('client_id');
-    $orderId = (int) $this->request->getPost('order_id');
-    $reference = trim((string) $this->request->getPost('payment_reference'));
+    $result = $this->invoicesModel->getInvoiceDetails((int) $orderId, $clientId);
+    if (!$result) return $this->response->setStatusCode(404)->setJSON(['error' => 'Invoice not found']);
 
-    $result = $this->invoicesModel->getInvoiceDetails($orderId, $clientId);
-    if (!$result) return redirect()->back()->with('error', 'Order not found.');
-
-    $order = $result['order'];
-    if ($order->fulfillment_method === 'pickup') {
-        return redirect()->back()->with('error', 'Pickup orders are confirmed by staff directly — no reference needed.');
-    }
-    if (empty($reference)) {
-        return redirect()->back()->with('error', 'Please provide your payment reference.');
-    }
-
-    $success = $this->invoicesModel->submitPaymentReference($orderId, $clientId, $reference);
-    return redirect()->to('client/account/invoices')->with($success ? 'success' : 'error',
-        $success ? 'Payment reference submitted. Robin Rose Trading will confirm once verified.' : 'Unable to submit — this order may already be settled.');
+    $result['store_info'] = $this->invoicesModel->getStoreInfo();
+    return $this->response->setJSON($result);
 }
+
+
 }
