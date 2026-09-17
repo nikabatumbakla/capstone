@@ -19,7 +19,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 drawer.show();
 
                 fetch(`${BASE_URL}/admin/strategy/compliance/get-vat-sales-book?page=${page}`)
-                    .then(res => res.json())
+                    .then(async res => {
+                        const text = await res.text();
+                        try { return JSON.parse(text); } catch (e) {
+                            console.error('[VAT Sales Book] Server did not return valid JSON:', text);
+                            throw new Error('Server returned an unexpected response — check console.');
+                        }
+                    })
                     .then(result => {
                         const rows = result.data.map(s => `
                 <tr>
@@ -51,71 +57,54 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
             }
 
-            document.querySelector('.btn-open-cash-journal').addEventListener('click', function() {
-                title.textContent = 'Cash Receipts Journal';
-                content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
-                drawer.show();
-
-                fetch(`${BASE_URL}/admin/strategy/compliance/get-cash-receipts?year=${year}&month=${month}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.length) { content.innerHTML = `<p class="text-muted text-center p-5">No POS transactions recorded for this period.</p>`; return; }
-
-                        const totalCash = data.reduce((s, r) => s + parseFloat(r.cash_total), 0);
-                        const totalGcash = data.reduce((s, r) => s + parseFloat(r.gcash_total), 0);
-
-                        const rows = data.map(r => `
-                <tr>
-                    <td>${r.day}</td>
-                    <td class="text-end">${peso(r.cash_total)}</td>
-                    <td class="text-end">${peso(r.gcash_total)}</td>
-                    <td class="text-end fw-bold">${peso(r.day_total)}</td>
-                    <td class="text-center text-muted">${r.txn_count}</td>
-                </tr>`).join('');
-
-                        content.innerHTML = `
-                <div class="row g-2 mb-3">
-                    <div class="col-6 p-2 bg-light rounded-3 text-center"><small class="text-muted d-block">Total Cash</small><b>${peso(totalCash)}</b></div>
-                    <div class="col-6 p-2 bg-light rounded-3 text-center"><small class="text-muted d-block">Total GCash</small><b>${peso(totalGcash)}</b></div>
-                </div>
-                <table class="table table-sm table-hover" style="font-size:10.5px;">
-                    <thead class="table-dark"><tr><th>Date</th><th class="text-end">Cash</th><th class="text-end">GCash</th><th class="text-end">Total</th><th class="text-center">Txns</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>`;
-                    })
-                    .catch(err => {
-                        content.innerHTML = `<p class="text-danger text-center p-5">Failed to load Cash Receipts Journal.</p>`;
-                        console.error(err);
-                    });
-            });
-
             document.querySelectorAll('.btn-open-journal').forEach(btn => {
                         btn.addEventListener('click', function() {
                                     const type = this.getAttribute('data-type');
-                                    title.textContent = type === 'sales' ? 'Subsidiary Sales Journal' : 'Subsidiary Purchase Journal';
+                                    const titles = { sales: 'Subsidiary Sales Journal', purchases: 'Subsidiary Purchase Journal', clients: 'Subsidiary Client Journal' };
+                                    title.textContent = titles[type];
                                     content.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-maroon"></div></div>`;
                                     drawer.show();
 
                                     fetch(`${BASE_URL}/admin/strategy/compliance/get-journal/${type}?year=${year}&month=${month}`)
-                                        .then(res => res.json())
+                                        .then(async res => {
+                                            const text = await res.text();
+                                            try { return JSON.parse(text); } catch (e) { throw new Error(text); }
+                                        })
                                         .then(data => {
+                                                if (data.error) { content.innerHTML = `<p class="text-danger text-center p-5">${data.error}</p>`; return; }
                                                 if (!data.length) { content.innerHTML = `<p class="text-muted text-center p-5">No entries for this period.</p>`; return; }
 
                                                 if (type === 'sales') {
+                                                    const taxTotal = data.reduce((s, r) => s + parseFloat(r.taxable_amount || 0), 0);
+                                                    const vatTotal = data.reduce((s, r) => s + parseFloat(r.vat_output_tax || 0), 0);
+                                                    const grandTotal = data.reduce((s, r) => s + parseFloat(r.total_invoice_amount || 0), 0);
                                                     content.innerHTML = `
-                            <table class="table table-sm table-hover" style="font-size:10.5px;">
-                                <thead class="table-dark"><tr><th>Ref #</th><th>Source</th><th>Payment</th><th class="text-end">VAT</th><th class="text-end">Total</th></tr></thead>
-                                <tbody>${data.map(r => `<tr><td>${r.ref_no}</td><td>${r.source}</td><td>${r.payment_method}</td><td class="text-end">${peso(r.vat_amount)}</td><td class="text-end fw-bold">${peso(r.total)}</td></tr>`).join('')}</tbody>
-                            </table>`;
-                    } else {
-                        content.innerHTML = `
-                            <table class="table table-sm table-hover" style="font-size:10.5px;">
-                                <thead class="table-dark"><tr><th>PO #</th><th>Supplier</th><th>Received</th><th class="text-end">Amount</th></tr></thead>
-                                <tbody>${data.map(r => `<tr><td>${r.ref_no}</td><td>${r.supplier_name}</td><td>${r.received_date}</td><td class="text-end fw-bold">${peso(r.total_amount)}</td></tr>`).join('')}</tbody>
-                            </table>`;
-                    }
-                })
-                .catch(err => { content.innerHTML = `<p class="text-danger text-center p-5">Failed to load journal.</p>`; console.error(err); });
-        });
+                        <table class="table table-sm table-hover" style="font-size:10.5px;">
+                            <thead class="table-dark"><tr><th>Date</th><th>Buyer</th><th class="text-end">Taxable (12%)</th><th class="text-end">VAT Output</th><th class="text-end">Total</th></tr></thead>
+                            <tbody>${data.map(r => `<tr><td>${r.sale_date}</td><td>${r.buyer}</td><td class="text-end">${peso(r.taxable_amount)}</td><td class="text-end">${peso(r.vat_output_tax)}</td><td class="text-end fw-bold">${peso(r.total_invoice_amount)}</td></tr>`).join('')}</tbody>
+                            <tfoot><tr class="fw-bold"><td colspan="2">TOTAL</td><td class="text-end">${peso(taxTotal)}</td><td class="text-end">${peso(vatTotal)}</td><td class="text-end">${peso(grandTotal)}</td></tr></tfoot>
+                        </table>`;
+                } else if (type === 'purchases') {
+                    const vatPurchTotal = data.reduce((s,r) => s + parseFloat(r.vat_purchases_local||0), 0);
+                    const inputVatTotal = data.reduce((s,r) => s + parseFloat(r.vat_input_tax||0), 0);
+                    const grandTotal = data.reduce((s,r) => s + parseFloat(r.total_invoice_amount||0), 0);
+                    content.innerHTML = `
+                        <table class="table table-sm table-hover" style="font-size:10px;">
+                            <thead class="table-dark"><tr><th>Date</th><th>Supplier</th><th>Inv. #</th><th>TIN</th><th class="text-end">VAT Purch.</th><th class="text-end">Input VAT</th><th class="text-end">Total</th></tr></thead>
+                            <tbody>${data.map(r => `<tr><td>${r.purchase_date}</td><td>${r.supplier_name||'—'}</td><td>${r.invoice_no||'—'}</td><td>${r.tin||'—'}</td><td class="text-end">${peso(r.vat_purchases_local)}</td><td class="text-end">${peso(r.vat_input_tax)}</td><td class="text-end fw-bold">${peso(r.total_invoice_amount)}</td></tr>`).join('')}</tbody>
+                            <tfoot><tr class="fw-bold"><td colspan="4">TOTAL</td><td class="text-end">${peso(vatPurchTotal)}</td><td class="text-end">${peso(inputVatTotal)}</td><td class="text-end">${peso(grandTotal)}</td></tr></tfoot>
+                        </table>`;
+                } else if (type === 'clients') {
+                    const amountTotal = data.reduce((s,r) => s + parseFloat(r.amount||0), 0);
+                    content.innerHTML = `
+                        <table class="table table-sm table-hover" style="font-size:10px;">
+                            <thead class="table-dark"><tr><th>Date</th><th>Client</th><th>Item</th><th>Qty</th><th class="text-end">Price</th><th class="text-end">Amount</th><th>Exp.</th></tr></thead>
+                            <tbody>${data.map(r => `<tr><td>${r.item_date}</td><td>${r.client_name}</td><td>${r.item_name}</td><td>${r.qty||'—'}</td><td class="text-end">${peso(r.price)}</td><td class="text-end fw-bold">${peso(r.amount)}</td><td>${r.expiry||'—'}</td></tr>`).join('')}</tbody>
+                            <tfoot><tr class="fw-bold"><td colspan="5">TOTAL</td><td class="text-end">${peso(amountTotal)}</td><td></td></tr></tfoot>
+                        </table>`;
+                }
+            })
+            .catch(err => { content.innerHTML = `<p class="text-danger text-center p-5">Failed to load journal.</p>`; console.error(err); });
     });
+});
 });

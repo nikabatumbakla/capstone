@@ -14,13 +14,14 @@ $routes->group('m', ['namespace' => 'App\Controllers\Mobile'], function($routes)
     $routes->post('login/walkin', 'Auth\MobileAuth::walkin_submit');
     $routes->get('logout', 'Auth\MobileAuth::logout');
 
-    $routes->group('staff', ['filter' => 'auth'], function($routes) {
+   $routes->group('staff', ['filter' => 'auth'], function($routes) {
         $routes->get('home', 'Staff\MobileDashboard::index');
         $routes->get('profile', 'Staff\MobileProfile::index');
-        $routes->get('tasks', 'Staff\MobileDashboard::tasks');
-        $routes->get('tasks/complete/(:num)', 'Staff\MobileAlerts::complete/$1');
+
         $routes->get('alerts', 'Staff\MobileAlerts::index');
-        $routes->get('alerts/complete/(:num)', 'Staff\MobileAlerts::complete/$1');
+        $routes->get('tasks', 'Staff\MobileTasks::index');
+        $routes->get('tasks/complete/(:num)', 'Staff\MobileTasks::complete/$1');
+
         $routes->get('scan', 'Staff\MobileScan::index');
         $routes->post('scan/lookup', 'Staff\MobileScan::lookup');
         $routes->post('scan/create-product', 'Staff\MobileScan::create_product');
@@ -30,8 +31,8 @@ $routes->group('m', ['namespace' => 'App\Controllers\Mobile'], function($routes)
         $routes->post('scan/submit-inbound', 'Staff\MobileScan::submit_inbound');
         $routes->post('scan/submit-outbound', 'Staff\MobileScan::submit_outbound');
         $routes->post('scan/submit-grr', 'Staff\MobileScan::submit_grr');
+        $routes->post('scan/update-so-status', 'Staff\MobileScan::update_so_status');
     });
-    // ← removed the nested m/customer block from here
 });
 
 // Sibling group, top-level — NOT nested inside the 'm' group above
@@ -48,6 +49,7 @@ $routes->group('m/customer', ['namespace' => 'App\Controllers\Mobile\Customer'],
     $routes->get('chatbot', 'MobileChatbot::index');
     $routes->post('chatbot/ask', 'MobileChatbot::ask');
     $routes->get('chatbot/history', 'MobileChatbot::history');
+    $routes->get('customer/chatbot/poll-count', 'Customer\MobileChatbot::poll_count');
 
     $routes->get('profile', 'MobileProfile::index');
     $routes->post('profile/rate-store', 'MobileProfile::rate_store');
@@ -57,8 +59,11 @@ $routes->group('m/customer', ['namespace' => 'App\Controllers\Mobile\Customer'],
 // --- SECURED PARTNER AREA (Suppliers & Clients) ---
 $routes->group('client', ['namespace' => 'App\Controllers\Client', 'filter' => 'auth'], function($routes) {
     $routes->get('dashboard', 'Main\Dashboard::index'); 
+
     $routes->post('chatbot/ask', 'ChatbotWidget::ask');
     $routes->get('chatbot/history', 'ChatbotWidget::history');
+    $routes->get('chatbot/poll-count', 'ChatbotWidget::poll_count');
+
     $routes->get('notifications/header-data', 'Notifications::header_data');
     $routes->get('notifications/mark-read', 'Notifications::mark_read');
 
@@ -199,7 +204,8 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->get('get-product-batches/(:num)', 'Inventory::get_product_batches/$1');
 
         $routes->get('get-education/(:num)', 'Inventory::get_education/$1');
-        
+
+        $routes->post('delete-batch/(:num)', 'Inventory::delete_batch/$1');
         $routes->get('delete-product/(:num)', 'Inventory::delete_product/$1');
         $routes->post('save-product', 'Inventory::save_product');
         $routes->post('adjust-stock', 'Inventory::adjust_stock');
@@ -269,7 +275,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
     $routes->group('strategy', ['namespace' => 'App\Controllers\Admin\Strategy'], function($routes) {
         $routes->group('analytics', function($routes) {
             $routes->get('predictive-dss', 'Analytics::dss');
-            $routes->get('get-forecast/(:num)', 'Analytics::get_forecast/$1');
+            $routes->get('get-forecast/(:any)', 'Analytics::get_forecast/$1');
 
             $routes->get('get-supplier-report', 'Analytics::get_supplier_report');
             $routes->get('get-low-performing-report', 'Analytics::get_low_performing_report');
@@ -281,11 +287,16 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
             $routes->get('get-movement-details/(:num)', 'Analytics::get_movement_details/$1');
         });
 
+        $routes->get('compliance/export-sales-journal', 'Compliance::export_sales_journal_pdf');
+        $routes->get('compliance/export-purchase-journal', 'Compliance::export_purchase_journal_pdf');
+        $routes->get('compliance/export-vat-sales-book', 'Compliance::export_vat_sales_book_pdf');
+        $routes->get('compliance/export-2550q', 'Compliance::export_2550q');
+        $routes->get('compliance/export-client-journal', 'Compliance::export_client_journal_pdf');
+
         $routes->get('compliance', 'Compliance::bir');
         $routes->get('compliance/get-journal/(:any)', 'Compliance::get_journal/$1');
         $routes->get('compliance/export-2550m', 'Compliance::export_2550m');
-        $routes->get('compliance/get-vat-sales-book', 'Strategy\Compliance::get_vat_sales_book');
-        $routes->get('compliance/get-cash-receipts', 'Strategy\Compliance::get_cash_receipts_journal');
+        $routes->get('compliance/get-vat-sales-book', 'Compliance::get_vat_sales_book');
 
     });
 
@@ -299,6 +310,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->get('alerts/resolve/(:num)', 'Alerts::resolve/$1');
         $routes->get('alerts/header-notifications', 'Alerts::header_notifications');
         $routes->get('alerts/check-stockout', 'Alerts::check_stockout_events');
+        $routes->post('admin/management/alerts/resolve', 'Admin\Management\Alerts::resolve');
 
         // Bulletin
         $routes->get('bulletin-board', 'Bulletin::index');
@@ -351,6 +363,11 @@ $routes->group('staff', ['namespace' => 'App\Controllers\Staff', 'filter' => 'au
 
     $routes->get('main/my-profile/get', 'Main\ProfileController::get_my_profile');
     $routes->post('main/my-profile/update', 'Main\ProfileController::update_my_profile');
+
+    $routes->get('operations/po-history', 'Operations\PoHistory::index');
+    $routes->get('operations/po-history/details/(:num)', 'Operations\PoHistory::get_details/$1');
+
+    $routes->post('operations/quick-lookup/search', 'Operations\QuickLookup::search');
 
     // OPERATIONS Folder
     $routes->group('inventory', ['namespace' => 'App\Controllers\Staff\Inventory'], function($routes) {

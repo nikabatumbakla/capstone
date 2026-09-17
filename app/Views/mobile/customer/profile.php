@@ -9,8 +9,6 @@
     <small class="text-muted"><?= esc($address) ?></small>
 </div>
 
-<?php if(session()->getFlashdata('success')): ?><div class="alert alert-success small"><?= session()->getFlashdata('success') ?></div><?php endif; ?>
-<?php if(session()->getFlashdata('error')): ?><div class="alert alert-danger small"><?= session()->getFlashdata('error') ?></div><?php endif; ?>
 
 <div class="m-card text-center">
     <p class="fw-bold mb-2" style="font-size:12px;">Rate Robin Rose Trading</p>

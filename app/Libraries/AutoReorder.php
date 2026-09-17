@@ -4,15 +4,29 @@ namespace App\Libraries;
 
 class AutoReorder
 {
-    // Fires automatically whenever a product's stock changes, from ANY controller.
-    // Creates exactly ONE auto-generated PO for ONE product — never bundled — for admin to approve.
     public static function check($productId)
     {
         $db = \Config\Database::connect();
 
         $product = $db->table('products')->where('product_id', $productId)->get()->getRow();
-        if (!$product || !$product->supplier_id) {
-            return; // cannot reorder a product with no supplier assigned
+        if (!$product) {
+            return;
+        }
+
+        // FIXED: products.supplier_id is a legacy column that's frequently null under
+        // the current model — the real, current supplier relationship lives in
+        // supplier_product_catalog. Picks the fastest available supplier for this
+        // product, same convention used in the DSS forecast's lead-time lookup.
+        $catalogEntry = $db->table('supplier_product_catalog as spc')
+            ->select('spc.supplier_id, spc.unit_cost')
+            ->join('suppliers as s', 's.supplier_id = spc.supplier_id')
+            ->where('spc.product_id', $productId)
+            ->orderBy('s.lead_time_days', 'ASC')
+            ->limit(1)
+            ->get()->getRow();
+
+        if (!$catalogEntry) {
+            return; // cannot reorder a product with no supplier catalog entry
         }
 
         $batch = $db->table('inventory_batches')
@@ -34,17 +48,12 @@ class AutoReorder
             return; // don't duplicate an already-pending auto reorder
         }
 
-        $supplier = $db->table('suppliers')->where('supplier_id', $product->supplier_id)->get()->getRow();
+        $supplier = $db->table('suppliers')->where('supplier_id', $catalogEntry->supplier_id)->get()->getRow();
         if (!$supplier) {
             return;
         }
 
-        $catalog = $db->table('supplier_product_catalog')
-            ->where('supplier_id', $product->supplier_id)
-            ->where('product_id', $productId)
-            ->get()->getRow();
-        $unitCost = $catalog ? $catalog->unit_cost : ($batch->cost_price ?: 0);
-
+        $unitCost = $catalogEntry->unit_cost ?: ($batch->cost_price ?: 0);
         $suggestedQty = max(1, ($batch->reorder_level * 2) - $batch->quantity_avail);
 
         $leadDays = (int) ($supplier->lead_time_days ?: 7);
@@ -71,24 +80,21 @@ class AutoReorder
 
         $totalStock = $db->table('inventory_batches')->selectSum('quantity_avail')->where('product_id', $productId)->get()->getRow()->quantity_avail ?? 0;
 
-    if ($totalStock <= 0) {
-        $product = $db->table('products')->where('product_id', $productId)->get()->getRow();
-        $pendingPo = $db->table('purchase_order_items as poi')
-            ->select('po.po_id, po.po_number, po.status')
-            ->join('purchase_orders as po', 'po.po_id = poi.po_id')
-            ->where('poi.product_id', $productId)
-            ->whereIn('po.status', ['pending_approval', 'approved', 'sent', 'acknowledged', 'in_transit'])
-            ->orderBy('po.created_at', 'DESC')->get()->getRow();
+        if ($totalStock <= 0) {
+            $pendingPo = $db->table('purchase_order_items as poi')
+                ->select('po.po_id, po.po_number, po.status')
+                ->join('purchase_orders as po', 'po.po_id = poi.po_id')
+                ->where('poi.product_id', $productId)
+                ->whereIn('po.status', ['pending_approval', 'approved', 'sent', 'acknowledged', 'in_transit'])
+                ->orderBy('po.created_at', 'DESC')->get()->getRow();
 
-        // A short-lived flag row admin's dashboard polls for — auto-expires by simply
-        // being marked seen once shown, so it doesn't nag on every page load forever.
-        $db->table('stockout_events')->insert([
-            'product_id'  => $productId,
-            'product_name'=> $product->name ?? 'Unknown product',
-            'po_id'       => $pendingPo->po_id ?? null,
-            'po_number'   => $pendingPo->po_number ?? null,
-            'is_seen'     => 0,
-        ]);
-    }
+            $db->table('stockout_events')->insert([
+                'product_id'   => $productId,
+                'product_name' => $product->name ?? 'Unknown product',
+                'po_id'        => $pendingPo->po_id ?? null,
+                'po_number'    => $pendingPo->po_number ?? null,
+                'is_seen'      => 0,
+            ]);
+        }
     }
 }

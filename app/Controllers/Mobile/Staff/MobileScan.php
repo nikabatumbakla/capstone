@@ -77,22 +77,36 @@ class MobileScan extends BaseController
         (int) $this->request->getPost('qty'),
         session()->get('user_id')
     );
-    return redirect()->to('m/staff/scan')->with($result['success'] ? 'success' : 'error', $result['message']);
+    return $this->response->setJSON($result);
 }
 
-    public function submit_grr()
-    {
-        $this->scanModel->processGrrScan(
-            (int) $this->request->getPost('po_id'),
-            (int) $this->request->getPost('product_id'),
-            (int) $this->request->getPost('qty'),
-            session()->get('user_id')
-        );
-        return redirect()->to('m/staff/scan')->with('success', 'GRR item recorded.');
-    }
+  public function submit_grr()
+{
+    $result = $this->scanModel->processGrrScan(
+        (int) $this->request->getPost('po_id'),
+        (int) $this->request->getPost('product_id'),
+        (int) $this->request->getPost('qty'),
+        $this->request->getPost('condition') ?: 'good',
+        (int) ($this->request->getPost('qty_rejected') ?? 0),
+        trim((string) $this->request->getPost('notes')) ?: null,
+        session()->get('user_id')
+    );
+    return $this->response->setJSON($result);
+}
 
     public function get_so_items($orderId)
 {
     return $this->response->setJSON($this->scanModel->getSoItems((int) $orderId));
 }
+
+public function update_so_status()
+{
+    $result = $this->scanModel->updateSoStatus(
+        (int) $this->request->getPost('order_id'),
+        session()->get('user_id')
+    );
+    return $this->response->setJSON($result);
+}
+
+
 }

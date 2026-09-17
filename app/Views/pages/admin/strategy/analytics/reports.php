@@ -65,9 +65,9 @@
                         <h6 class="fw-bold mb-1" style="font-size:12px;"><?= $r[1] ?></h6>
                         <p class="text-muted mb-3" style="font-size:10px;"><?= $r[2] ?></p>
                         <div class="d-flex gap-2">
-                            <a href="<?= base_url('admin/strategy/analytics/export/'.$r[0].'/pdf') ?>" target="_blank" class="btn btn-dark flex-grow-1 py-1 rounded-pill"><i class="fas fa-file-pdf me-1"></i> PDF</a>
-                            <a href="<?= base_url('admin/strategy/analytics/export/'.$r[0].'/csv') ?>" class="btn btn-outline-dark flex-grow-1 py-1 rounded-pill"><i class="fas fa-file-csv me-1"></i> CSV</a>
-                        </div>
+    <a href="<?= base_url('admin/strategy/analytics/export/'.$r[0].'/pdf') ?>" target="_blank" class="btn btn-dark flex-grow-1 py-1 rounded-pill"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+    <a href="<?= base_url('admin/strategy/analytics/export/'.$r[0].'/excel') ?>" class="btn btn-outline-dark flex-grow-1 py-1 rounded-pill"><i class="fas fa-file-excel me-1"></i> Excel</a>
+</div>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -85,7 +85,7 @@
                             <option value="adjustment" <?= $movement_filter=='adjustment'?'selected':'' ?>>Adjustment</option>
                             <option value="return_inbound" <?= $movement_filter=='return_inbound'?'selected':'' ?>>Return (Inbound)</option>
                         </select>
-                        <input type="text" name="search" id="liveSearch" class="form-control form-control-sm rounded-pill" placeholder="Search product/SKU..." style="width:180px;" value="<?= esc($search) ?>">
+                        <input type="text" name="search" id="liveSearch" class="form-control form-control-sm rounded-pill" placeholder="Search product/barcode..." style="width:180px;" value="<?= esc($search) ?>">
                     </form>
                 </div>
 
@@ -100,7 +100,7 @@
                             <?php else: foreach($reports_data as $row): ?>
                             <tr>
                                 <td class="ps-4 text-muted"><?= date('M d, h:i A', strtotime($row['moved_at'])) ?></td>
-                                <td><span class="fw-bold"><?= esc($row['pname']) ?></span><br><small class="text-muted"><?= esc($row['sku']) ?></small></td>
+                                <td><span class="fw-bold"><?= esc($row['pname']) ?></span><br><small class="text-muted"><?= esc($row['barcode_value']) ?></small></td>
                                 <td>
                                     <?php $badgeMap = ['inbound'=>'bg-success','outbound'=>'bg-secondary','pos_sale'=>'bg-primary','adjustment'=>'bg-warning text-dark','return_inbound'=>'bg-info text-dark']; ?>
                                     <span class="badge <?= $badgeMap[$row['movement_type']] ?? 'bg-light text-dark border' ?> px-3"><?= strtoupper(str_replace('_',' ',$row['movement_type'])) ?></span>

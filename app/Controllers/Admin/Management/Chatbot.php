@@ -15,15 +15,14 @@ class Chatbot extends BaseController
     }
 
     public function index()
-{
-    $data['count_queries'] = $this->chatbotModel->getCounts()['queries'];
-    $data['count_escalations'] = $this->chatbotModel->getCounts()['escalations'];
-
-    $data['title'] = "ChatBot Intelligence";
-    $data['fullname'] = session()->get('full_name');
-    $data['page_name'] = "chatbot";
-    return view('pages/admin/management/chatbot', $data);
-}
+    {
+        $data['count_queries'] = $this->chatbotModel->getCounts()['queries'];
+        $data['count_escalations'] = $this->chatbotModel->getCounts()['escalations'];
+        $data['title'] = "ChatBot Intelligence";
+        $data['fullname'] = session()->get('full_name');
+        $data['page_name'] = "chatbot";
+        return view('pages/admin/management/chatbot', $data);
+    }
 
     public function save_intent()
     {
@@ -35,10 +34,10 @@ class Chatbot extends BaseController
         }
 
         $payload = [
-            'intent_name'        => $name,
-            'keywords'           => $this->request->getPost('keywords'),
-            'response_template'  => $this->request->getPost('response'),
-            'is_active'          => $this->request->getPost('is_active') ? 1 : 0,
+            'intent_name'       => $name,
+            'keywords'          => $this->request->getPost('keywords'),
+            'response_template' => $this->request->getPost('response'),
+            'is_active'         => $this->request->getPost('is_active') ? 1 : 0,
         ];
 
         $this->chatbotModel->saveIntent($payload, $id ? (int) $id : null);
@@ -60,47 +59,43 @@ class Chatbot extends BaseController
 
     public function get_escalation($id)
     {
-        $row = $this->chatbotModel->getEscalationDetails((int) $id);
+        $row = $this->chatbotModel->getConversationDetails((int) $id);
         if (!$row) return $this->response->setStatusCode(404)->setJSON(['error' => 'Not found']);
         return $this->response->setJSON($row);
     }
 
     public function reply_escalation()
-    {
-        $id = (int) $this->request->getPost('escalation_id');
-        $message = trim((string) $this->request->getPost('message'));
-        if ($message === '') {
-            return $this->response->setStatusCode(422)->setJSON(['error' => 'Message cannot be empty.']);
-        }
+{
+    $id = (int) $this->request->getPost('escalation_id');
+    $message = trim((string) $this->request->getPost('message'));
+    if ($message === '') return $this->response->setStatusCode(422)->setJSON(['error' => 'Message cannot be empty.']);
 
-        $staffName = session()->get('full_name') ?? 'Staff';
-        $this->chatbotModel->appendStaffReply($id, $staffName, $message);
-        $updated = $this->chatbotModel->getEscalationDetails($id);
+    $result = $this->chatbotModel->appendStaffReply($id, session()->get('full_name') ?? 'Staff', $message);
+    if (!$result['success']) return $this->response->setStatusCode(422)->setJSON(['error' => $result['message']]);
 
-        return $this->response->setJSON(['status' => 'success', 'full_chat_history' => $updated->full_chat_history]);
-    }
+    $updated = $this->chatbotModel->getConversationDetails($id);
+    return $this->response->setJSON(['status' => 'success', 'messages' => $updated->messages]);
+}
 
     public function resolve_escalation($id)
     {
-        $this->chatbotModel->resolveEscalation((int) $id);
-        return redirect()->to('admin/management/chatbot')->with('success', 'Escalation marked resolved.');
+        $this->chatbotModel->resolveConversation((int) $id);
+        return redirect()->to('admin/management/chatbot')->with('success', 'Conversation marked resolved.');
     }
 
     public function intents_data()
-{
-    $search = trim((string) ($this->request->getGet('search') ?? ''));
-    $page = (int) ($this->request->getGet('page') ?? 1);
-    $result = $this->chatbotModel->getIntents($search, $page, 10);
-    return $this->response->setJSON($result);
-}
+    {
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        return $this->response->setJSON($this->chatbotModel->getIntents($search, $page, 10));
+    }
 
-public function escalations_data()
-{
-    $status = $this->request->getGet('esc_status') ?: 'open';
-    $page = (int) ($this->request->getGet('page') ?? 1);
-    $result = $this->chatbotModel->getOpenEscalations($status, $page, 10);
-    $result['counts'] = $this->chatbotModel->getCounts();
-    return $this->response->setJSON($result);
-}
-
+    public function escalations_data()
+    {
+        $status = $this->request->getGet('esc_status') ?: 'escalated';
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $result = $this->chatbotModel->getConversations($status, $page, 10);
+        $result['counts'] = $this->chatbotModel->getCounts();
+        return $this->response->setJSON($result);
+    }
 }

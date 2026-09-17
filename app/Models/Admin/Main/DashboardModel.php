@@ -24,7 +24,16 @@ class DashboardModel extends Model
         return [
             'total_sales_today' => $posTotal + $soTotal,
             'active_products'   => $this->db->table('products')->where('is_active', 1)->countAllResults(),
-            'low_stock_count'   => $this->db->table('inventory_batches')->where('quantity_avail <= reorder_level', null, false)->countAllResults(),
+            'low_stock_count' => $this->db->query("
+    SELECT COUNT(*) as cnt FROM (
+        SELECT ib.product_id
+        FROM inventory_batches ib
+        JOIN products p ON p.product_id = ib.product_id
+        WHERE p.is_active = 1
+        GROUP BY ib.product_id
+        HAVING SUM(ib.quantity_avail) <= MAX(ib.reorder_level)
+    ) x
+")->getRow()->cnt,
             'pending_orders'    => $this->db->table('sales_orders')->where('status', 'pending')->countAllResults(),
         ];
     }
@@ -99,9 +108,10 @@ class DashboardModel extends Model
     public function getPendingDeliveries(int $limit = 3): array
 {
     return $this->db->table('sales_orders as so')
-        ->select('so.order_number, ic.organization as client_name, so.status, so.created_at')
-        ->join('institutional_clients as ic', 'ic.client_id = so.client_id')
-        ->whereIn('so.status', ['processing', 'shipped'])
+        ->select("so.order_number, COALESCE(ic.organization, gc.name) as client_name, so.status, so.created_at")
+        ->join('institutional_clients as ic', 'ic.client_id = so.client_id', 'left')
+        ->join('guest_clients as gc', 'gc.guest_client_id = so.guest_client_id', 'left')
+        ->whereIn('so.status', ['pending', 'ready_for_pickup', 'out_for_delivery'])
         ->orderBy('so.created_at', 'ASC')
         ->limit($limit)->get()->getResultArray();
 }

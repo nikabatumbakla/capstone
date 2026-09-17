@@ -27,6 +27,8 @@
     }
 </script>
 
+<?= view('partials/staff/quick_lookup_widget') ?>
+
 <script src="<?= base_url('public/js/shared/auto_refresh.js') ?>"></script>
 
 <script src="<?= base_url('public/js/staff/my_profile.js') ?>"></script>

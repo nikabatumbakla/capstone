@@ -42,30 +42,22 @@ class StaffMobileModel extends Model
             ->limit($limit)->get()->getResultArray();
     }
 
-    public function getMyTasks(int $userId, int $limit = 5): array
+    public function getMyTasks(int $userId, int $limit = 50): array
 {
     return $this->db->table('alerts')
+        ->where('alert_type', 'assigned_task')
         ->where('is_resolved', 0)
         ->groupStart()->where('assigned_to', $userId)->orWhere('assigned_to IS NULL', null, false)->groupEnd()
         ->orderBy('priority', 'DESC')
+        ->orderBy('due_date', 'ASC')
         ->orderBy('created_at', 'DESC')
         ->limit($limit)
         ->get()->getResultArray();
 }
 
-public function getFullAlertsList(int $userId): array
+public function getTaskCounts(int $userId): array
 {
-    return $this->db->table('alerts')
-        ->where('is_resolved', 0)
-        ->groupStart()->where('assigned_to', $userId)->orWhere('assigned_to IS NULL', null, false)->groupEnd()
-        ->orderBy('priority', 'DESC')
-        ->orderBy('created_at', 'DESC')
-        ->get()->getResultArray();
-}
-
-    public function getTaskPageCounts(int $userId): array
-{
-    $base = fn() => $this->db->table('alerts')->where('is_resolved', 0)
+    $base = fn() => $this->db->table('alerts')->where('alert_type', 'assigned_task')->where('is_resolved', 0)
         ->groupStart()->where('assigned_to', $userId)->orWhere('assigned_to IS NULL', null, false)->groupEnd();
     return [
         'pending' => $base()->countAllResults(),
@@ -76,13 +68,37 @@ public function getFullAlertsList(int $userId): array
 public function completeTask(int $alertId, int $userId): bool
 {
     $alert = $this->db->table('alerts')->where('alert_id', $alertId)->get()->getRow();
-    if (!$alert || $alert->alert_type !== 'assigned_task' || (int) $alert->assigned_to !== $userId) {
-        return false;
-    }
+    if (!$alert || $alert->alert_type !== 'assigned_task') return false;
+    // Allow completing an unassigned task (anyone can claim/finish it), or one assigned to you specifically
+    if ($alert->assigned_to !== null && (int) $alert->assigned_to !== $userId) return false;
+
     $this->db->table('alerts')->where('alert_id', $alertId)->update([
         'is_resolved' => 1,
         'resolved_at' => date('Y-m-d H:i:s'),
     ]);
     return true;
 }
+
+public function getSystemAlerts(int $limit = 50): array
+{
+    return $this->db->table('alerts')
+        ->whereIn('alert_type', ['low_stock', 'near_expiry', 'expired', 'po_approval'])
+        ->where('is_resolved', 0)
+        ->orderBy('priority', 'DESC')
+        ->orderBy('created_at', 'DESC')
+        ->limit($limit)
+        ->get()->getResultArray();
+}
+
+public function getProfileStats(int $userId): array
+{
+    $today = date('Y-m-d');
+    return [
+        'scans' => $this->db->table('stock_movements')->where('scanned_by', $userId)->where('DATE(moved_at)', $today)->countAllResults(),
+        'pos'   => $this->db->table('pos_transactions')->where('cashier_id', $userId)->where('DATE(created_at)', $today)->where('status', 'completed')->countAllResults(),
+        'grr'   => $this->db->table('goods_receipts')->where('received_by', $userId)->where('delivery_date', $today)->countAllResults(),
+    ];
+}
+
+
 }

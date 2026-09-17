@@ -38,7 +38,7 @@
 
             <div class="dashboard-banner mb-4 p-3 text-white shadow-sm">
                 <h6 class="fw-bold mb-1"><i class="fas fa-university me-2"></i>BIR Compliance & Tax Reporting</h6>
-                <p class="mb-0 opacity-75" style="font-size: 10px;">Automated Subsidiary Journals • VAT Computation • Form 2550M/Q Data — <?= date('F Y', mktime(0,0,0,$selected_month,1,$selected_year)) ?></p>
+                <p class="mb-0 opacity-75" style="font-size: 10px;">Automated Subsidiary Journals • VAT Computation • Form 2550Q Data — <?= date('F Y', mktime(0,0,0,$selected_month,1,$selected_year)) ?></p>
             </div>
 
             <div class="row g-4 mb-4">
@@ -70,50 +70,63 @@
 
             <div class="row g-4 mb-4">
     <div class="col-lg-3 col-md-6">
-        <div class="custom-table-container h-100 d-flex flex-column">
-            <div class="flex-grow-1">
-                <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-book me-2 text-maroon"></i>Subsidiary Sales Journal</h6>
-                <p class="text-muted mb-0" style="font-size:10px;">Transaction-level sales tracking for the selected month.</p>
-            </div>
-            <button class="btn btn-xs btn-outline-dark rounded-pill mt-3 btn-open-journal" data-type="sales">Open Journal</button>
+    <div class="custom-table-container h-100 d-flex flex-column">
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-book me-2 text-maroon"></i>Subsidiary Sales Journal</h6>
+            <p class="text-muted mb-0" style="font-size:10px;">Date, buyer, taxable sales, VAT output tax, total invoice amount.</p>
         </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="custom-table-container h-100 d-flex flex-column">
-            <div class="flex-grow-1">
-                <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-shopping-bag me-2 text-maroon"></i>Subsidiary Purchase Journal</h6>
-                <p class="text-muted mb-0" style="font-size:10px;">Supplier invoice and input VAT log for the selected month.</p>
-            </div>
-            <button class="btn btn-xs btn-outline-dark rounded-pill mt-3 btn-open-journal" data-type="purchases">Open Journal</button>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="custom-table-container h-100 d-flex flex-column">
-            <div class="flex-grow-1">
-                <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-file-invoice me-2 text-maroon"></i>VAT Sales Book</h6>
-                <p class="text-muted mb-0" style="font-size:10px;">Consolidated monthly VAT sales, full history.</p>
-            </div>
-            <button class="btn btn-xs btn-outline-dark rounded-pill mt-3 btn-open-vat-book">Open Journal</button>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="custom-table-container h-100 d-flex flex-column">
-            <div class="flex-grow-1">
-                <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-cash-register me-2 text-maroon"></i>Cash Receipts Journal</h6>
-                <p class="text-muted mb-0" style="font-size:10px;">Daily Cash and GCash flow for the selected month.</p>
-            </div>
-            <button class="btn btn-xs btn-outline-dark rounded-pill mt-3 btn-open-cash-journal">Open Journal</button>
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-xs btn-outline-dark rounded-pill flex-grow-1 btn-open-journal" data-type="sales">Open Journal</button>
+            <a href="<?= base_url('admin/strategy/compliance/export-sales-journal?year='.$selected_year.'&month='.$selected_month) ?>" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3"><i class="fas fa-file-pdf"></i></a>
         </div>
     </div>
 </div>
+<div class="col-lg-3 col-md-6">
+    <div class="custom-table-container h-100 d-flex flex-column">
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-shopping-bag me-2 text-maroon"></i>Subsidiary Purchase Journal</h6>
+            <p class="text-muted mb-0" style="font-size:10px;">Supplier, invoice no., TIN, VAT purchases and input tax.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-xs btn-outline-dark rounded-pill flex-grow-1 btn-open-journal" data-type="purchases">Open Journal</button>
+            <a href="<?= base_url('admin/strategy/compliance/export-purchase-journal?year='.$selected_year.'&month='.$selected_month) ?>" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3"><i class="fas fa-file-pdf"></i></a>
+        </div>
+    </div>
+</div>
+<div class="col-lg-3 col-md-6">
+    <div class="custom-table-container h-100 d-flex flex-column">
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-user-friends me-2 text-maroon"></i>Subsidiary Client Journal</h6>
+            <p class="text-muted mb-0" style="font-size:10px;">Item-level breakdown of institutional deliveries.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-xs btn-outline-dark rounded-pill flex-grow-1 btn-open-journal" data-type="clients">Open Journal</button>
+            <a href="<?= base_url('admin/strategy/compliance/export-client-journal?year='.$selected_year.'&month='.$selected_month) ?>" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3"><i class="fas fa-file-pdf"></i></a>
+        </div>
+    </div>
+</div>
+<div class="col-lg-3 col-md-6">
+    <div class="custom-table-container h-100 d-flex flex-column">
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1" style="font-size:12px;"><i class="fas fa-file-invoice me-2 text-maroon"></i>VAT Sales Book</h6>
+            <p class="text-muted mb-0" style="font-size:10px;">Consolidated monthly VAT sales, full history.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-xs btn-outline-dark rounded-pill flex-grow-1 btn-open-vat-book">Open Journal</button>
+            <a href="<?= base_url('admin/strategy/compliance/export-vat-sales-book') ?>" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3"><i class="fas fa-file-pdf"></i></a>
+        </div>
+    </div>
+</div>
+</div>
 
             <div class="custom-table-container">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h6 class="fw-bold mb-0" style="font-size:12px;"><i class="fas fa-calculator me-2 text-maroon"></i>Monthly VAT Summary (Last 6 Months)</h6>
-                    <a href="<?= base_url('admin/strategy/compliance/export-2550m?year='.$selected_year.'&month='.$selected_month) ?>" target="_blank" class="btn btn-sm btn-dark rounded-pill px-4">
-                        <i class="fas fa-file-pdf me-2"></i>Export 2550M Data
-                    </a>
-                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h6 class="fw-bold mb-0" style="font-size:12px;"><i class="fas fa-calculator me-2 text-maroon"></i>Quarterly VAT Summary</h6>
+    <?php $currentQuarter = (int) ceil($selected_month / 3); ?>
+    <a href="<?= base_url('admin/strategy/compliance/export-2550q?year='.$selected_year.'&quarter='.$currentQuarter) ?>" target="_blank" class="btn btn-sm btn-dark rounded-pill px-4 text-nowrap">
+        <i class="fas fa-file-pdf me-2"></i>Export BIR Form 2550Q (Q<?= $currentQuarter ?> <?= $selected_year ?>)
+    </a>
+</div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="table-dark">

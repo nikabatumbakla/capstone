@@ -95,7 +95,7 @@
 </div>
 
 <?php if(!empty($announcements)): ?>
-<p class="fw-bold mb-2" style="font-size:12px;">Bulletin Board</p>
+<p class="fw-bold mb-2" style="font-size:12px;">Announcements</p>
 <?php foreach($announcements as $a): ?>
 <div class="m-card">
     <p class="fw-bold mb-1" style="font-size:11px;"><?= esc($a['title']) ?></p>

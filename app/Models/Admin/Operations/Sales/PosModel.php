@@ -42,13 +42,14 @@ class PosModel extends Model
     public function getSellableProducts(): array
 {
     return $this->db->table('products as p')
-        ->select("p.product_id, p.name, p.barcode_value, p.unit, p.category_id, p.is_vat_exempt,
-            ib.batch_id, ib.batch_number, ib.expires_at, ib.quantity_avail, ib.sell_price")
-        ->join('inventory_batches as ib', 'ib.product_id = p.product_id')
+        ->select("p.product_id, p.name, p.barcode_value, p.unit, p.category_id, p.is_vat_exempt, p.brand,
+            (SELECT ib.batch_id FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as batch_id,
+            (SELECT ib.batch_number FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as batch_number,
+            (SELECT ib.expires_at FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as expires_at,
+            (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as sell_price,
+            (SELECT SUM(ib2.quantity_avail) FROM inventory_batches ib2 WHERE ib2.product_id = p.product_id) as quantity_avail")
         ->where('p.is_active', 1)
-        ->where('ib.quantity_avail >', 0)
         ->orderBy('p.name', 'ASC')
-        ->orderBy('ib.expires_at', 'ASC')
         ->get()->getResultArray();
 }
 

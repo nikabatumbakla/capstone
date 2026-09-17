@@ -29,10 +29,19 @@
         <?php endif; ?>
     </td>
     <td class="text-center">
-        <button class="btn btn-xs btn-outline-dark rounded-circle btn-view" data-id="<?= $row['pid'] ?>" title="View" style="width:30px; height:30px;"><i class="fas fa-eye"></i></button>
-        <button class="btn btn-xs btn-outline-secondary rounded-circle btn-edit" data-id="<?= $row['pid'] ?>" title="Edit Info" style="width:30px; height:30px;"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-xs btn-outline-maroon rounded-circle btn-add-stock" data-pid="<?= $row['pid'] ?>" title="Add Stock" style="width:30px; height:30px;"><i class="fas fa-plus"></i></button>
-    </td>
+    <button class="btn btn-xs btn-outline-dark rounded-circle btn-view" data-id="<?= $row['pid'] ?>" title="View" style="width:30px; height:30px;"><i class="fas fa-eye"></i></button>
+    <button class="btn btn-xs btn-outline-secondary rounded-circle btn-edit" data-id="<?= $row['pid'] ?>" title="Edit Info" style="width:30px; height:30px;"><i class="fas fa-edit"></i></button>
+    <button class="btn btn-xs btn-outline-maroon rounded-circle btn-add-stock" data-pid="<?= $row['pid'] ?>" title="Add Stock" style="width:30px; height:30px;"><i class="fas fa-plus"></i></button>
+    <?php if($row['total_stock'] <= 0): ?>
+        <a href="<?= base_url('admin/inventory/delete-product/'.$row['pid']) ?>"
+           class="btn btn-xs btn-outline-danger rounded-circle"
+           title="Delete Product (0 stock)"
+           style="width:30px; height:30px;"
+           onclick="return confirm('This product has zero stock. Delete it permanently? If it has past order history, this will be blocked automatically.')">
+            <i class="fas fa-trash"></i>
+        </a>
+    <?php endif; ?>
+</td>
 </tr>
 <?php endforeach; ?>
 <?php if(empty($inventory)): ?>

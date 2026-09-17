@@ -140,7 +140,7 @@
 </div>
 
 <script>
-    const MOBILE_APP_URL = "<?= base_url('m/') ?>";";
+    const MOBILE_APP_URL = "<?= base_url('m/') ?>";
 </script>
 <script src="<?= base_url('public/js/vendor/qrcode.min.js') ?>"></script>
 <script src="<?= base_url('public/js/staff/dashboard_qr.js') ?>"></script>

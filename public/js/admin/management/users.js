@@ -36,7 +36,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // ============ SEARCH / FILTER ============
     const filterForm = document.getElementById('filterForm');
-    filterForm.querySelector('select[name="role"]').addEventListener('change', () => filterForm.submit());
+    const roleFilterSelect = filterForm.querySelector('select[name="role"]');
+    if (roleFilterSelect) {
+        roleFilterSelect.addEventListener('change', () => filterForm.submit());
+    }
     let typingTimer;
     document.getElementById('userSearch').addEventListener('input', function() {
         clearTimeout(typingTimer);
@@ -74,7 +77,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // ============ NEW ACCOUNT RESET ============
     document.getElementById('btnAddNewUser').addEventListener('click', () => {
         createForm.reset();
-        document.getElementById('form_user_id').value = '';
         mismatchError.style.display = 'none';
         toggleRoleFields();
     });

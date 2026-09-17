@@ -2,7 +2,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let intentPage = 1;
     let intentSearchTerm = '';
     let escPage = 1;
-    let escStatus = 'open';
+    let escStatus = 'escalated';
+    let currentOpenConversationId = null;
 
     function getRoleLabel(role) {
         const roleLabels = { customer: 'Walk-in Customer', institutional_client: 'Institutional Client', supplier: 'Supplier' };
@@ -12,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function escapeHtml(str) {
         const div = document.createElement('div');
-        div.textContent = str;
+        div.textContent = str == null ? '' : str;
         return div.innerHTML;
     }
 
@@ -26,10 +27,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     <tr>
                         <td class="ps-4 fw-bold">${escapeHtml(i.intent_name)}</td>
                         <td><code style="font-size:10px;">${escapeHtml(i.keywords)}</code></td>
-                        <td><small class="text-muted">${escapeHtml(i.response_template.substring(0, 40))}...</small></td>
+                        <td><small class="text-muted">${escapeHtml((i.response_template || '').substring(0, 40))}...</small></td>
                         <td><span class="badge rounded-pill ${i.is_active == 1 ? 'bg-success' : 'bg-secondary'} px-3">${i.is_active == 1 ? 'ACTIVE' : 'DISABLED'}</span></td>
                         <td class="text-center">
-                            <button class="btn btn-xs btn-outline-secondary rounded-pill btn-edit-intent" data-id="${i.intent_id}"><i class="fas fa-edit"></i></button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill btn-edit-intent" data-id="${i.intent_id}"><i class="fas fa-edit"></i></button>
                             <a href="${BASE_URL}/admin/management/chatbot/intent/delete/${i.intent_id}" class="btn btn-xs btn-outline-danger rounded-pill ms-1" onclick="return confirm('Delete this bot logic?')"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>`).join('') : `<tr><td colspan="5" class="text-center py-5 text-muted">No intents match this search.</td></tr>`;
@@ -53,26 +54,26 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 400);
     });
 
-    // ============ ESCALATIONS TABLE ============
+    // ============ ESCALATIONS (CONVERSATIONS) TABLE ============
     function loadEscalations() {
         fetch(`${BASE_URL}/admin/management/chatbot/escalations-data?esc_status=${escStatus}&page=${escPage}`)
             .then(res => res.json())
             .then(result => {
-                const statusLabelMap = { open: 'Awaiting Staff', in_progress: 'In Progress', resolved: 'Resolved' };
-                const statusClassMap = { open: 'bg-danger', in_progress: 'bg-warning text-dark', resolved: 'bg-success' };
+                const statusLabelMap = { escalated: 'Awaiting Staff', in_progress: 'In Progress', resolved: 'Resolved' };
+                const statusClassMap = { escalated: 'bg-danger', in_progress: 'bg-warning text-dark', resolved: 'bg-success' };
 
                 const body = document.getElementById('escalationsTableBody');
                 body.innerHTML = result.data.length ? result.data.map(e => `
                     <tr>
-                        <td class="ps-4">#ESC-${String(e.escalation_id).padStart(4, '0')}</td>
+                        <td class="ps-4">#CONV-${String(e.conversation_id).padStart(4, '0')}</td>
                         <td>
-    <span class="fw-bold">${escapeHtml(e.customer_name || 'Guest User')}</span>
-    ${getRoleLabel(e.customer_role)}
-</td>
-                        <td>${new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td><span class="badge ${statusClassMap[e.status]} px-3">${statusLabelMap[e.status].toUpperCase()}</span></td>
+                            <span class="fw-bold">${escapeHtml(e.customer_name || 'Guest User')}</span>
+                            ${getRoleLabel(e.customer_role)}
+                        </td>
+                        <td>${new Date(e.updated_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td><span class="badge ${statusClassMap[e.status]} px-3">${(statusLabelMap[e.status] || e.status).toUpperCase()}</span></td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-dark rounded-pill px-4 btn-join-chat" data-id="${e.escalation_id}">${e.status === 'resolved' ? 'View' : 'Join Chat'}</button>
+                            <button type="button" class="btn btn-sm btn-dark rounded-pill px-4 btn-join-chat" data-id="${e.conversation_id}">${e.status === 'resolved' ? 'View' : 'Join Chat'}</button>
                         </td>
                     </tr>`).join('') : `<tr><td colspan="5" class="text-center py-5 text-muted">No escalations in this status.</td></tr>`;
 
@@ -160,23 +161,29 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // ============ LIVE CHAT ============
     const chatDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('chatDrawer'));
+    const replyForm = document.getElementById('replyForm');
+    const resolveBtn = document.getElementById('btnResolveEscalation');
 
-    function renderThread(historyText) {
-        const lines = historyText.split('\n');
-        let html = '';
-        lines.forEach(line => {
-            if (line.trim() === '') return;
-            if (line.startsWith('User:')) {
-                html += `<div class="chat-bubble chat-left">${escapeHtml(line.replace('User:', '').trim())}</div>`;
-            } else if (line.startsWith('Bot:')) {
-                html += `<div class="chat-bubble chat-right">${escapeHtml(line.replace('Bot:', '').trim())}</div>`;
-            } else if (line.startsWith('Staff')) {
-                html += `<div class="chat-bubble chat-staff">${escapeHtml(line.replace(/^Staff[^:]*:/, '').trim())}</div>`;
-            }
-        });
+    document.getElementById('chatDrawer').addEventListener('hidden.bs.offcanvas', () => {
+        currentOpenConversationId = null;
+    });
+
+    function renderMessages(messages) {
         const thread = document.getElementById('chatThread');
-        thread.innerHTML = html;
+        thread.innerHTML = (messages || []).map(m => {
+            const cls = m.sender === 'user' ? 'chat-left' : (m.sender === 'staff' ? 'chat-staff' : 'chat-right');
+            const label = m.sender === 'staff' && m.staff_name ? `<div style="font-size:9px; color:#7b1113; font-weight:bold; margin-bottom:2px;">${escapeHtml(m.staff_name)}</div>` : '';
+            return `<div>${label}<div class="chat-bubble ${cls}">${escapeHtml(m.message)}</div></div>`;
+        }).join('');
         thread.scrollTop = thread.scrollHeight;
+    }
+
+    function applyResolvedState(status) {
+        const isResolved = status === 'resolved';
+        replyForm.style.display = isResolved ? 'none' : '';
+        resolveBtn.style.display = isResolved ? 'none' : '';
+        const notice = document.getElementById('resolvedNotice');
+        if (notice) notice.style.display = isResolved ? 'block' : 'none';
     }
 
     function wireJoinChatButtons() {
@@ -184,6 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.addEventListener('click', function() {
                 const id = this.getAttribute('data-id');
                 document.getElementById('chatEscalationId').value = id;
+                currentOpenConversationId = id;
                 document.getElementById('chatThread').innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>`;
                 chatDrawer.show();
 
@@ -192,14 +200,15 @@ document.addEventListener("DOMContentLoaded", function() {
                     .then(data => {
                         if (data.error) { document.getElementById('chatThread').innerHTML = `<p class="text-danger text-center p-5">${data.error}</p>`; return; }
                         document.getElementById('chatUser').innerHTML = `${escapeHtml(data.customer || 'Guest User')} ${getRoleLabel(data.customer_role)}`;
-                        renderThread(data.full_chat_history);
+                        renderMessages(data.messages);
+                        applyResolvedState(data.status);
                     })
                     .catch(err => console.error(err));
             });
         });
     }
 
-    document.getElementById('replyForm').addEventListener('submit', function(e) {
+    replyForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const escalationId = document.getElementById('chatEscalationId').value;
         const messageInput = document.getElementById('replyMessage');
@@ -213,14 +222,18 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(res => res.json())
             .then(data => {
-                if (data.error) { alert(data.error); return; }
-                renderThread(data.full_chat_history);
+                if (data.error) {
+                    alert(data.error);
+                    if (data.error.toLowerCase().includes('resolved')) applyResolvedState('resolved');
+                    return;
+                }
+                renderMessages(data.messages);
                 messageInput.value = '';
             })
             .catch(err => console.error(err));
     });
 
-    document.getElementById('btnResolveEscalation').addEventListener('click', function() {
+    resolveBtn.addEventListener('click', function() {
         const escalationId = document.getElementById('chatEscalationId').value;
         if (!escalationId) return;
         if (!confirm('Mark this escalation as resolved?')) return;
@@ -233,6 +246,22 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // ============ INITIAL LOAD ============
-    loadIntents();
-    loadEscalations();
+    setInterval(() => {
+        loadIntents();
+        loadEscalations();
+    }, 15000);
+
+    setInterval(() => {
+        if (!currentOpenConversationId) return;
+        fetch(`${BASE_URL}/admin/management/chatbot/escalation/details/${currentOpenConversationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return;
+                renderMessages(data.messages);
+                applyResolvedState(data.status);
+            })
+            .catch(() => {});
+    }, 5000);
+
+
 });

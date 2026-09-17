@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     content.innerHTML = `
                         <div class="p-4">
                             <div class="row g-3">
-                                <div class="col-12"><label class="info-label">Product</label><p class="info-value">${data.pname} (${data.sku || '—'})</p></div>
+                                <div class="col-12"><label class="info-label">Product</label><p class="info-value">${data.pname} (${data.barcode_value || '—'})</p></div>
                                 <div class="col-6"><label class="info-label">Batch</label><p class="info-value">${data.batch_number || 'N/A'}</p></div>
                                 <div class="col-6"><label class="info-label">Barcode</label><p class="info-value">${data.barcode_value || 'N/A'}</p></div>
                                 <div class="col-6"><label class="info-label">Movement Type</label><p class="info-value">${data.movement_type.toUpperCase()}</p></div>
@@ -36,8 +36,10 @@ document.addEventListener("DOMContentLoaded", function() {
                             </div>
                         </div>`;
                 })
-                .catch(err => { content.innerHTML = `<div class="text-danger text-center p-5">Failed to load details.</div>`;
-                    console.error(err); });
+                .catch(err => {
+                    content.innerHTML = `<div class="text-danger text-center p-5">Failed to load details.</div>`;
+                    console.error(err);
+                });
         });
     });
 });

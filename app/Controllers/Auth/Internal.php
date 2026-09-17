@@ -37,9 +37,9 @@ class Internal extends BaseController
         // Credentials are valid — but if they haven't agreed to the CURRENT terms version,
         // require it now before granting a session, regardless of whether the checkbox was ticked.
         if (!TermsAgreementService::hasAgreedToCurrent($user)) {
-            if (!$this->request->getVar('agree_terms')) {
-                return redirect()->back()->withInput()->with('error', 'You must agree to the Terms & Conditions and Privacy Policy to continue.')->with('require_terms', true);
-            }
+            if (!$this->request->getPost('agree_terms')) {
+    return redirect()->back()->withInput()->with('error', 'You must agree to the Terms & Conditions to log in.');
+}
             TermsAgreementService::recordAgreement(
                 $user['user_id'],
                 $this->request->getIPAddress(),

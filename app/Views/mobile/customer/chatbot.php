@@ -22,6 +22,5 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-
 <script src="<?= base_url('public/js/mobile/customer_chatbot.js') ?>"></script>
 <?= $this->endSection() ?>

@@ -271,16 +271,44 @@ public function getProductBatches(int $productId)
         return $product;
     }
 
-    public function deleteProduct(int $productId): bool
-    {
-        $this->db->transStart();
+public function deleteProduct(int $productId): array
+{
+    $this->db->transStart();
+    try {
         $this->db->table('inventory_batches')->where('product_id', $productId)->delete();
         $this->db->table('stock_adjustment_logs')->where('product_id', $productId)->delete();
         $this->db->table('supplier_product_catalog')->where('product_id', $productId)->delete();
+        $this->db->table('product_images')->where('product_id', $productId)->delete();
+        $this->db->table('product_info_content')->where('product_id', $productId)->delete();
         $this->db->table('products')->where('product_id', $productId)->delete();
         $this->db->transComplete();
-        return $this->db->transStatus() !== false;
+    } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+        $this->db->transRollback();
+        return ['success' => false, 'message' => 'Cannot delete — this product has existing order or transaction history.'];
     }
+
+    if ($this->db->transStatus() === false) {
+        return ['success' => false, 'message' => 'Could not delete product due to an unexpected error.'];
+    }
+    return ['success' => true, 'message' => 'Product deleted.'];
+}
+
+public function deleteBatch(int $batchId): array
+{
+    $this->db->transStart();
+    try {
+        $this->db->table('inventory_batches')->where('batch_id', $batchId)->delete();
+        $this->db->transComplete();
+    } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+        $this->db->transRollback();
+        return ['success' => false, 'message' => 'Cannot delete — this batch has existing sale or movement history.'];
+    }
+
+    if ($this->db->transStatus() === false) {
+        return ['success' => false, 'message' => 'Could not delete batch due to an unexpected error.'];
+    }
+    return ['success' => true, 'message' => 'Batch deleted.'];
+}
 
     public function updateProductInfo(int $productId, array $post, ?string $barcode): ?string
 {

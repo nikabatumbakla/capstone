@@ -11,5 +11,9 @@
     <link rel="stylesheet" href="<?= base_url('public/css/admin/procurement.css') ?>">
     <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
     <link rel="stylesheet" href="<?= base_url('public/css/admin/management.css') ?>">
+    <script>
+       const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
+       const CSRF_HASH = "<?= csrf_hash() ?>";
+   </script>
 </head>
 <body>

@@ -29,22 +29,36 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // ============ RESOLVE WITH NOTE ============
+    // ============ RESOLVE / COMPLETE WITH NOTE ============
     const resolveDrawer = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('resolveDrawer'));
+    const resolveTitle = document.getElementById('resolveDrawerTitle');
     const resolveNote = document.getElementById('resolveNote');
+    const btnConfirmResolve = document.getElementById('btnConfirmResolve');
     let pendingResolveId = null;
 
     document.querySelectorAll('.btn-resolve').forEach(btn => {
         btn.addEventListener('click', function() {
             pendingResolveId = this.getAttribute('data-id');
+            const label = this.getAttribute('data-label') || 'Resolve';
+            resolveTitle.textContent = label === 'Complete' ? 'Complete Task' : 'Resolve Alert';
+            btnConfirmResolve.innerHTML = `<i class="fas fa-check me-2"></i>Confirm ${label}`;
             resolveNote.value = '';
             resolveDrawer.show();
         });
     });
 
-    document.getElementById('btnConfirmResolve').addEventListener('click', function() {
+    btnConfirmResolve.addEventListener('click', function() {
         if (!pendingResolveId) return;
-        const note = encodeURIComponent(resolveNote.value.trim());
-        window.location.href = `${BASE_URL}/admin/management/alerts/resolve/${pendingResolveId}?note=${note}`;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `${BASE_URL}/admin/management/alerts/resolve`;
+        form.innerHTML = `
+            <input type="hidden" name="${CSRF_TOKEN_NAME}" value="${CSRF_HASH}">
+            <input type="hidden" name="alert_id" value="${pendingResolveId}">
+            <input type="hidden" name="note" value="${resolveNote.value.trim().replace(/"/g, '&quot;')}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
     });
 });

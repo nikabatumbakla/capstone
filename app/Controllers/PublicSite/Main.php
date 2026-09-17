@@ -15,14 +15,15 @@ class Main extends BaseController
     }
 
     public function index()
-    {
-        $data['categories'] = $this->siteModel->getCategories();
-        $data['featured'] = $this->siteModel->getFeaturedProducts(6);
+{
+    $data['categories'] = $this->siteModel->getCategories();
+    $data['featured'] = $this->siteModel->getFeaturedProducts(6);
+    $data['recent_announcements'] = $this->siteModel->getRecentAnnouncements(3);
 
-        $data['title'] = 'Robin Rose Trading – Your Ultimate Healthcare Partner';
-        $data['active_nav'] = 'home';
-        return view('public_site/pages/home', $data);
-    }
+    $data['title'] = 'Robin Rose Trading – Your Ultimate Healthcare Partner';
+    $data['active_nav'] = 'home';
+    return view('public_site/pages/home', $data);
+}
 
     public function about()
     {
@@ -32,24 +33,24 @@ class Main extends BaseController
     }
 
     public function products()
-    {
-        $catSlug = $this->request->getGet('cat') ?: '';
-        $search = trim((string) ($this->request->getGet('search') ?? ''));
-        $page = (int) ($this->request->getGet('page') ?? 1);
+{
+    $catId = $this->request->getGet('cat') ?: '';
+    $search = trim((string) ($this->request->getGet('search') ?? ''));
+    $page = (int) ($this->request->getGet('page') ?? 1);
 
-        $result = $this->siteModel->getProducts($catSlug, $search, $page, 12);
+    $result = $this->siteModel->getProducts($catId, $search, $page, 12);
 
-        $data['categories'] = $this->siteModel->getCategories();
-        $data['products'] = $result['data'];
-        $data['total_pages'] = $result['total_pages'];
-        $data['current_page'] = $page;
-        $data['search'] = $search;
+    $data['categories'] = $this->siteModel->getCategories();
+    $data['products'] = $result['data'];
+    $data['total_pages'] = $result['total_pages'];
+    $data['current_page'] = $page;
+    $data['search'] = $search;
 
-        $data['title'] = 'Product Catalog - Robin Rose Trading';
-        $data['active_nav'] = 'products';
-        $data['active_cat'] = $catSlug ?: 'all';
-        return view('public_site/pages/products', $data);
-    }
+    $data['title'] = 'Product Catalog - Robin Rose Trading';
+    $data['active_nav'] = 'products';
+    $data['active_cat'] = $catId ?: 'all';
+    return view('public_site/pages/products', $data);
+}
 
     public function services()
     {

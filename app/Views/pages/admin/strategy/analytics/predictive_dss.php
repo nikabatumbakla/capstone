@@ -1,6 +1,5 @@
 <?= view('partials/admin/head') ?>
 <link rel="stylesheet" href="<?= base_url('public/css/admin/inventory.css') ?>">
-<script>const BASE_URL = "<?= base_url() ?>";</script>
 
 <div class="wrapper">
     <?= view('partials/admin/sidebar') ?>
@@ -66,51 +65,89 @@
             </div>
 
             <!-- LINEAR REGRESSION: MONTHLY SALES FORECAST -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-8">
-                    <div class="custom-table-container">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h6 class="fw-bold mb-0" style="font-size:14px;"><i class="fas fa-chart-line me-2 text-maroon"></i>Monthly Sales Forecast (Linear Regression)</h6>
-                            <div class="d-flex gap-2 flex-wrap">
-    <select id="categorySelect" class="form-select form-select-sm" style="font-size:11px; width:150px;">
-        <option value="">All Categories</option>
-        <?php foreach($categories_list as $c): ?><option value="<?= $c['category_id'] ?>"><?= esc($c['name']) ?></option><?php endforeach; ?>
-    </select>
-    <select id="productSearch" class="form-select form-select-sm" style="font-size:11px; width:170px;" disabled>
-        <option value="">Select category first</option>
-    </select>
-    <input type="month" id="fromMonth" class="form-control form-control-sm" style="font-size:11px; width:120px;">
-    <input type="month" id="toMonth" class="form-control form-control-sm" style="font-size:11px; width:120px;">
-    <button class="btn btn-sm btn-maroon rounded-pill px-4" id="btnRunForecast">Run Forecast</button>
-</div>
-                        </div>
-                        <p class="text-muted mb-3" style="font-size:10px;">Trend is modeled over the last 12 months. Reorder math (ROP/EOQ) still uses a daily usage rate for precision — shown on the right.</p>
-                        <canvas id="lrChart" height="130"></canvas>
-                        <div class="row g-2 mt-3" id="regressionEquationBox" style="display:none; font-size:10px;">
-                            <div class="col-12 p-2 bg-light rounded-3 text-muted">
-                                Model: <b>y = <span id="eqIntercept"></span> + <span id="eqSlope"></span>x</b> &nbsp;|&nbsp;
-                                Trend: <b id="eqTrend"></b> &nbsp;|&nbsp; R²: <b id="eqR2"></b>
-                            </div>
-                        </div>
+            <!-- LINEAR REGRESSION: MONTHLY SALES FORECAST -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="custom-table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h6 class="fw-bold mb-0" style="font-size:14px;"><i class="fas fa-chart-line me-2 text-maroon"></i>Monthly Sales Forecast (Linear Regression)</h6>
+                <button type="button" class="btn btn-sm btn-maroon rounded-pill px-4" id="btnRunForecast">Run Forecast</button>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <label class="info-label d-block mb-1">Category</label>
+                    <select id="categorySelect" class="form-select form-select-sm" style="font-size:11px;">
+                        <option value="">All Categories</option>
+                        <?php foreach($categories_list as $c): ?><option value="<?= $c['category_id'] ?>"><?= esc($c['name']) ?></option><?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="info-label d-block mb-1">Product</label>
+                    <select id="productSearch" class="form-select form-select-sm" style="font-size:11px;">
+                        <option value="all" selected>All Products (Combined Trend)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="info-label d-block mb-1">History Window</label>
+                    <div class="input-group input-group-sm">
+                        <input type="month" id="fromMonth" class="form-control" style="font-size:11px;">
+                        <span class="input-group-text" style="font-size:10px;">to</span>
+                        <input type="month" id="toMonth" class="form-control" style="font-size:11px;">
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="custom-table-container h-100">
-                        <h6 class="fw-bold mb-4 border-bottom pb-2" style="font-size:13px;">Forecast Summary</h6>
-                        <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Avg. Monthly Sales</span><b id="avg_monthly">—</b></div>
-                        <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Forecast — Next Month</span><b id="forecast_month">—</b></div>
-                        <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Avg. Daily Usage</span><b id="avg_daily">—</b></div>
-                        <div class="mb-3 d-flex justify-content-between"><span class="text-muted">Model Fit (R²)</span><b id="r2_val">—</b></div>
-                        <div class="p-3 rounded-4 border" id="stockoutBox" style="background:#fdf1f1; border-color:#f1c0c0 !important;">
-                            <p class="mb-0 text-danger fw-bold" style="font-size:10px;">Predicted Stockout Date</p>
-                            <h6 class="fw-bold text-danger mb-0" id="stockout_val">Select a product and run a forecast</h6>
-                        </div>
-                        <button class="btn btn-outline-dark w-100 py-2 mt-3 btn-view-intel" data-type="forecast" disabled>
-                            <i class="fas fa-search-plus me-1"></i> View Full Forecast Report
-                        </button>
-                    </div>
+                <div class="col-md-3">
+                    <label class="info-label d-block mb-1">&nbsp;</label>
+                    <button type="button" class="btn btn-sm btn-outline-dark w-100" id="btnResetWindow" style="font-size:10.5px;">Reset to Last 12 Months</button>
                 </div>
             </div>
+
+            <p class="text-muted mb-1" style="font-size:10px;">Trend is modeled over the selected history window (default: last 12 months). Reorder math (ROP/EOQ) always uses the most recent 30 days of daily usage for precision, regardless of this window.</p>
+            <p class="text-muted mb-3" id="nowShowingLabel" style="font-size:10px; display:none;"><i class="fas fa-info-circle me-1"></i>Showing: <b id="nowShowingText"></b></p>
+
+            <canvas id="lrChart" height="130"></canvas>
+            <div class="d-flex gap-3 mt-2" style="font-size:9px;">
+                <span><span style="display:inline-block; width:12px; height:2px; background:#7b1113; vertical-align:middle;"></span> Actual</span>
+                <span><span style="display:inline-block; width:12px; height:2px; background:#22c55e; border-top:2px dashed #22c55e; vertical-align:middle;"></span> Trend Line</span>
+                <span><span style="display:inline-block; width:12px; height:2px; background:#3b82f6; border-top:2px dashed #3b82f6; vertical-align:middle;"></span> Forecasted (future)</span>
+            </div>
+
+            <div class="row g-2 mt-3" id="regressionEquationBox" style="display:none; font-size:10px;">
+                <div class="col-12 p-2 bg-light rounded-3 text-muted">
+                    Model: <b>y = <span id="eqIntercept"></span> + <span id="eqSlope"></span>x</b> &nbsp;|&nbsp;
+                    Trend: <b id="eqTrend"></b> &nbsp;|&nbsp; R²: <b id="eqR2"></b>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="custom-table-container">
+            <h6 class="fw-bold mb-4 border-bottom pb-2" style="font-size:13px;">Forecast Summary</h6>
+            <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Avg. Monthly Sales</span><b id="avg_monthly">—</b></div>
+            <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Forecast — Next Month</span><b id="forecast_month">—</b></div>
+            <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Avg. Daily Usage</span><b id="avg_daily">—</b></div>
+            <div class="mb-3 d-flex justify-content-between"><span class="text-muted">Model Fit (R²)</span><b id="r2_val">—</b></div>
+            <div class="p-3 rounded-4 border" id="stockoutBox" style="background:#fdf1f1; border-color:#f1c0c0 !important;">
+                <p class="mb-0 text-danger fw-bold" style="font-size:10px;">Predicted Stockout Date</p>
+                <h6 class="fw-bold text-danger mb-0" id="stockout_val">Select a product and run a forecast</h6>
+            </div>
+            <!-- <button type="button" class="btn btn-outline-dark w-100 py-2 mt-3 btn-view-intel" data-type="forecast" disabled>
+                <i class="fas fa-search-plus me-1"></i> View Full Forecast Report
+            </button> -->
+        </div>
+
+        <div class="custom-table-container mt-4" id="forecastMonthsCard" style="display:none;">
+            <h6 class="fw-bold mb-3 border-bottom pb-2" style="font-size:13px;"><i class="fas fa-calendar-plus me-2 text-maroon"></i>Next 3 Months — Projected</h6>
+            <table class="table table-sm mb-0" style="font-size:11px;">
+                <thead><tr><th>Month</th><th class="text-end">Predicted</th></tr></thead>
+                <tbody id="forecastMonthsBody"></tbody>
+            </table>
+            <p class="text-muted mb-0 mt-2" style="font-size:9px;">Model fit (MAE, historical): <b id="mae_val">—</b></p>
+            <p class="text-muted mb-0 mt-1" style="font-size:9px; font-style:italic;">These are projections, not guarantees — actual results may vary. Accuracy will be measurable once real figures for these months are recorded.</p>
+        </div>
+    </div>
+</div>
 
             <!-- ROP/EOQ, MOVING AVERAGE, TRENDS -->
             <div class="row g-4 mb-4">

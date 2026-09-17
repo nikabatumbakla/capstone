@@ -26,17 +26,4 @@ class MobileProduct extends BaseController
         $data['page_name'] = 'browse';
         return view('mobile/customer/product', $data);
     }
-
-    public function submit_review($id)
-    {
-        $rating = (int) $this->request->getPost('rating');
-        $comment = trim((string) $this->request->getPost('comment'));
-
-        if ($rating < 1 || $rating > 5) {
-            return redirect()->back()->with('error', 'Please select a rating.');
-        }
-
-        $this->model->submitReview((int) $id, session()->get('customer_id'), $rating, $comment);
-        return redirect()->to('m/customer/product/'.$id)->with('success', 'Thank you for your review!');
-    }
 }

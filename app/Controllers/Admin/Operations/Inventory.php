@@ -134,13 +134,19 @@ public function get_product_batches($product_id)
     }
 
     public function delete_product($product_id)
-    {
-        $success = $this->stockModel->deleteProduct((int) $product_id);
-        return redirect()->to('admin/inventory/stock-management')->with(
-            $success ? 'success' : 'error',
-            $success ? 'Product deleted.' : 'Could not delete product — it may be linked to existing orders.'
-        );
-    }
+{
+    $result = $this->stockModel->deleteProduct((int) $product_id);
+    return redirect()->to('admin/inventory/stock-management')->with(
+        $result['success'] ? 'success' : 'error',
+        $result['message']
+    );
+}
+
+public function delete_batch($batch_id)
+{
+    $result = $this->stockModel->deleteBatch((int) $batch_id);
+    return $this->response->setJSON($result);
+}
 
     public function update_product_info()
     {

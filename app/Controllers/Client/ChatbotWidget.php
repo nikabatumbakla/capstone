@@ -15,21 +15,21 @@ class ChatbotWidget extends BaseController
     }
 
     public function ask()
-    {
-        $query = trim((string) $this->request->getPost('query'));
-        if ($query === '') return $this->response->setJSON(['response' => null]);
+{
+    $query = trim((string) $this->request->getPost('query'));
+    if ($query === '') return $this->response->setJSON(['response' => null]);
 
-        $response = $this->model->findResponse($query);
-        $this->model->logQuery(session()->get('user_id'), $query, $response);
-
-        return $this->response->setJSON([
-            'response' => $response ?? "I couldn't find an answer for that right away — I've forwarded your question to our support team, and they'll follow up with you shortly.",
-        ]);
-    }
+    $response = $this->model->ask((int) session()->get('user_id'), $query);
+    return $this->response->setJSON(['response' => $response !== '' ? $response : null]);
+}
 
     public function history()
     {
-        $history = $this->model->getHistory(session()->get('user_id'), 20);
-        return $this->response->setJSON($history);
+        return $this->response->setJSON($this->model->getHistory((int) session()->get('user_id')));
+    }
+
+    public function poll_count()
+    {
+        return $this->response->setJSON(['count' => $this->model->getMessageCount((int) session()->get('user_id'))]);
     }
 }

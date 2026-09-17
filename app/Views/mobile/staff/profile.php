@@ -11,12 +11,12 @@
         <?= strtoupper(substr(session()->get('full_name'), 0, 2)) ?>
     </div>
     <h6 class="fw-bold mb-0"><?= esc(session()->get('full_name')) ?></h6>
-    <small class="text-muted">Employee ID: <?= esc($employee_id ?? 'N/A') ?> · <?= esc($position ?? 'Staff') ?></small>
+    <small class="text-muted">Staff</small>
 </div>
 
 <div class="m-card">
     <p class="fw-bold mb-2" style="font-size:11px;"><i class="fas fa-chart-bar me-1"></i> TODAY'S STATS</p>
-    <small class="text-muted">Scans: <?= $stats['scans'] ?? 0 ?> · POS Txns: <?= $stats['pos'] ?? 0 ?> · GRR: <?= $stats['grr'] ?? 0 ?></small>
+    <small class="text-muted">Scans: <?= $stats['scans'] ?> · POS Txns: <?= $stats['pos'] ?> · GRR: <?= $stats['grr'] ?></small>
 </div>
 
 <a href="<?= base_url('m/logout') ?>" class="btn w-100 py-3 rounded-pill fw-bold" style="background:#fdecea; color:#c0392b; border:none;">Logout</a>

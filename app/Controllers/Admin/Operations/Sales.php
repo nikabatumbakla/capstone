@@ -138,6 +138,17 @@ public function orders()
     $db = \Config\Database::connect();
     $request = \Config\Services::request();
 
+    $data['categories'] = $db->table('categories')->orderBy('sort_order', 'ASC')->get()->getResultArray();
+    $data['products'] = $db->table('products as p')
+        ->select("p.product_id, p.name, p.unit, p.category_id, p.is_vat_exempt,
+            (SELECT COALESCE(SUM(quantity_avail),0) FROM inventory_batches WHERE product_id = p.product_id) as total_stock,
+            (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as latest_sell_price")
+        ->where('p.is_active', 1)
+        ->orderBy('p.name', 'ASC')
+        ->get()->getResultArray();
+    $rateRow = $db->table('store_settings')->where('setting_key', 'school_discount_rate')->get()->getRow();
+    $data['school_discount_rate'] = $rateRow ? (float) $rateRow->setting_value : 10;
+
     $search = trim((string) ($request->getGet('search') ?? ''));
     $type   = $request->getGet('type') ?? '';
     $page    = (int) ($request->getGet('page') ?? 1);
@@ -764,6 +775,7 @@ public function get_supplier_return_details($id)
 }
 
 
+
 public function pos()
 {
     $data['categories']  = $this->posModel->getCategories();
@@ -838,8 +850,6 @@ public function process_pos()
         return $this->response->setStatusCode(422)->setJSON(['error' => $e->getMessage()]);
     }
 
-    // Dynamic rate, not hardcoded — keeps server math in sync with whatever
-    // admin has configured in store_settings, same value the client preview uses.
     $vatRate = $this->posModel->getVatRate();
     $totals = $this->posModel->computeTotals($vatableGross, $exemptGross, $discountType, $vatRate);
     $netTotal = $totals['netTotal'];
@@ -852,23 +862,24 @@ public function process_pos()
     }
 
     $header = [
-        'txn_number'           => 'TXN-' . date('Ymd') . '-' . mt_rand(1000, 9999),
-        'cashier_id'           => $session->get('user_id') ?? 1,
-        'customer_name'        => $customerName !== '' ? $customerName : null,
-        'subtotal'             => $totals['subtotal'],
-        'discount'             => $totals['discountAmount'],
-        'discount_type'        => $discountType,
-        'discount_id_number'   => $discountIdNumber !== '' ? $discountIdNumber : null,
-        'discount_holder_name' => $discountHolderName !== '' ? $discountHolderName : null,
-        'vat_amount'           => $totals['vatAmount'],
-        'total'                => $netTotal,
-        'payment_method'       => $paymentMethod,
-        'gcash_ref'            => $paymentMethod === 'gcash' ? $gcashRef : null,
-        'amount_tendered'      => $tendered,
-        'change_due'           => $paymentMethod === 'cash' ? ($tendered - $netTotal) : 0,
-        'or_number'            => 'OR-' . date('Ymd') . '-' . mt_rand(1000, 9999),
-        'status'               => 'completed',
-    ];
+    'txn_number'           => 'TXN-' . date('Ymd') . '-' . mt_rand(1000, 9999),
+    'cashier_id'           => $session->get('user_id') ?? 1,
+    'customer_name'        => $customerName !== '' ? $customerName : null,
+    'subtotal'             => $totals['subtotal'],
+    'discount'             => $totals['discountAmount'],
+    'discount_type'        => $discountType,
+    'discount_id_number'   => $discountIdNumber !== '' ? $discountIdNumber : null,
+    'discount_holder_name' => $discountHolderName !== '' ? $discountHolderName : null,
+    'vat_amount'           => $totals['vatAmount'],
+    'total'                => $netTotal,
+    'payment_method'       => $paymentMethod,
+    'gcash_ref'            => $paymentMethod === 'gcash' ? $gcashRef : null,
+    'amount_tendered'      => $tendered,
+    'change_due'           => $paymentMethod === 'cash' ? ($tendered - $netTotal) : 0,
+    'or_number'            => 'OR-' . date('Ymd') . '-' . mt_rand(1000, 9999),
+    'status'               => 'completed',
+    'created_at'           => date('Y-m-d H:i:s'), // ← add this
+];
 
     try {
         $txnId = $this->posModel->saveTransaction($header, $validatedItems);
@@ -891,7 +902,7 @@ public function process_pos()
         'items'           => $validatedItems,
         'updated_batches' => $updatedBatches,
         'daily'           => $daily,
-        'history'         => $history, // <-- populates Today's Transactions immediately, no poll wait
+        'history'         => $history,
     ]);
 }
 

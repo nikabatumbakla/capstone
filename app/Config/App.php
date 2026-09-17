@@ -16,7 +16,10 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = 'https://aerospace-renewably-wistful.ngrok-free.dev/PharMediSync/';
+   
+public string $baseURL = 'https://aerospace-renewably-wistful.ngrok-free.dev/PharMediSync/';
+# public string $baseURL = 'http://localhost/PharMediSync/';
+    
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.

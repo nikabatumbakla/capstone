@@ -63,26 +63,40 @@ document.addEventListener("DOMContentLoaded", function() {
                     return inCategory && matchesSearch;
                 });
 
-                productGrid.innerHTML = matches.length ? matches.map(p => `
-            <div class="col-6">
-                <button type="button" class="btn btn-outline-dark w-100 h-100 text-start p-2 product-tile" data-batch="${p.batch_id}" style="border-radius:8px;" ${p.quantity_avail <= 0 ? 'disabled' : ''}>
-                    <span class="fw-bold d-block">${p.name}</span>
-                    <span class="d-block" style="color:#888;">Batch ${p.batch_number} • Exp ${p.expires_at || 'N/A'}${p.is_vat_exempt == 1 ? ' • VAT-Exempt' : ''}</span>
-                    <span class="d-flex justify-content-between align-items-center mt-1">
-                        <span class="text-maroon fw-bold">${peso(p.sell_price)}</span>
-                        ${stockBadge(p.quantity_avail)}
-                    </span>
-                </button>
-            </div>
-        `).join('') : `<div class="col-12 empty-state"><i class="fas fa-box-open mb-2" style="font-size:20px;"></i><div>No matching products.</div></div>`;
+                const emptyState = document.getElementById('productGridEmpty');
 
-                productGrid.querySelectorAll('.product-tile:not([disabled])').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const product = products.find(p => p.batch_id == this.getAttribute('data-batch'));
-                        if (product) addToCart(product);
-                    });
-                });
-            }
+                if (!matches.length) {
+                    productGrid.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
+
+                productGrid.innerHTML = matches.map(p => `
+    <div class="col-6">
+        <button type="button" class="btn btn-outline-dark w-100 h-100 product-tile" data-batch="${p.batch_id}" ${p.quantity_avail <= 0 ? 'disabled' : ''}>
+            <span class="prod-name">${p.name}</span>
+            <div class="prod-info">
+                ${p.brand ? `<span>${p.brand}</span>` : ''}
+                <span>Batch ${p.batch_number || 'N/A'}</span>
+                <span>Exp ${p.expires_at || 'N/A'}</span>
+                ${p.is_vat_exempt == 1 ? '<span>VAT-Exempt</span>' : ''}
+            </div>
+            <span class="d-flex justify-content-between align-items-center mt-1">
+                <span class="prod-price">${peso(p.sell_price)}</span>
+                ${stockBadge(p.quantity_avail)}
+            </span>
+        </button>
+    </div>
+`).join('');
+
+    productGrid.querySelectorAll('.product-tile:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const product = products.find(p => p.batch_id == this.getAttribute('data-batch'));
+            if (product) addToCart(product);
+        });
+    });
+}
             categorySelect.addEventListener('change', renderProductGrid);
             searchInput.addEventListener('input', renderProductGrid);
 
@@ -278,74 +292,73 @@ document.addEventListener("DOMContentLoaded", function() {
             // ============ RECEIPT — lengthwise (continuous-roll thermal) layout ============
             function buildReceiptHtml(txn, items, store) {
                 const rows = items.map(i => `
-        <div style="margin-bottom:4px;">
-            <div>${i.name}</div>
-            <div style="display:flex; justify-content:space-between;">
-                <span>${i.qty} x ${peso(i.price)}</span>
-                <span>${peso(i.subtotal)}</span>
-            </div>
-        </div>`).join('');
+            <div style="margin-bottom:4px;">
+                <div>${i.name}</div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>${i.qty} x ${peso(i.price)}</span>
+                    <span>${peso(i.subtotal)}</span>
+                </div>
+            </div>`).join('');
 
                 const isDiscounted = parseFloat(txn.discount) > 0;
-                const vatableSales = parseFloat(txn.total) - parseFloat(txn.vat_amount) - (isDiscounted ? 0 : 0); // vatable portion shown below via subtotal/vat split
 
                 return `
-        <div style="font-family:'Courier New',monospace; padding:10px 8px; width:100%; font-size:11px; line-height:1.35;">
-            <div style="text-align:center;">
-                <h5 style="margin:0; font-size:13px;">${store.store_name || 'Store'}</h5>
-                <p style="margin:0;">${store.store_address || ''}</p>
-                <p style="margin:0;">TIN: ${store.store_tin || 'N/A'}${store.store_vat_status ? ' — ' + store.store_vat_status : ''}</p>
-                ${store.store_phone_1 ? `<p style="margin:0;">Tel: ${store.store_phone_1}</p>` : ''}
-                ${store.store_bir_permit_no ? `<p style="margin:0;">BIR Permit No.: ${store.store_bir_permit_no}</p>` : ''}
-                ${store.store_min ? `<p style="margin:0;">MIN: ${store.store_min}</p>` : ''}
-            </div>
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            <p style="margin:0; text-align:center; font-weight:bold;">OFFICIAL RECEIPT</p>
-            <p style="margin:0;">OR #: ${txn.or_number}<br>
-            Date: ${txn.created_at}<br>
-            Cashier: ${txn.cashier_name || ''}<br>
-            Payment: ${txn.payment_method.toUpperCase()}${txn.gcash_ref ? ' (Ref: ' + txn.gcash_ref + ')' : ''}</p>
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            ${rows}
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            <p style="margin:0;">
-                VATable Sales: ${peso(txn.subtotal)}<br>
-                VAT (12%): ${peso(txn.vat_amount)}<br>
-                ${isDiscounted ? `Less Discount (${(txn.discount_type||'').toUpperCase()}): -${peso(txn.discount)}<br>` : ''}
-                <b>TOTAL AMOUNT DUE: ${peso(txn.total)}</b><br>
-                ${txn.payment_method === 'cash' ? `Tendered: ${peso(txn.amount_tendered)}<br>Change: ${peso(txn.change_due)}<br>` : ''}
-            </p>
-            ${isDiscounted ? `
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            <p style="margin:0;">
-                ID Number: ${txn.discount_id_number || '________________'}<br>
-                Name: ${txn.discount_holder_name || '________________'}<br>
-                Signature: ________________
-            </p>` : ''}
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            <p style="text-align:center; margin:0; font-weight:bold;">THIS SERVES AS YOUR OFFICIAL RECEIPT</p>
-            <p style="text-align:center; margin:0;">Thank you for your purchase!</p>
-        </div>`;
-}
+            <div style="font-family:'Courier New',monospace; padding:10px 8px; width:100%; font-size:11px; line-height:1.35;">
+                <div style="text-align:center;">
+                    <h5 style="margin:0; font-size:13px;">${store.store_name || 'Store'}</h5>
+                    <p style="margin:0;">${store.store_address || ''}</p>
+                    <p style="margin:0;">TIN: ${store.store_tin || 'N/A'}${store.store_vat_status ? ' — ' + store.store_vat_status : ''}</p>
+                    ${store.store_phone_1 ? `<p style="margin:0;">Tel: ${store.store_phone_1}</p>` : ''}
+                    ${store.store_bir_permit_no ? `<p style="margin:0;">BIR Permit No.: ${store.store_bir_permit_no}</p>` : ''}
+                    ${store.store_min ? `<p style="margin:0;">MIN: ${store.store_min}</p>` : ''}
+                </div>
+                <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                <p style="margin:0; text-align:center; font-weight:bold;">OFFICIAL RECEIPT</p>
+                <p style="margin:0;">OR #: ${txn.or_number}<br>
+                Date: ${txn.created_at}<br>
+                Cashier: ${txn.cashier_name || ''}<br>
+                Payment: ${txn.payment_method.toUpperCase()}${txn.gcash_ref ? ' (Ref: ' + txn.gcash_ref + ')' : ''}</p>
+                <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                ${rows}
+                <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                <p style="margin:0;">
+                    VATable Sales: ${peso(txn.subtotal)}<br>
+                    VAT (12%): ${peso(txn.vat_amount)}<br>
+                    ${isDiscounted ? `Less Discount (${(txn.discount_type||'').toUpperCase()}): -${peso(txn.discount)}<br>` : ''}
+                    <b>TOTAL AMOUNT DUE: ${peso(txn.total)}</b><br>
+                    ${txn.payment_method === 'cash' ? `Tendered: ${peso(txn.amount_tendered)}<br>Change: ${peso(txn.change_due)}<br>` : ''}
+                </p>
+                ${isDiscounted ? `
+                <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                <p style="margin:0;">
+                    ID Number: ${txn.discount_id_number || '________________'}<br>
+                    Name: ${txn.discount_holder_name || '________________'}<br>
+                    Signature: ________________
+                </p>` : ''}
+                <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+                <p style="text-align:center; margin:0; font-weight:bold;">THIS SERVES AS YOUR OFFICIAL RECEIPT</p>
+                <p style="text-align:center; margin:0;">Thank you for your purchase!</p>
+            </div>`;
+    }
 
     function printReceipt(txn, items, store) {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>${txn.or_number}</title>
-            <style>
-                @page { size: 80mm auto; margin: 0; }
-                body { margin: 0; }
-            </style>
-        </head>
-        <body>${buildReceiptHtml(txn, items, store)}</body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-}
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>${txn.or_number}</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { margin: 0; }
+                </style>
+            </head>
+            <body>${buildReceiptHtml(txn, items, store)}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }
 
     function reprintReceipt(txnId) {
         fetch(`${BASE_URL}/admin/sales/pos/receipt/${txnId}`)

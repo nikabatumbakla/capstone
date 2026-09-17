@@ -171,15 +171,20 @@ private function escalateOverdueTasks(): void
         ];
     }
 
-    public function getFeed(string $status = 'open', string $type = '', string $priority = '', ?int $assignedTo = null, int $page = 1, int $perPage = 5): array
+    public function getFeed(string $scope, string $status = 'open', string $type = '', string $priority = '', ?int $assignedTo = null, int $page = 1, int $perPage = 10): array
 {
     $offset = ($page - 1) * $perPage;
-    $apply = function ($builder) use ($status, $type, $priority, $assignedTo) {
+    $apply = function ($builder) use ($scope, $status, $type, $priority, $assignedTo) {
+        if ($scope === 'system') {
+            $builder->whereIn('alert_type', self::AUTO_TYPES);
+            if ($type !== '') $builder->where('alert_type', $type);
+        } else {
+            $builder->where('alert_type', 'assigned_task');
+            if ($priority !== '') $builder->where('priority', $priority);
+            if ($assignedTo) $builder->where('assigned_to', $assignedTo);
+        }
         if ($status === 'open') $builder->where('is_resolved', 0);
         if ($status === 'resolved') $builder->where('is_resolved', 1);
-        if ($type !== '') $builder->where('alert_type', $type);
-        if ($priority !== '') $builder->where('priority', $priority);
-        if ($assignedTo) $builder->where('assigned_to', $assignedTo);
         return $builder;
     };
 
@@ -235,13 +240,16 @@ private function escalateOverdueTasks(): void
 {
     $notifications = [];
 
-    $alerts = $this->db->table('alerts')->where('is_resolved', 0)
-        ->orderBy('priority', 'DESC')->orderBy('created_at', 'DESC')->limit($limit)->get()->getResultArray();
+    $alerts = $this->db->table('alerts as a')
+        ->select('a.*, p.name as product_name')
+        ->join('products as p', 'p.product_id = a.product_id', 'left')
+        ->where('a.is_resolved', 0)
+        ->orderBy('a.priority', 'DESC')->orderBy('a.created_at', 'DESC')->limit($limit)->get()->getResultArray();
 
     foreach ($alerts as $a) {
         $link = base_url('admin/management/alerts-tasks');
-        if ($a['alert_type'] === 'low_stock' || $a['alert_type'] === 'expired' || $a['alert_type'] === 'near_expiry') {
-            $link = base_url('admin/inventory/stock?search=' . urlencode($a['message']));
+        if (in_array($a['alert_type'], ['low_stock', 'expired', 'near_expiry']) && !empty($a['product_name'])) {
+            $link = base_url('admin/inventory/stock-management?search=' . urlencode($a['product_name']));
         } elseif ($a['alert_type'] === 'po_approval' && $a['po_id']) {
             $link = base_url('admin/procurement/purchase-orders?highlight=' . $a['po_id']);
         }

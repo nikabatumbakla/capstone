@@ -112,23 +112,10 @@
             <p class="sec-sub">Everything your healthcare facility needs — all in one trusted supplier.</p>
         </div>
         <div class="cats-grid">
-            <?php
-            $categories = [
-                ['icon'=>'fa-stethoscope',   'name'=>'Diagnostic &amp; Monitoring', 'slug'=>'diagnostic'],
-                ['icon'=>'fa-pills',          'name'=>'OTC Medicines',               'slug'=>'otc'],
-                ['icon'=>'fa-lungs',          'name'=>'Respiratory Care',            'slug'=>'respiratory'],
-                ['icon'=>'fa-wheelchair',     'name'=>'Mobility &amp; Rehab',        'slug'=>'mobility'],
-                ['icon'=>'fa-shield-virus',   'name'=>'PPE &amp; Infection Control', 'slug'=>'ppe'],
-                ['icon'=>'fa-hard-hat',       'name'=>'Safety Equipment',            'slug'=>'safety'],
-                ['icon'=>'fa-kit-medical',    'name'=>'Wound Care &amp; Emergency',  'slug'=>'wound'],
-                ['icon'=>'fa-droplet',        'name'=>'Incontinence Care',           'slug'=>'incontinence'],
-                ['icon'=>'fa-graduation-cap', 'name'=>'Educational &amp; Specialty', 'slug'=>'educational'],
-                ['icon'=>'fa-bag-shopping',   'name'=>'General Merchandise',         'slug'=>'general'],
-            ];
-            foreach ($categories as $cat): ?>
-            <a href="<?= base_url('products?cat=' . $cat['slug']) ?>" class="cat-card reveal">
-                <div class="cat-ico"><i class="fa <?= $cat['icon'] ?>"></i></div>
-                <div class="cat-name"><?= $cat['name'] ?></div>
+            <?php foreach ($categories as $cat): ?>
+            <a href="<?= base_url('products?cat=' . $cat['category_id']) ?>" class="cat-card reveal">
+                <div class="cat-ico"><i class="fa fa-box"></i></div>
+                <div class="cat-name"><?= esc($cat['name']) ?></div>
             </a>
             <?php endforeach; ?>
         </div>
@@ -144,39 +131,28 @@
             <p class="sec-sub">Top-selling items trusted by healthcare professionals across the Philippines.</p>
         </div>
         <div class="prod-grid">
-            <?php
-            $featured = [
-                ['sku'=>'RRT-DBP-001','name'=>'Digital BP Monitor',         'desc'=>'Automatic upper arm monitor, irregular heartbeat detection. FDA approved.','price'=>'₱1,850',      'stock'=>true, 'badge'=>'Best Seller'],
-                ['sku'=>'RRT-OXI-003','name'=>'Pulse Oximeter',             'desc'=>'Fingertip SpO2 and pulse rate monitor with large LED display.',             'price'=>'₱650',        'stock'=>true, 'badge'=>null],
-                ['sku'=>'RRT-PPE-012','name'=>'Surgical Face Mask (50pcs)', 'desc'=>'3-ply disposable surgical masks, BFE ≥95%, comfortable ear-loop design.',   'price'=>'₱185',        'stock'=>true, 'badge'=>'Hot'],
-                ['sku'=>'RRT-MOB-007','name'=>'Folding Wheelchair (Adult)', 'desc'=>'Lightweight aluminum frame, padded seat, foldable for easy transport.',      'price'=>'Request Quote','stock'=>true, 'badge'=>'iRent'],
-                ['sku'=>'RRT-WND-024','name'=>'Complete First Aid Kit',     'desc'=>'Comprehensive 50-piece first aid kit in durable carrying case.',             'price'=>'₱850',        'stock'=>true, 'badge'=>'Complete Kit'],
-                ['sku'=>'RRT-RSP-005','name'=>'Nebulizer Machine',          'desc'=>'Compressor nebulizer for efficient medication delivery. Quiet operation.',    'price'=>'₱1,450',      'stock'=>false,'badge'=>null],
-            ];
-            foreach ($featured as $p): ?>
+            <?php if (empty($featured)): ?>
+                <p class="text-center text-muted">No products available yet.</p>
+            <?php else: foreach ($featured as $p): ?>
             <div class="prod-card reveal">
                 <div class="prod-img">
-                    <?php if (file_exists(FCPATH . 'images/products/' . $p['sku'] . '.png')): ?>
-                        <img src="<?= base_url('images/products/' . $p['sku'] . '.png') ?>" alt="<?= $p['name'] ?>" style="max-height:140px;object-fit:contain;">
+                    <?php if ($p['image_path']): ?>
+                        <img src="<?= base_url($p['image_path']) ?>" alt="<?= esc($p['name']) ?>" style="max-height:140px;object-fit:contain;">
                     <?php else: ?>
                         <i class="fa fa-box-open" style="font-size:3rem;color:var(--blue-light);"></i>
                     <?php endif; ?>
-                    <?php if ($p['badge']): ?><span class="prod-badge"><?= $p['badge'] ?></span><?php endif; ?>
-                    <span class="prod-stock <?= $p['stock'] ? 'in' : 'out' ?>"><?= $p['stock'] ? 'In Stock' : 'Out of Stock' ?></span>
+                    <span class="prod-stock <?= ($p['stock'] ?? 0) > 0 ? 'in' : 'out' ?>"><?= ($p['stock'] ?? 0) > 0 ? 'In Stock' : 'Out of Stock' ?></span>
                 </div>
                 <div class="prod-body">
-                    <div class="prod-sku">SKU: <?= $p['sku'] ?></div>
-                    <div class="prod-name"><?= $p['name'] ?></div>
-                    <div class="prod-desc"><?= $p['desc'] ?></div>
+                    <div class="prod-name"><?= esc($p['name']) ?></div>
+                    <div class="prod-desc"><?= esc($p['description'] ?? '') ?></div>
                     <div class="prod-foot">
-                        <span class="prod-price"><?= $p['price'] ?></span>
-                        <a href="<?= base_url('contact') ?>" class="btn-q">
-                            <?= $p['price'] === 'Request Quote' ? 'Get Quote' : 'Order Now' ?>
-                        </a>
+                        <span class="prod-price"><?= $p['price'] ? '₱' . number_format($p['price'], 2) : 'Request Quote' ?></span>
+                        <a href="<?= base_url('contact') ?>" class="btn-q"><?= $p['price'] ? 'Order Now' : 'Get Quote' ?></a>
                     </div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php endforeach; endif; ?>
         </div>
         <div style="text-align:center;margin-top:2.5rem;">
             <a href="<?= base_url('products') ?>" class="btn btn-red"><i class="fa fa-box-open"></i> View All Products</a>
@@ -254,25 +230,20 @@
             <h2 class="sec-title">Announcements &amp; <span>Updates</span></h2>
         </div>
         <div class="ann-grid">
-            <?php
-            $anns = [
-                ['tag'=>'New Service','title'=>'iRent – Medical Equipment Rental',  'desc'=>'Flexible rentals for wheelchairs, nebulizers, oxygen concentrators, and more. Perfect for post-surgery and temporary institutional use.','date'=>'Available Now',     'bg'=>'linear-gradient(135deg,#1d3557,#457b9d)','icon'=>'fa-rotate'],
-                ['tag'=>'New Feature','title'=>'iScan – Barcode Product Lookup',    'desc'=>'Walk-in customers can scan product barcodes at our in-store iScan station for instant pricing, specs, and availability.','date'=>'Available In-Store','bg'=>'linear-gradient(135deg,#c1121f,#e63946)','icon'=>'fa-barcode'],
-                ['tag'=>'Compliance', 'title'=>'FDA License Renewed 2024',          'desc'=>'Robin Rose Trading remains fully FDA-licensed and BIR compliant. All products meet the latest Philippine healthcare regulatory standards.','date'=>'January 2024',     'bg'=>'linear-gradient(135deg,#457b9d,#a8dadc)','icon'=>'fa-certificate'],
-            ];
-            foreach ($anns as $a): ?>
+            <?php if (empty($recent_announcements)): ?>
+                <p class="text-center text-muted">No announcements posted yet.</p>
+            <?php else: foreach ($recent_announcements as $a): ?>
             <div class="ann-card reveal">
-                <div class="ann-top" style="background:<?= $a['bg'] ?>">
-                    <i class="fa <?= $a['icon'] ?> ann-bg-icon"></i>
-                    <span class="ann-tag"><?= $a['tag'] ?></span>
-                    <div class="ann-title-text"><?= $a['title'] ?></div>
+                <div class="ann-top" style="background:linear-gradient(135deg,#1d3557,#457b9d)">
+                    <i class="fa fa-bullhorn ann-bg-icon"></i>
+                    <div class="ann-title-text"><?= esc($a['title']) ?></div>
                 </div>
                 <div class="ann-body">
-                    <p><?= $a['desc'] ?></p>
-                    <div class="ann-date"><i class="fa fa-calendar"></i> <?= $a['date'] ?></div>
+                    <p><?= esc(mb_strimwidth($a['content'], 0, 150, '...')) ?></p>
+                    <div class="ann-date"><i class="fa fa-calendar"></i> <?= date('F Y', strtotime($a['created_at'])) ?></div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php endforeach; endif; ?>
         </div>
         <div style="text-align:center;margin-top:2rem;">
             <a href="<?= base_url('announcements') ?>" class="btn btn-blue"><i class="fa fa-newspaper"></i> View All Announcements</a>
@@ -360,6 +331,4 @@
     </div>
 </div>
 
-    <!-- PASTE YOUR ENTIRE HOME PAGE CODE HERE (FROM PROMO BAR TO CTA BANNER) -->
-    <!-- Replace static categories with: foreach($categories as $cat) -->
 <?= $this->endSection() ?>

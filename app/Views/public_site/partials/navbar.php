@@ -11,20 +11,17 @@
             <li><a href="<?= base_url('/') ?>" class="nav-link <?= ($active_nav ?? '') === 'home' ? 'active' : '' ?>">Home</a></li>
             <li><a href="<?= base_url('about') ?>" class="nav-link <?= ($active_nav ?? '') === 'about' ? 'active' : '' ?>">About Us</a></li>
             <li class="dropdown">
-                <a href="<?= base_url('products') ?>" class="nav-link <?= ($active_nav ?? '') === 'products' ? 'active' : '' ?>">Products <i class="fa fa-chevron-down"></i></a>
-                <div class="dropdown-menu">
-                    <a href="<?= base_url('products?cat=diagnostic') ?>">Diagnostic & Monitoring</a>
-                    <a href="<?= base_url('products?cat=otc') ?>">OTC Medicines</a>
-                    <a href="<?= base_url('products?cat=respiratory') ?>">Respiratory Care</a>
-                    <a href="<?= base_url('products?cat=mobility') ?>">Mobility & Rehabilitation</a>
-                    <a href="<?= base_url('products?cat=ppe') ?>">PPE & Infection Control</a>
-                    <a href="<?= base_url('products?cat=safety') ?>">Safety Equipment</a>
-                    <a href="<?= base_url('products?cat=wound') ?>">Wound Care & Emergency</a>
-                    <a href="<?= base_url('products?cat=incontinence') ?>">Incontinence Care</a>
-                    <a href="<?= base_url('products?cat=educational') ?>">Educational & Specialty</a>
-                    <a href="<?= base_url('products?cat=general') ?>">General Merchandise</a>
-                </div>
-            </li>
+    <a href="<?= base_url('products') ?>" class="nav-link <?= ($active_nav ?? '') === 'products' ? 'active' : '' ?>">Products <i class="fa fa-chevron-down"></i></a>
+    <div class="dropdown-menu">
+        <?php
+            $db = \Config\Database::connect();
+            $navCats = $db->table('categories')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
+            foreach ($navCats as $nc):
+        ?>
+        <a href="<?= base_url('products?cat=' . $nc['category_id']) ?>"><?= esc($nc['name']) ?></a>
+        <?php endforeach; ?>
+    </div>
+</li>
             <li><a href="<?= base_url('services') ?>" class="nav-link <?= ($active_nav ?? '') === 'services' ? 'active' : '' ?>">Services</a></li>
             <li><a href="<?= base_url('announcements') ?>" class="nav-link <?= ($active_nav ?? '') === 'announcements' ? 'active' : '' ?>">Announcements</a></li>
             <li><a href="<?= base_url('partner-gateway') ?>" class="nav-link <?= ($active_nav ?? '') === 'portal' ? 'active' : '' ?>">Portal</a></li>

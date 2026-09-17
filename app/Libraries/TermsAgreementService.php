@@ -30,4 +30,10 @@ class TermsAgreementService
             'user_agent'    => $userAgent,
         ]);
     }
+
+    public static function hasAccepted(int $userId): bool
+{
+    $db = \Config\Database::connect();
+    return $db->table('terms_agreement_log')->where('user_id', $userId)->countAllResults() > 0;
+}
 }

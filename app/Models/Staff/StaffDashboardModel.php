@@ -30,8 +30,8 @@ class StaffDashboardModel extends Model
         'pos_total' => (float) $posToday->txn_total,
 
         'pending_grr' => $this->db->table('purchase_orders')
-            ->whereIn('status', ['sent', 'acknowledged', 'in_transit'])
-            ->countAllResults(),
+    ->whereIn('status', ['sent', 'acknowledged', 'in_transit', 'partial'])
+    ->countAllResults(),
 
         'orders_to_process' => $this->db->table('sales_orders')
             ->where('status', 'pending')

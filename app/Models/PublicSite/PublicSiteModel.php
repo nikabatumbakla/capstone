@@ -15,17 +15,17 @@ class PublicSiteModel extends Model
     }
 
     public function getCategories(): array
-{
-    return $this->db->table('categories')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
-}
+    {
+        return $this->db->table('categories')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
+    }
 
-    // One row per product, using its latest batch for price/stock, and its primary image if one exists.
-    // LEFT JOINs so a product with zero batches or zero images still appears — just with no price/photo.
+    // One row per product, using its earliest-expiring in-stock batch (FEFO) for
+    // price/stock, matching the convention used everywhere else in this app.
     public function getFeaturedProducts(int $limit = 6): array
     {
         return $this->db->table('products as p')
             ->select("p.product_id, p.name, p.description, p.unit, c.name as cat_name,
-                (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id ORDER BY ib.received_at DESC LIMIT 1) as price,
+                (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as price,
                 (SELECT SUM(quantity_avail) FROM inventory_batches WHERE product_id = p.product_id) as stock,
                 (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
             ->join('categories as c', 'c.category_id = p.category_id')
@@ -35,54 +35,59 @@ class PublicSiteModel extends Model
             ->get()->getResultArray();
     }
 
-    public function getProducts(string $catSlug = '', string $search = '', int $page = 1, int $perPage = 12): array
+    public function getProducts(string $catId = '', string $search = '', int $page = 1, int $perPage = 12): array
     {
         $offset = ($page - 1) * $perPage;
-        $apply = function ($b) use ($catSlug, $search) {
+        $apply = function ($b) use ($catId, $search) {
             $b->where('p.is_active', 1);
-            if ($catSlug !== '' && $catSlug !== 'all') $b->where('c.slug', $catSlug);
+            if ($catId !== '' && $catId !== 'all') $b->where('p.category_id', (int) $catId);
             if ($search !== '') $b->groupStart()->like('p.name', $search)->orLike('p.description', $search)->groupEnd();
             return $b;
         };
 
-        $countBuilder = $this->db->table('products as p')->join('categories as c', 'c.category_id = p.category_id');
+        $countBuilder = $this->db->table('products as p');
         $apply($countBuilder);
         $total = $countBuilder->countAllResults();
 
         $builder = $this->db->table('products as p')
-    ->select("p.product_id, p.name, p.description, p.unit, c.name as cat_name, c.slug as cat_slug,
-        (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id ORDER BY ib.received_at DESC LIMIT 1) as price,
-        (SELECT SUM(quantity_avail) FROM inventory_batches WHERE product_id = p.product_id) as stock,
-        (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
-    ->join('categories as c', 'c.category_id = p.category_id');
+            ->select("p.product_id, p.name, p.description, p.unit, c.name as cat_name,
+                (SELECT ib.sell_price FROM inventory_batches ib WHERE ib.product_id = p.product_id AND ib.quantity_avail > 0 ORDER BY ib.expires_at ASC LIMIT 1) as price,
+                (SELECT SUM(quantity_avail) FROM inventory_batches WHERE product_id = p.product_id) as stock,
+                (SELECT image_path FROM product_images WHERE product_id = p.product_id AND is_primary = 1 LIMIT 1) as image_path")
+            ->join('categories as c', 'c.category_id = p.category_id');
         $apply($builder);
         $builder->orderBy('p.name', 'ASC')->limit($perPage, $offset);
 
         return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
     }
 
-    // Only currently-live posts targeted at the public site — same live-window logic used on the staff bulletin board
+    // Real announcements from the same bulletin_posts table used by the client/staff portals
     public function getAnnouncements(int $page = 1, int $perPage = 6): array
     {
+        $offset = ($page - 1) * $perPage;
         $now = date('Y-m-d H:i:s');
+
         $apply = function ($b) use ($now) {
-            $b->where('bp.is_published', 1)
-              ->groupStart()->where('bp.target_audience', 'all')->orWhere('bp.target_audience', 'customers')->groupEnd()
-              ->groupStart()->where('bp.starts_at IS NULL', null, false)->orWhere('bp.starts_at <=', $now)->groupEnd()
-              ->groupStart()->where('bp.ends_at IS NULL', null, false)->orWhere('bp.ends_at >=', $now)->groupEnd();
+            $b->where('is_published', 1)
+              ->groupStart()->where('target_audience', 'all')->orWhere('target_audience', 'public')->groupEnd()
+              ->groupStart()->where('starts_at IS NULL', null, false)->orWhere('starts_at <=', $now)->groupEnd()
+              ->groupStart()->where('ends_at IS NULL', null, false)->orWhere('ends_at >=', $now)->groupEnd();
             return $b;
         };
 
-        $offset = ($page - 1) * $perPage;
-
-        $countBuilder = $this->db->table('bulletin_posts as bp');
+        $countBuilder = $this->db->table('bulletin_posts');
         $apply($countBuilder);
         $total = $countBuilder->countAllResults();
 
-        $builder = $this->db->table('bulletin_posts as bp')->select('bp.*');
+        $builder = $this->db->table('bulletin_posts');
         $apply($builder);
-        $builder->orderBy('bp.is_pinned', 'DESC')->orderBy('bp.created_at', 'DESC')->limit($perPage, $offset);
+        $builder->orderBy('is_pinned', 'DESC')->orderBy('created_at', 'DESC')->limit($perPage, $offset);
 
         return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
+    }
+
+    public function getRecentAnnouncements(int $limit = 3): array
+    {
+        return $this->getAnnouncements(1, $limit)['data'];
     }
 }

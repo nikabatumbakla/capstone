@@ -17,11 +17,12 @@ class ChatbotModel extends Model
     public function getCounts(): array
     {
         return [
-            'queries'     => $this->db->table('chatbot_logs')->countAllResults(),
-            'escalations' => $this->db->table('chatbot_escalations')->where('status', 'open')->countAllResults(),
+            'queries'     => $this->db->table('chatbot_messages')->where('sender', 'user')->countAllResults(),
+            'escalations' => $this->db->table('chatbot_conversations')->where('status', 'escalated')->countAllResults(),
         ];
     }
 
+    // ===== INTENTS — unchanged from before =====
     public function getIntents(string $search = '', int $page = 1, int $perPage = 10): array
     {
         $offset = ($page - 1) * $perPage;
@@ -52,11 +53,8 @@ class ChatbotModel extends Model
 
     public function saveIntent(array $payload, ?int $id = null): void
     {
-        if ($id) {
-            $this->db->table('chatbot_intents')->where('intent_id', $id)->update($payload);
-        } else {
-            $this->db->table('chatbot_intents')->insert($payload);
-        }
+        if ($id) $this->db->table('chatbot_intents')->where('intent_id', $id)->update($payload);
+        else $this->db->table('chatbot_intents')->insert($payload);
     }
 
     public function removeIntent(int $id): void
@@ -64,53 +62,59 @@ class ChatbotModel extends Model
         $this->db->table('chatbot_intents')->where('intent_id', $id)->delete();
     }
 
-    public function getOpenEscalations(string $status = 'open', int $page = 1, int $perPage = 10): array
-{
-    $offset = ($page - 1) * $perPage;
-
-    $countBuilder = $this->db->table('chatbot_escalations')->where('status', $status);
-    $total = $countBuilder->countAllResults();
-
-    $builder = $this->db->table('chatbot_escalations as ce')
-        ->select('ce.*, cl.query_text, u.full_name as customer_name, u.role as customer_role')
-        ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
-        ->join('users as u', 'u.user_id = cl.user_id', 'left')
-        ->where('ce.status', $status)
-        ->orderBy('ce.created_at', 'DESC')
-        ->limit($perPage, $offset);
-
-    return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
-}
-
-    public function getEscalationDetails(int $id)
-{
-    return $this->db->table('chatbot_escalations as ce')
-        ->select('ce.*, u.full_name as customer, u.role as customer_role')
-        ->join('chatbot_logs as cl', 'cl.chat_id = ce.chat_id')
-        ->join('users as u', 'u.user_id = cl.user_id', 'left')
-        ->where('ce.escalation_id', $id)->get()->getRow();
-}
-
-    // Appends a staff reply to the chat history, and marks the escalation in_progress
-    // the moment a staff member actually responds — separate from 'open' (untouched) and 'resolved'.
-    public function appendStaffReply(int $escalationId, string $staffName, string $message): void
+    // ===== CONVERSATIONS (formerly "escalations") =====
+    public function getConversations(string $status = 'escalated', int $page = 1, int $perPage = 10): array
     {
-        $escalation = $this->db->table('chatbot_escalations')->where('escalation_id', $escalationId)->get()->getRow();
-        if (!$escalation) return;
+        $offset = ($page - 1) * $perPage;
 
-        $updatedHistory = rtrim($escalation->full_chat_history) . "\nStaff ({$staffName}): {$message}";
+        $countBuilder = $this->db->table('chatbot_conversations')->where('status', $status);
+        $total = $countBuilder->countAllResults();
 
-        $this->db->table('chatbot_escalations')->where('escalation_id', $escalationId)->update([
-            'full_chat_history' => $updatedHistory,
-            'status' => 'in_progress',
-        ]);
+        $builder = $this->db->table('chatbot_conversations as cc')
+            ->select("cc.*, u.full_name as customer_name, u.role as customer_role,
+                (SELECT message FROM chatbot_messages WHERE conversation_id = cc.conversation_id AND sender = 'user' ORDER BY created_at ASC LIMIT 1) as first_query")
+            ->join('users as u', 'u.user_id = cc.user_id', 'left')
+            ->where('cc.status', $status)
+            ->orderBy('cc.updated_at', 'DESC')
+            ->limit($perPage, $offset);
+
+        return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
     }
 
-    public function resolveEscalation(int $escalationId): void
+    public function getConversationDetails(int $id)
     {
-        $this->db->table('chatbot_escalations')->where('escalation_id', $escalationId)->update([
-            'status' => 'resolved',
-            'resolved_at' => date('Y-m-d H:i:s'),
-        ]);
+        $conversation = $this->db->table('chatbot_conversations as cc')
+            ->select('cc.*, u.full_name as customer, u.role as customer_role')
+            ->join('users as u', 'u.user_id = cc.user_id', 'left')
+            ->where('cc.conversation_id', $id)->get()->getRow();
+
+        if (!$conversation) return null;
+
+        $conversation->messages = $this->db->table('chatbot_messages')
+            ->where('conversation_id', $id)->orderBy('created_at', 'ASC')->get()->getResultArray();
+
+        return $conversation;
+    }
+
+    public function appendStaffReply(int $conversationId, string $staffName, string $message): array
+{
+    $conv = $this->db->table('chatbot_conversations')->where('conversation_id', $conversationId)->get()->getRow();
+    if (!$conv || $conv->status === 'resolved') {
+        return ['success' => false, 'message' => 'This conversation is already resolved and can no longer be replied to.'];
+    }
+
+    $this->db->table('chatbot_messages')->insert([
+        'conversation_id' => $conversationId, 'sender' => 'staff', 'staff_name' => $staffName, 'message' => $message,
+    ]);
+    $this->db->table('chatbot_conversations')->where('conversation_id', $conversationId)
+        ->update(['status' => 'in_progress', 'updated_at' => date('Y-m-d H:i:s')]);
+
+    return ['success' => true];
+}
+
+    public function resolveConversation(int $conversationId): void
+    {
+        $this->db->table('chatbot_conversations')->where('conversation_id', $conversationId)
+            ->update(['status' => 'resolved', 'resolved_at' => date('Y-m-d H:i:s')]);
     }
 }

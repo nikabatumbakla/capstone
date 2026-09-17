@@ -3,6 +3,152 @@ document.addEventListener("DOMContentLoaded", function() {
             const liveSearch = document.getElementById('liveSearch');
             const typeFilter = document.getElementById('typeFilter');
 
+            // --- New Sales Order (Walk-in) drawer ---
+            const newOrderDrawerEl = document.getElementById('newOrderDrawer');
+            const newOrderDrawer = bootstrap.Offcanvas.getOrCreateInstance(newOrderDrawerEl);
+            const orderModeField = document.getElementById('orderModeField');
+            const registeredClientBlock = document.getElementById('registeredClientBlock');
+            const walkinClientBlock = document.getElementById('walkinClientBlock');
+            const newOrderForm = document.getElementById('newOrderForm');
+            const orderRowsContainer = document.getElementById('orderRowsContainer');
+            const btnAddOrderRow = document.getElementById('btnAddOrderRow');
+            const discountTypeSelect = document.getElementById('discountTypeSelect');
+            const fulfillmentTypeSelect = document.getElementById('fulfillmentTypeSelect');
+            const deliveryAddressWrap = document.getElementById('deliveryAddressWrap');
+
+            let rowIndex = 0;
+
+            function productsForCategory(catId) {
+                return PRODUCTS_DATA.filter(p => String(p.category_id) === String(catId));
+            }
+
+            function addOrderRow() {
+                const row = document.createElement('div');
+                row.className = 'row g-2 mb-2 align-items-center order-row';
+
+                const catOptions = CATEGORIES_DATA.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
+                row.innerHTML = `
+        <div class="col-4">
+            <select class="form-select form-select-sm row-category">
+                <option value="">Select...</option>${catOptions}
+            </select>
+        </div>
+        <div class="col-3">
+            <select class="form-select form-select-sm row-product" name="items[]" disabled>
+                <option value="">Select category first</option>
+            </select>
+        </div>
+        <div class="col-2">
+            <input type="number" class="form-control form-control-sm row-qty" name="qtys[]" min="1" value="1" disabled>
+        </div>
+        <div class="col-2 text-end row-subtotal fw-bold">₱0.00</div>
+        <div class="col-1 text-end">
+            <button type="button" class="btn btn-sm btn-link text-danger btn-remove-row"><i class="fas fa-times"></i></button>
+        </div>`;
+                orderRowsContainer.appendChild(row);
+
+                row.querySelector('.row-category').addEventListener('change', function() {
+                    const productSelect = row.querySelector('.row-product');
+                    const qtyInput = row.querySelector('.row-qty');
+                    const opts = productsForCategory(this.value);
+                    productSelect.innerHTML = opts.length ?
+                        `<option value="">Select product</option>` + opts.map(p =>
+                            `<option value="${p.product_id}" data-price="${p.latest_sell_price || 0}">${p.name} (${p.total_stock ?? 0} in stock)</option>`).join('') :
+                        `<option value="">No products</option>`;
+                    productSelect.disabled = !opts.length;
+                    qtyInput.disabled = !opts.length;
+                    updateRowSubtotal(row);
+                });
+
+                row.querySelector('.row-product').addEventListener('change', () => updateRowSubtotal(row));
+                row.querySelector('.row-qty').addEventListener('input', () => updateRowSubtotal(row));
+                row.querySelector('.btn-remove-row').addEventListener('click', function() {
+                    row.remove();
+                    recalcPreview();
+                });
+            }
+
+            function updateRowSubtotal(row) {
+                const productSelect = row.querySelector('.row-product');
+                const qty = parseInt(row.querySelector('.row-qty').value || 0, 10);
+                const selected = productSelect.options[productSelect.selectedIndex];
+                const price = selected ? parseFloat(selected.dataset.price || 0) : 0;
+                row.querySelector('.row-subtotal').textContent = peso(price * qty);
+                recalcPreview();
+            }
+
+            function recalcPreview() {
+                let gross = 0;
+                orderRowsContainer.querySelectorAll('.order-row').forEach(row => {
+                    const productSelect = row.querySelector('.row-product');
+                    const selected = productSelect.options[productSelect.selectedIndex];
+                    const price = selected ? parseFloat(selected.dataset.price || 0) : 0;
+                    const qty = parseInt(row.querySelector('.row-qty').value || 0, 10);
+                    gross += price * qty;
+                });
+
+                const type = discountTypeSelect.value;
+                let discount = 0,
+                    vatExclusive, vat, total, label = '';
+
+                if (type === 'pwd' || type === 'senior') {
+                    vatExclusive = gross / 1.12;
+                    discount = vatExclusive * 0.20;
+                    total = vatExclusive - discount;
+                    vat = 0;
+                    label = ' (20% + VAT Exempt)';
+                } else {
+                    let percent = 0;
+                    if (type === 'school') {
+                        percent = SCHOOL_DISCOUNT_RATE;
+                        label = ` (School ${percent}%)`;
+                    } else if (type === 'custom') {
+                        percent = parseFloat(document.querySelector('[name="discount_percent"]').value || 0);
+                        label = ` (${percent}%)`;
+                    }
+                    discount = gross * (percent / 100);
+                    const net = gross - discount;
+                    vat = net - (net / 1.12);
+                    vatExclusive = net / 1.12;
+                    total = net;
+                }
+
+                document.getElementById('previewGross').textContent = peso(gross);
+                document.getElementById('previewDiscount').textContent = '-' + peso(discount);
+                document.getElementById('previewDiscountLabel').textContent = label;
+                document.getElementById('previewSubtotal').textContent = peso(vatExclusive);
+                document.getElementById('previewVat').textContent = peso(vat);
+                document.getElementById('previewTotal').textContent = peso(total);
+            }
+
+            discountTypeSelect.addEventListener('change', function() {
+                document.getElementById('discountIdWrap').style.display = ['pwd', 'senior'].includes(this.value) ? '' : 'none';
+                document.getElementById('discountHolderWrap').style.display = ['pwd', 'senior'].includes(this.value) ? '' : 'none';
+                document.getElementById('discountCustomWrap').style.display = this.value === 'custom' ? '' : 'none';
+                document.getElementById('discountSchoolWrap').style.display = this.value === 'school' ? '' : 'none';
+                document.getElementById('schoolRateDisplay').textContent = SCHOOL_DISCOUNT_RATE;
+                recalcPreview();
+            });
+            document.querySelector('[name="discount_percent"]').addEventListener('input', recalcPreview);
+
+            fulfillmentTypeSelect.addEventListener('change', function() {
+                deliveryAddressWrap.style.display = this.value === 'pickup' ? 'none' : '';
+            });
+
+            btnAddOrderRow.addEventListener('click', addOrderRow);
+
+            document.getElementById('btnWalkinSale').addEventListener('click', function() {
+                newOrderForm.reset();
+                orderModeField.value = 'walkin';
+                registeredClientBlock.style.display = 'none';
+                walkinClientBlock.style.display = '';
+                orderRowsContainer.innerHTML = '';
+                rowIndex = 0;
+                addOrderRow();
+                recalcPreview();
+                newOrderDrawer.show();
+            });
+
             let typingTimer;
             liveSearch.addEventListener('input', function() {
                 clearTimeout(typingTimer);

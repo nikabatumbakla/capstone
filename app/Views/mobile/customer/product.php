@@ -6,8 +6,6 @@
     <h5 class="fw-bold mb-0">Product Info</h5>
 </div>
 
-<?php if(session()->getFlashdata('success')): ?><div class="alert alert-success small"><?= session()->getFlashdata('success') ?></div><?php endif; ?>
-
 <div class="text-center mb-2">
     <div style="height:180px; background:#f4f4f4; border-radius:12px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
         <?php if($p->image_path): ?><img src="<?= base_url($p->image_path) ?>" style="width:100%; height:100%; object-fit:cover;">
@@ -17,21 +15,21 @@
 
 <h5 class="fw-bold mb-0"><?= esc($p->name) ?></h5>
 <h4 class="fw-bold mb-2" style="color:#7b1113;">₱<?= number_format($p->sell_price ?? 0, 2) ?></h4>
+
 <div class="mb-3">
     <?php
-        $isLow = $p->total_stock > 0 && $p->reorder_level && $p->total_stock <= $p->reorder_level;
         $isOut = $p->total_stock <= 0;
+        $isLow = !$isOut && $p->reorder_level && $p->total_stock <= $p->reorder_level;
     ?>
     <span class="badge <?= $isOut ? 'bg-secondary' : ($isLow ? 'bg-warning text-dark' : 'bg-success') ?>"><?= $isOut ? 'Out of Stock' : ($isLow ? 'Low Stock ('.$p->total_stock.' Units)' : 'In Stock ('.$p->total_stock.' Units)') ?></span>
     <span class="badge bg-light text-dark border ms-1"><?= esc($p->category_name) ?></span>
-    <span class="badge bg-light text-dark border ms-1">SKU <?= esc($p->sku) ?></span>
 </div>
 
 <ul class="nav nav-pills mb-3 gap-1" id="prodTabs">
-    <li class="nav-item flex-fill"><button class="btn btn-sm w-100 tab-btn active" data-tab="info">Info</button></li>
-    <li class="nav-item flex-fill"><button class="btn btn-sm w-100 tab-btn" data-tab="details">Details</button></li>
-    <li class="nav-item flex-fill"><button class="btn btn-sm w-100 tab-btn" data-tab="education">Education</button></li>
-    <li class="nav-item flex-fill"><button class="btn btn-sm w-100 tab-btn" data-tab="warnings">Warnings</button></li>
+    <li class="nav-item flex-fill"><button type="button" class="btn btn-sm w-100 tab-btn active" data-tab="info">Info</button></li>
+    <li class="nav-item flex-fill"><button type="button" class="btn btn-sm w-100 tab-btn" data-tab="details">Details</button></li>
+    <li class="nav-item flex-fill"><button type="button" class="btn btn-sm w-100 tab-btn" data-tab="education">Education</button></li>
+    <li class="nav-item flex-fill"><button type="button" class="btn btn-sm w-100 tab-btn" data-tab="warnings">Warnings</button></li>
 </ul>
 
 <div id="tab-info" class="tab-pane">
@@ -40,6 +38,10 @@
         <small class="text-muted d-block mb-3"><?= esc($p->brand ?: $p->manufacturer ?: 'N/A') ?></small>
         <p class="fw-bold mb-1" style="font-size:11px;">📦 AVAILABILITY</p>
         <small class="text-muted d-block mb-3"><?= $isOut ? 'Currently unavailable' : ($isLow ? '⚠ Low Stock — Only '.$p->total_stock.' units remaining' : 'Available') ?></small>
+        <?php if($p->batch_number): ?>
+        <p class="fw-bold mb-1" style="font-size:11px;">🏷 BATCH NUMBER</p>
+        <small class="text-muted d-block mb-3"><?= esc($p->batch_number) ?></small>
+        <?php endif; ?>
         <?php if($p->expires_at): ?>
         <p class="fw-bold mb-1" style="font-size:11px;">📅 EXPIRY DATE</p>
         <small class="text-muted d-block mb-3"><?= date('F Y', strtotime($p->expires_at)) ?></small>
@@ -67,7 +69,7 @@
         <p class="fw-bold mb-1" style="font-size:11px;">WARRANTY</p>
         <small class="text-muted d-block"><?= esc($p->warranty_info) ?></small>
         <?php endif; ?>
-        <?php if(!$p->medical_description && !$p->usage_purpose && !$p->usage_guide): ?>
+        <?php if(!$p->medical_description && !$p->usage_purpose && !$p->usage_guide && !$p->warranty_info): ?>
             <small class="text-muted">No additional details available for this product.</small>
         <?php endif; ?>
     </div>
@@ -90,6 +92,9 @@
             <div class="ratio ratio-16x9 mb-3">
                 <iframe src="<?= $embedUrl ?>" allowfullscreen allow="autoplay; encrypted-media" style="border-radius:10px; border:1px solid #ddd;"></iframe>
             </div>
+        <?php elseif($p->video_url): ?>
+            <p class="fw-bold mb-2" style="font-size:11px;">🎥 REFERENCE LINK</p>
+            <a href="<?= esc($p->video_url) ?>" target="_blank" class="d-block mb-3" style="font-size:11px;"><?= esc($p->video_url) ?></a>
         <?php endif; ?>
         <?php if($p->healthcare_tips): ?>
             <p class="fw-bold mb-1" style="font-size:11px;">💡 HEALTHCARE TIPS</p>
@@ -99,7 +104,7 @@
             <p class="fw-bold mb-1" style="font-size:11px;">📦 STORAGE INFORMATION</p>
             <small class="text-muted d-block"><?= nl2br(esc($p->storage_info)) ?></small>
         <?php endif; ?>
-        <?php if(!$embedUrl && !$p->healthcare_tips && !$p->storage_info): ?>
+        <?php if(!$embedUrl && !$p->video_url && !$p->healthcare_tips && !$p->storage_info): ?>
             <small class="text-muted">No educational content available for this product.</small>
         <?php endif; ?>
     </div>
@@ -108,21 +113,15 @@
 <div id="tab-warnings" class="tab-pane" style="display:none;">
     <div class="m-card">
         <?php if($p->warnings): ?>
-        <div class="alert alert-warning small mb-3">
+        <div class="alert alert-warning small mb-0">
             <p class="fw-bold mb-1">⚠ WARNINGS</p>
             <?= nl2br(esc($p->warnings)) ?>
         </div>
-        <?php endif; ?>
-        <?php if($p->contraindications): ?>
-            <p class="fw-bold mb-1" style="font-size:11px;">CONTRAINDICATIONS</p>
-            <small class="text-muted d-block"><?= nl2br(esc($p->contraindications)) ?></small>
-        <?php endif; ?>
-        <?php if(!$p->warnings && !$p->contraindications): ?>
+        <?php else: ?>
             <small class="text-muted">No specific warnings listed for this product. Always consult a healthcare professional if unsure.</small>
         <?php endif; ?>
     </div>
 </div>
-
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
@@ -133,18 +132,6 @@
             document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
             this.classList.add('active');
             document.getElementById('tab-' + this.dataset.tab).style.display = 'block';
-        });
-    });
-
-    document.querySelectorAll('.star-pick').forEach(star => {
-        star.addEventListener('click', function() {
-            const val = parseInt(this.dataset.val);
-            document.getElementById('ratingInput').value = val;
-            document.querySelectorAll('.star-pick').forEach((s, i) => {
-                s.classList.toggle('fas', i < val);
-                s.classList.toggle('far', i >= val);
-                s.style.color = i < val ? '#f1c40f' : '#ccc';
-            });
         });
     });
 </script>

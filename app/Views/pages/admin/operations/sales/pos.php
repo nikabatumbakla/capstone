@@ -1,37 +1,5 @@
-<?= $this->extend('layouts/pos_layout') ?>
-<style>
-  .pos-page, .pos-page * { font-size: 11px !important; }
-  .pos-page { background: #f7f7f8; }
+<?= $this->extend('layouts/pos_layout') ?>=
 
-  .pos-page .custom-table-container { border-radius: 14px !important; }
-
-  .pos-page .qty-btn { padding: 2px 8px; line-height: 1; font-size: 10px !important; border-radius: 6px !important; }
-
-  .pos-page .kpi-card { border-radius: 12px; padding: 14px 16px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
-  .pos-page .kpi-card small { font-size: 9px !important; letter-spacing: .05em; opacity: .85; text-transform: uppercase; font-weight: 700; }
-  .pos-page .kpi-card h5, .pos-page .kpi-card h6 { font-size: 18px !important; margin: 4px 0 0; letter-spacing: -.01em; }
-  .pos-page .kpi-card i.kpi-icon { position: absolute; right: 10px; top: 10px; font-size: 22px !important; opacity: .2; }
-
-  .pos-page .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #2ecc71; display: inline-block; margin-right: 5px; animation: pos-pulse 1.6s infinite; }
-  @keyframes pos-pulse { 0% { box-shadow: 0 0 0 0 rgba(46,204,113,.6);} 70% { box-shadow: 0 0 0 6px rgba(46,204,113,0);} 100% { box-shadow: 0 0 0 0 rgba(46,204,113,0);} }
-
-  .pos-page .product-tile { border-radius: 10px !important; border-color: #e4e4e7 !important; transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease; }
-  .pos-page .product-tile:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); border-color: #b30000 !important; }
-  .pos-page .product-tile:disabled { opacity: .4; cursor: not-allowed; }
-  .pos-page .stock-badge { font-size: 9px !important; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-  .pos-page .stock-ok { background: #eafaf1; color: #1e8449; }
-  .pos-page .stock-low { background: #fff6e5; color: #b9770e; }
-  .pos-page .stock-out { background: #fdecea; color: #c0392b; }
-
-  .pos-page #cartTableBody tr { border-color: #eee !important; }
-  .pos-page #btnComplete { border-radius: 12px !important; letter-spacing: .02em; }
-
-  .pos-page .txn-row { padding: 6px 2px !important; border-radius: 6px; }
-  .pos-page .txn-row:hover { background: #f3eaea; cursor: pointer; }
-  .pos-page .empty-state { color: #aaa; text-align: center; padding: 24px 8px; }
-
-  .pos-page .btn-check + label.btn { border-radius: 10px !important; }
-</style>
 <?= $this->section('content') ?>
 
 <script>const BASE_URL = "<?= base_url() ?>";</script>
@@ -54,24 +22,28 @@
     <div class="row g-4">
         <!-- LEFT: PRODUCT BROWSER -->
         <div class="col-lg-5">
-            <div class="custom-table-container border-0 shadow-sm" style="padding:16px;">
-                <div class="input-group mb-3 border rounded-pill overflow-hidden bg-light">
-                    <input type="text" id="posSearch" class="form-control border-0 ps-4 bg-transparent" placeholder="Search product name or scan barcode..." style="height:40px; font-size:11px;">
-                    <i class="fas fa-search text-muted mx-2 align-self-center"></i>
-                </div>
-
-                <div class="mb-3">
-                    <select id="categorySelect" class="form-select">
-                        <option value="">All Categories</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?= $cat['category_id'] ?>"><?= esc($cat['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div id="productGrid" class="row g-2" style="max-height: 350px; overflow-y:auto;"></div>
-            </div>
+    <div class="custom-table-container border-0 shadow-sm" style="padding:16px;">
+        <div class="input-group mb-3 border rounded-pill overflow-hidden bg-light">
+            <input type="text" id="posSearch" class="form-control border-0 ps-4 bg-transparent" placeholder="Search product name or scan barcode..." style="height:40px; font-size:11px;">
+            <i class="fas fa-search text-muted mx-2 align-self-center"></i>
         </div>
+
+        <div class="mb-3">
+            <select id="categorySelect" class="form-select">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?= $cat['category_id'] ?>"><?= esc($cat['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div id="productGrid" class="row g-2" style="max-height: 400px; overflow-y:auto;"></div>
+<div id="productGridEmpty" class="empty-state" style="display:none;">
+    <i class="fas fa-box-open mb-2" style="font-size:20px;"></i>
+    <div>No matching products.</div>
+</div>
+    </div>
+</div>
 
         <!-- MIDDLE: CART -->
         <div class="col-lg-4">

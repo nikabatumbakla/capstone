@@ -3,6 +3,9 @@
 <script>
     const CSRF_TOKEN_NAME = "<?= csrf_token() ?>";
     const CSRF_HASH = "<?= csrf_hash() ?>";
+    const PRODUCTS_DATA = <?= json_encode($products) ?>;
+    const CATEGORIES_DATA = <?= json_encode($categories) ?>;
+    const SCHOOL_DISCOUNT_RATE = <?= (float) $school_discount_rate ?>;
 </script>
 
 <div class="wrapper">

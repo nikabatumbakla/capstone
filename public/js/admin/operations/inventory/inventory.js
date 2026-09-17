@@ -184,20 +184,24 @@ document.addEventListener("DOMContentLoaded", function() {
             const totalStock = data.batches.reduce((sum, b) => sum + parseInt(b.quantity_avail), 0);
 
             const batchRowsHtml = data.batches.length ? data.batches.map(b => `
-                <tr>
-                    <td class="fw-bold">${b.batch_number}</td>
-                    <td>${b.lot_number || '—'}</td>
-                    <td>${b.expires_at || '—'}</td>
-                    <td class="text-center">${b.quantity_avail}</td>
-                    <td class="text-end">₱${parseFloat(b.sell_price).toFixed(2)}</td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 btn-adjust-batch"
-                            data-batch='${JSON.stringify(b).replace(/'/g, "&apos;")}' data-product-id="${productId}" data-product-name="${data.name}">
-                            <i class="fas fa-adjust"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('') : `<tr><td colspan="6" class="text-center text-muted py-3">No batches recorded yet.</td></tr>`;
+    <tr>
+        <td class="fw-bold">${b.batch_number}</td>
+        <td>${b.lot_number || '—'}</td>
+        <td>${b.expires_at || '—'}</td>
+        <td class="text-center">${b.quantity_avail}</td>
+        <td class="text-end">₱${parseFloat(b.sell_price).toFixed(2)}</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 btn-adjust-batch"
+                data-batch='${JSON.stringify(b).replace(/'/g, "&apos;")}' data-product-id="${productId}" data-product-name="${data.name}">
+                <i class="fas fa-adjust"></i>
+            </button>
+            ${parseInt(b.quantity_avail) <= 0 ? `
+            <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-delete-batch" data-batch-id="${b.batch_id}" title="Delete Batch (0 stock)">
+                <i class="fas fa-trash"></i>
+            </button>` : ''}
+        </td>
+    </tr>
+`).join('') : `<tr><td colspan="6" class="text-center text-muted py-3">No batches recorded yet.</td></tr>`;
 
             drawerContent.innerHTML = `
                 <div class="mb-3">
@@ -245,6 +249,22 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                 });
             });
+
+            document.querySelectorAll('.btn-delete-batch').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const batchId = this.getAttribute('data-batch-id');
+        if (!confirm('This batch has zero stock. Delete it permanently?')) return;
+
+        fetch(`${BASE_URL}/admin/inventory/delete-batch/${batchId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(result => {
+                if (!result.success) { alert(result.message); return; }
+                this.closest('tr').remove();
+            })
+            .catch(() => alert('Failed to delete batch. Please try again.'));
+    });
+});
+
         })
         .catch(err => {
             drawerContent.innerHTML = `<div class="text-center text-danger p-5">Failed to load product details.</div>`;
