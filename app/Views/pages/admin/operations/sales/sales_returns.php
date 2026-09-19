@@ -15,13 +15,13 @@
                 <h5 class="fw-bold mb-0">Sales Returns</h5>
             </div>
             <button class="btn btn-sm btn-maroon rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="offcanvas" data-bs-target="#returnDrawer">
-                <i class="fas fa-plus me-2"></i>New Return Request
+                <i class="fas fa-plus me-2"></i>New Return (In-Person)
             </button>
         </div>
 
         <div class="procurement-banner mb-4 p-3 text-white shadow-sm">
             <h6 class="fw-bold mb-1"><i class="fas fa-undo-alt me-2"></i>Client Return Management</h6>
-            <p class="mb-0 opacity-75" style="font-size: 10px;">Submit → Approve/Reject → Auto-Restore Inventory</p>
+            <p class="mb-0 opacity-75" style="font-size: 10px;">Filed here = processed immediately. Client-filed returns require your approval below.</p>
         </div>
 
         <div class="bg-light p-1 rounded-pill d-inline-flex mb-4 border w-100 justify-content-between">
@@ -44,15 +44,14 @@
                 <table class="table table-hover align-middle" style="font-size:10.5px">
                     <thead class="table-dark">
                         <tr>
-                            <th class="ps-4">Return #</th><th>Order #</th><th>Client</th><th>Product</th><th class="text-center">Qty</th><th>Condition</th><th>Reason</th><th>Requested</th><th>Status</th><th class="text-center">Action</th>
+                            <th class="ps-4">Return #</th><th>Order #</th><th>Client</th><th>Product</th><th class="text-center">Qty</th><th>Condition</th><th>Source</th><th>Requested</th><th>Status</th><th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if(empty($returns)): ?>
                             <tr><td colspan="10" class="text-center py-5 text-muted">No returns found.</td></tr>
                         <?php else: foreach($returns as $r): ?>
-                        <tr>
-                            <td class="ps-4 text-muted">RTN-<?= str_pad($r['return_id'], 4, '0', STR_PAD_LEFT) ?></td>
+                        <tr><td class="ps-4 text-muted">RTN-<?= str_pad($r['return_id'], 4, '0', STR_PAD_LEFT) ?></td>
                             <td class="fw-bold"><?= $r['order_number'] ?></td>
                             <td><?= $r['client_name'] ?></td>
                             <td><?= $r['product_name'] ?? '—' ?></td>
@@ -69,7 +68,7 @@
     ?>
     <span class="badge <?= $cm['class'] ?>"><?= $cm['label'] ?></span>
 </td>
-                            <td><span class="text-muted"><?= esc(substr($r['reason'], 0, 25)) ?>...</span></td>
+                            <td><span class="badge <?= $r['source']=='client' ? 'bg-info text-dark' : 'bg-light text-dark border' ?>"><?= ucfirst($r['source']) ?></span></td>
                             <td><?= date('M d, Y', strtotime($r['created_at'])) ?></td>
                             <td>
                                 <?php $b = ($r['status'] == 'approved') ? 'bg-success' : (($r['status'] == 'rejected') ? 'bg-danger' : 'bg-warning text-dark'); ?>
@@ -118,10 +117,9 @@
     </div>
 </div>
 
-<!-- ONE FORM, ONE PROCESS: file a client return request -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="returnDrawer" style="width: 600px;">
     <div class="offcanvas-header border-bottom">
-        <h6 class="fw-bold mb-0"><i class="fas fa-undo-alt me-2"></i>New Return Request</h6>
+        <h6 class="fw-bold mb-0"><i class="fas fa-undo-alt me-2"></i>New Return (In-Person)</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-4">
@@ -142,55 +140,53 @@
                 </div>
 
                 <div class="col-6">
-    <label class="formal-label">Product to Return *</label>
-    <select name="product_id" id="returnProductSelect" class="form-select formal-input" required>
-        <option value="">Select order first</option>
-    </select>
-    <input type="hidden" name="batch_id" id="returnBatchId">
-</div>
-<div class="col-6">
-    <label class="formal-label">Return Quantity *</label>
-    <input type="number" name="qty" id="returnQty" class="formal-input" min="1" required>
-</div>
-<div class="col-6">
-    <label class="formal-label">Item Condition *</label>
-    <select name="restock_condition" id="returnCondition" class="form-select formal-input" required>
-        <option value="resellable">Resellable — return to stock</option>
-        <option value="damaged">Damaged — do not restock</option>
-        <option value="expired">Expired — do not restock</option>
-        <option value="disposed">Disposed / Write-off — do not restock</option>
-    </select>
-    <p class="helper-text mb-0" id="conditionHint"></p>
-</div>
-<div class="col-6">
-    <label class="formal-label">Refund Amount (₱, optional)</label>
-    <input type="number" step="0.01" name="refund_amount" id="returnRefund" class="formal-input" placeholder="Auto-suggested from item price">
-</div>
-<div class="col-12">
-    <label class="formal-label">Reason for Return *</label>
-    <select name="reason_cat" class="form-select formal-input">
-        <option value="Damaged">Damaged Goods</option>
-        <option value="Expired">Expired</option>
-        <option value="Wrong Item">Wrong Item Delivered</option>
-        <option value="Excess">Excess Quantity</option>
-    </select>
-</div>
-<div class="col-12">
-    <label class="formal-label">Description / Details *</label>
-    <textarea name="notes" class="formal-input" rows="4" required></textarea>
-</div>
-
+                    <label class="formal-label">Product to Return *</label>
+                    <select name="product_id" id="returnProductSelect" class="form-select formal-input" required>
+                        <option value="">Select order first</option>
+                    </select>
+                    <input type="hidden" name="batch_id" id="returnBatchId">
+                </div>
+                <div class="col-6">
+                    <label class="formal-label">Return Quantity *</label>
+                    <input type="number" name="qty" id="returnQty" class="formal-input" min="1" required>
+                </div>
+                <div class="col-6">
+                    <label class="formal-label">Item Condition *</label>
+                    <select name="restock_condition" id="returnCondition" class="form-select formal-input" required>
+                        <option value="resellable">Resellable — return to stock</option>
+                        <option value="damaged">Damaged — do not restock</option>
+                        <option value="expired">Expired — do not restock</option>
+                        <option value="disposed">Disposed / Write-off — do not restock</option>
+                    </select>
+                    <p class="helper-text mb-0" id="conditionHint"></p>
+                </div>
+                <div class="col-6">
+                    <label class="formal-label">Refund Amount (₱, optional)</label>
+                    <input type="number" step="0.01" name="refund_amount" id="returnRefund" class="formal-input" placeholder="Auto-suggested from item price">
+                </div>
+                <div class="col-12">
+                    <label class="formal-label">Reason for Return *</label>
+                    <select name="reason_cat" class="form-select formal-input">
+                        <option value="Damaged">Damaged Goods</option>
+                        <option value="Expired">Expired</option>
+                        <option value="Wrong Item">Wrong Item Delivered</option>
+                        <option value="Excess">Excess Quantity</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="formal-label">Description / Details *</label>
+                    <textarea name="notes" class="formal-input" rows="4" required></textarea>
+                </div>
             </div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-save-adj w-100 py-3">
-                    <i class="fas fa-paper-plane me-2"></i>Submit for Approval
+                    <i class="fas fa-check-circle me-2"></i>Process Return
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- VIEW RETURN DETAILS -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="viewReturnDrawer" style="width: 500px;">
     <div class="offcanvas-header border-bottom bg-light">
         <h6 class="fw-bold mb-0">Return Details</h6>

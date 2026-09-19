@@ -15,49 +15,57 @@ class Main extends BaseController
     }
 
     public function index()
-{
-    $data['categories'] = $this->siteModel->getCategories();
-    $data['featured'] = $this->siteModel->getFeaturedProducts(6);
-    $data['recent_announcements'] = $this->siteModel->getRecentAnnouncements(3);
-
-    $data['title'] = 'Robin Rose Trading – Your Ultimate Healthcare Partner';
-    $data['active_nav'] = 'home';
-    return view('public_site/pages/home', $data);
-}
-
-    public function about()
     {
-        $data['title'] = 'About Us - Robin Rose Trading';
-        $data['active_nav'] = 'about';
-        return view('public_site/pages/about', $data);
+        $data['categories'] = $this->siteModel->getCategories();
+        $data['featured'] = $this->siteModel->getFeaturedProducts(6);
+        $data['recent_announcements'] = $this->siteModel->getRecentAnnouncements(3);
+        $data['testimonials'] = $this->siteModel->getPublishedTestimonials();
+        $data['store_rating'] = $this->siteModel->getStoreRatingSummary();
+        $data['hero'] = $this->siteModel->getHeroContent();
+        $data['why_us_cards'] = $this->siteModel->getWhyUsCards();
+        $data['service_cards'] = $this->siteModel->getServiceCards();
+
+        $data['title'] = 'Robin Rose Trading – Your Ultimate Healthcare Partner';
+        $data['active_nav'] = 'home';
+        return view('public_site/pages/home', $data);
     }
+
+   public function about()
+{
+    $data['about'] = $this->siteModel->getAboutContent();
+    $data['team'] = $this->siteModel->getTeamMembers();
+    $data['title'] = 'About Us - Robin Rose Trading';
+    $data['active_nav'] = 'about';
+    return view('public_site/pages/about', $data);
+}
 
     public function products()
-{
-    $catId = $this->request->getGet('cat') ?: '';
-    $search = trim((string) ($this->request->getGet('search') ?? ''));
-    $page = (int) ($this->request->getGet('page') ?? 1);
+    {
+        $catId = $this->request->getGet('cat') ?: '';
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $page = (int) ($this->request->getGet('page') ?? 1);
 
-    $result = $this->siteModel->getProducts($catId, $search, $page, 12);
+        $result = $this->siteModel->getProducts($catId, $search, $page, 12);
 
-    $data['categories'] = $this->siteModel->getCategories();
-    $data['products'] = $result['data'];
-    $data['total_pages'] = $result['total_pages'];
-    $data['current_page'] = $page;
-    $data['search'] = $search;
+        $data['categories'] = $this->siteModel->getCategories();
+        $data['products'] = $result['data'];
+        $data['total_pages'] = $result['total_pages'];
+        $data['current_page'] = $page;
+        $data['search'] = $search;
 
-    $data['title'] = 'Product Catalog - Robin Rose Trading';
-    $data['active_nav'] = 'products';
-    $data['active_cat'] = $catId ?: 'all';
-    return view('public_site/pages/products', $data);
-}
+        $data['title'] = 'Product Catalog - Robin Rose Trading';
+        $data['active_nav'] = 'products';
+        $data['active_cat'] = $catId ?: 'all';
+        return view('public_site/pages/products', $data);
+    }
 
     public function services()
-    {
-        $data['title'] = 'Services - Robin Rose Trading';
-        $data['active_nav'] = 'services';
-        return view('public_site/pages/services', $data);
-    }
+{
+    $data['service_cards'] = $this->siteModel->getServiceCards();
+    $data['title'] = 'Services - Robin Rose Trading';
+    $data['active_nav'] = 'services';
+    return view('public_site/pages/services', $data);
+}
 
     public function announcements()
     {
@@ -74,45 +82,47 @@ class Main extends BaseController
     }
 
     public function contact()
-    {
-        $data['title'] = 'Contact Us - Robin Rose Trading';
-        $data['active_nav'] = 'contact';
-        return view('public_site/pages/contact', $data);
-    }
+{
+    $data['contact'] = $this->siteModel->getContactInfo();
+    $data['title'] = 'Contact Us - Robin Rose Trading';
+    $data['active_nav'] = 'contact';
+    return view('public_site/pages/contact', $data);
+}
 
     public function submit_contact()
-{
-    $firstName = trim((string) $this->request->getPost('first_name'));
-    $lastName = trim((string) $this->request->getPost('last_name'));
-    $email = trim((string) $this->request->getPost('email'));
-    $phone = trim((string) $this->request->getPost('phone'));
-    $institution = trim((string) $this->request->getPost('institution'));
-    $inquiryType = trim((string) $this->request->getPost('inquiry_type'));
-    $products = trim((string) $this->request->getPost('products'));
-    $message = trim((string) $this->request->getPost('message'));
+    {
+        $firstName = trim((string) $this->request->getPost('first_name'));
+        $lastName = trim((string) $this->request->getPost('last_name'));
+        $email = trim((string) $this->request->getPost('email'));
+        $phone = trim((string) $this->request->getPost('phone'));
+        $institution = trim((string) $this->request->getPost('institution'));
+        $inquiryType = trim((string) $this->request->getPost('inquiry_type'));
+        $products = trim((string) $this->request->getPost('products'));
+        $message = trim((string) $this->request->getPost('message'));
 
-    if (empty($firstName) || empty($lastName) || empty($email) || empty($inquiryType) || empty($message)) {
-        return redirect()->to('contact')->withInput()->with('error', 'Please complete all required fields.');
+        if (empty($firstName) || empty($lastName) || empty($email) || empty($inquiryType) || empty($message)) {
+            return redirect()->to('contact')->withInput()->with('error', 'Please complete all required fields.');
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return redirect()->to('contact')->withInput()->with('error', 'Please enter a valid email address.');
+        }
+
+        $db = \Config\Database::connect();
+        $db->table('contact_inquiries')->insert([
+            'first_name'      => $firstName,
+            'last_name'       => $lastName,
+            'email'           => $email,
+            'phone'           => $phone ?: null,
+            'institution'     => $institution ?: null,
+            'inquiry_type'    => $inquiryType,
+            'products_needed' => $products ?: null,
+            'message'         => $message,
+        ]);
+
+        \App\Libraries\ContactInquiryService::notifyBusiness($firstName, $lastName, $email, $phone, $institution, $inquiryType, $products, $message);
+        \App\Libraries\ContactInquiryService::confirmToInquirer($firstName, $email, $inquiryType);
+
+        return redirect()->to('contact')->with('success', 'Thank you for reaching out! We\'ve received your inquiry and will get back to you shortly.');
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return redirect()->to('contact')->withInput()->with('error', 'Please enter a valid email address.');
-    }
 
-    $db = \Config\Database::connect();
-    $db->table('contact_inquiries')->insert([
-        'first_name'      => $firstName,
-        'last_name'       => $lastName,
-        'email'           => $email,
-        'phone'           => $phone ?: null,
-        'institution'     => $institution ?: null,
-        'inquiry_type'    => $inquiryType,
-        'products_needed' => $products ?: null,
-        'message'         => $message,
-    ]);
-
-    \App\Libraries\ContactInquiryService::notifyBusiness($firstName, $lastName, $email, $phone, $institution, $inquiryType, $products, $message);
-    \App\Libraries\ContactInquiryService::confirmToInquirer($firstName, $email, $inquiryType);
-
-    return redirect()->to('contact')->with('success', 'Thank you for reaching out! We\'ve received your inquiry and will get back to you shortly.');
-}
 }

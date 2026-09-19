@@ -1,3 +1,8 @@
+body {
+    width: 100%;
+    overflow-x: hidden;
+}
+
 .promo-bar {
     background: linear-gradient(90deg, #c1121f, #e63946);
     color: #fff;
@@ -15,10 +20,21 @@
 .sec-wrap,
 .hero-container,
 .contact-strip-inner,
-.nav-container {
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+.nav-container,
+.trust-inner {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.section,
+.hero,
+.trust-bar,
+.promo-bar,
+.contact-strip,
+.cta-banner {
     width: 100%;
 }
 
@@ -228,12 +244,14 @@
 }
 
 .cats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1.2rem;
 }
 
 .cat-card {
+    flex: 0 1 180px;
     background: #fff;
     border-radius: 14px;
     padding: 1.6rem 1.2rem;
@@ -278,12 +296,14 @@
 }
 
 .prod-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1.5rem;
 }
 
 .prod-card {
+    flex: 0 1 255px;
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 4px 28px rgba(29, 53, 87, .1);
@@ -396,12 +416,14 @@
 }
 
 .why-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1.5rem;
 }
 
 .why-card {
+    flex: 0 1 240px;
     padding: 1.9rem;
     background: #fff;
     border-radius: 14px;
@@ -435,12 +457,14 @@
 }
 
 .svc-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 2rem;
 }
 
 .svc-card {
+    flex: 0 1 270px;
     background: #fff;
     border-radius: 14px;
     padding: 2.2rem;
@@ -510,12 +534,15 @@
 }
 
 .ann-grid {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
 .ann-card {
+    flex: 0 1 300px;
     background: #fff;
     border-radius: 14px;
     overflow: hidden;
@@ -582,12 +609,15 @@
 }
 
 .test-grid {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
 }
 
 .test-card {
+    flex: 0 1 280px;
     background: #fff;
     border-radius: 14px;
     padding: 1.9rem;

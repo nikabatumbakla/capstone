@@ -2,7 +2,7 @@
     <div class="footer-container">
         <div class="footer-grid">
             <div class="footer-brand">
-                <img src="<?= base_url('images/logo.png') ?>" alt="Robin Rose Trading" class="footer-logo">
+                <img src="<?= base_url('public/images/logo.png') ?>" alt="Robin Rose Trading" class="footer-logo">
                 <p class="footer-tagline">Your Ultimate Healthcare Partner</p>
                 <p class="footer-desc">Providing quality medical supplies and healthcare solutions to hospitals, clinics, schools, and communities across the Philippines.</p>
                 <div class="footer-social">

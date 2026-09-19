@@ -25,24 +25,16 @@
             <div class="about-content">
                 <div class="section-tag">Our Story</div>
                 <h2 class="about-title">Dedicated to Healthcare Excellence</h2>
-                <p class="about-text">
-                    Robin Rose Trading was established with a single, powerful purpose: to make quality healthcare supplies 
-                    accessible to every community, clinic, school, and hospital that needs them. Based in Ortega St., Philippines, 
-                    we have grown into a trusted healthcare trading company serving institutional clients across the Bicol region and beyond.
-                </p>
-                <p class="about-text">
-                    With years of experience in the medical supply industry, we have built strong relationships with certified 
-                    manufacturers and distributors, ensuring that every product we offer meets the highest standards of quality, 
-                    safety, and regulatory compliance.
-                </p>
+                <p class="about-text"><?= esc($about->story_paragraph1 ?? '') ?></p>
+                <p class="about-text"><?= esc($about->story_paragraph2 ?? '') ?></p>
                 <div class="mission-vision">
                     <div class="mv-card">
                         <h4><i class="fa fa-bullseye"></i> Our Mission</h4>
-                        <p>To provide accessible, quality-certified medical supplies and healthcare solutions to all sectors of society — from individual families to large institutions.</p>
+                        <p><?= esc($about->mission_text ?? '') ?></p>
                     </div>
                     <div class="mv-card">
                         <h4><i class="fa fa-eye"></i> Our Vision</h4>
-                        <p>To become the Philippines' most trusted healthcare trading partner, known for quality, reliability, and genuine commitment to community health.</p>
+                        <p><?= esc($about->vision_text ?? '') ?></p>
                     </div>
                 </div>
             </div>
@@ -50,7 +42,7 @@
     </div>
 </section>
 
-<!-- CERTIFICATIONS -->
+<!-- CERTIFICATIONS (static — legal/regulatory facts, not admin-edited) -->
 <section class="section section-alt">
     <div class="section-container">
         <div class="section-header">
@@ -81,7 +73,6 @@
             </div>
         </div>
 
-        <!-- Certifications Table -->
         <div style="margin-top:2.5rem;">
             <h3 style="font-family:var(--font-display);color:var(--blue);margin-bottom:1rem;">Compliance Overview</h3>
             <table class="data-table">
@@ -131,28 +122,17 @@
             <div class="section-tag">Our People</div>
             <h2 class="section-title">Meet Our <span>Team</span></h2>
         </div>
-        <div class="team-grid">
-            <div class="team-card">
-                <img src="<?= base_url('images/team/team-placeholder.png') ?>" alt="Owner" class="team-img">
-                <div class="team-name">Rosalinda</div>
-                <div class="team-role">Owner / Proprietor</div>
-            </div>
-            <div class="team-card">
-                <img src="<?= base_url('images/team/team-placeholder.png') ?>" alt="Sales Manager" class="team-img">
-                <div class="team-name">Sales Manager</div>
-                <div class="team-role">Head of Sales & Accounts</div>
-            </div>
-            <div class="team-card">
-                <img src="<?= base_url('images/team/team-placeholder.png') ?>" alt="Warehouse" class="team-img">
-                <div class="team-name">Inventory Lead</div>
-                <div class="team-role">Warehouse & Logistics</div>
-            </div>
-            <div class="team-card">
-                <img src="<?= base_url('images/team/team-placeholder.png') ?>" alt="Customer Service" class="team-img">
-                <div class="team-name">Customer Service</div>
-                <div class="team-role">Client Relations</div>
-            </div>
-        </div>
+        <div class="team-grid" style="display:flex; flex-wrap:wrap; justify-content:center; gap:1.6rem;">
+    <?php if(empty($team)): ?>
+        <p class="text-center text-muted">Team information coming soon.</p>
+    <?php else: foreach($team as $m): ?>
+    <div class="team-card" style="flex:0 1 200px;">
+        <div class="team-ico"><i class="fa fa-user"></i></div>
+        <div class="team-name"><?= esc($m['name']) ?></div>
+        <div class="team-role"><?= esc($m['role']) ?></div>
+    </div>
+    <?php endforeach; endif; ?>
+</div>
     </div>
 </section>
 
@@ -165,22 +145,21 @@
         </div>
         <div style="max-width:800px;margin:0 auto;text-align:center;">
             <p style="color:var(--gray);font-size:1rem;line-height:1.9;margin-bottom:1.5rem;">
-                At Robin Rose Trading, we believe that access to quality healthcare products is a fundamental right, 
-                not a privilege. Every product we source, every partnership we build, and every delivery we make 
+                At Robin Rose Trading, we believe that access to quality healthcare products is a fundamental right,
+                not a privilege. Every product we source, every partnership we build, and every delivery we make
                 is guided by our unwavering commitment to the health and safety of our clients and their communities.
             </p>
             <p style="color:var(--gray);font-size:1rem;line-height:1.9;">
-                We continuously update our product line to align with evolving health regulations, emerging medical needs, 
-                and feedback from our valued clients. From individual households to large government institutions, 
+                We continuously update our product line to align with evolving health regulations, emerging medical needs,
+                and feedback from our valued clients. From individual households to large government institutions,
                 Robin Rose Trading is your reliable partner in healthcare.
             </p>
             <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:2rem;">
-                <a href="<?= base_url('contact') ?>" class="btn-primary"><i class="fa fa-handshake"></i> Partner with Us</a>
+                <a href="<?= base_url('partner-gateway') ?>" class="btn-primary"><i class="fa fa-handshake"></i> Partner with Us</a>
                 <a href="<?= base_url('products') ?>" class="btn-outline"><i class="fa fa-box-open"></i> Browse Products</a>
             </div>
         </div>
     </div>
 </section>
 
-    <!-- PASTE YOUR ENTIRE ABOUT US CODE HERE -->
 <?= $this->endSection() ?>

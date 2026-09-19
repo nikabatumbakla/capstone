@@ -2,6 +2,11 @@ document.addEventListener("DOMContentLoaded", function() {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
 
+    const bottomNav = document.querySelector('.m-bottom-nav');
+    if (bottomNav) {
+        document.documentElement.style.setProperty('--bottom-nav-height', bottomNav.offsetHeight + 'px');
+    }
+
     const messages = document.getElementById('chatMessages');
     const emptyState = document.getElementById('chatEmptyState');
     const input = document.getElementById('chatInput');

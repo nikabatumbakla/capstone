@@ -166,56 +166,56 @@ document.addEventListener("DOMContentLoaded", function() {
                 const isPickup = o.fulfillment_type === 'pickup';
 
                 const rows = items.map(i => `
-            <tr>
-                <td>${i.name}<br><small>${i.barcode_value || '—'}</small></td>
-                <td style="text-align:center;">${i.quantity}</td>
-                <td style="text-align:right;">${peso(i.unit_price)}</td>
-                <td style="text-align:right;">${peso(i.subtotal)}</td>
-            </tr>`).join('');
+        <tr>
+            <td>${i.name}<br><small>${i.barcode_value || '—'}</small></td>
+            <td style="text-align:center;">${i.quantity}</td>
+            <td style="text-align:right;">${peso(i.unit_price)}</td>
+            <td style="text-align:right;">${peso(i.subtotal)}</td>
+        </tr>`).join('');
 
                 const discountLine = (o.discount && parseFloat(o.discount) > 0) ? `
-            <tr><td colspan="3" style="text-align:right;">Discount (${o.discount_type ? o.discount_type.toUpperCase() : ''})</td><td style="text-align:right;">-${peso(o.discount)}</td></tr>` : '';
+        <tr><td colspan="3" style="text-align:right;">Discount (${o.discount_type ? o.discount_type.toUpperCase() : ''})</td><td style="text-align:right;">-${peso(o.discount)}</td></tr>` : '';
 
                 const discountHolderLine = o.discount_holder_name ? `
-            <p style="font-size:10px;">Discount ID Holder: ${o.discount_holder_name} (${o.discount_id_number || 'N/A'})</p>` : '';
+        <p style="font-size:10px;">Discount ID Holder: ${o.discount_holder_name} (${o.discount_id_number || 'N/A'})</p>` : '';
 
                 const fulfillmentRow = isPickup ?
                     `<tr><td colspan="2"><b>Fulfillment:</b> Store Pickup — client to claim in person</td></tr>` :
                     `<tr><td colspan="2"><b>Delivery Address:</b> ${o.delivery_address || '—'}</td></tr>`;
 
                 return `
-            <div style="font-family: Arial, sans-serif; padding: 30px; color:#000;">
-                <div style="text-align:center; margin-bottom: 20px;">
-                    <h4 style="margin:0;">${store.store_name || 'Store'}</h4>
-                    <p style="margin:0; font-size:11px;">${store.store_address || ''}</p>
-                    <p style="margin:0; font-size:11px;">TIN: ${store.store_tin || 'N/A'} | ${store.store_phone_1 || ''}</p>
-                </div>
-                <hr>
-                <h5 style="text-align:center;">SALES INVOICE</h5>
-                <table style="width:100%; font-size:11px; margin-bottom:15px;">
-                    <tr><td><b>Invoice No:</b> ${o.invoice_number || o.order_number}</td><td style="text-align:right;"><b>Date:</b> ${o.created_at}</td></tr>
-                    <tr><td><b>Order No:</b> ${o.order_number}</td><td style="text-align:right;"><b>Status:</b> ${o.status.toUpperCase()}</td></tr>
-                    <tr><td colspan="2"><b>Billed To:</b> ${o.organization}${o.guest_client_id ? ' (Walk-in — No Account)' : ''}</td></tr>
-                    <tr><td colspan="2">${o.client_addr || ''} ${o.phone ? '| ' + o.phone : ''} ${o.client_tin ? '| TIN: ' + o.client_tin : ''}</td></tr>
-                    ${fulfillmentRow}
-                    <tr><td><b>Payment Method:</b> ${(o.payment_method || '').toUpperCase()}</td><td style="text-align:right;"><b>Payment Status:</b> ${o.payment_status.toUpperCase()}</td></tr>
-                </table>
-                ${discountHolderLine}
-                <table style="width:100%; border-collapse: collapse; font-size:11px;" border="1" cellpadding="6">
-                    <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                    <tfoot>
-                        <tr><td colspan="3" style="text-align:right;">Subtotal (VAT-exclusive)</td><td style="text-align:right;">${peso(o.subtotal)}</td></tr>
-                        <tr><td colspan="3" style="text-align:right;">VAT</td><td style="text-align:right;">${peso(o.vat_amount)}</td></tr>
-                        ${discountLine}
-                        <tr><td colspan="3" style="text-align:right;"><b>TOTAL</b></td><td style="text-align:right;"><b>${peso(o.total)}</b></td></tr>
-                    </tfoot>
-                </table>
-                <div style="margin-top: 60px; display:flex; justify-content:space-between; font-size:11px;">
-                    <div>_____________________<br>Prepared By: ${o.encoder || 'System'}</div>
-                    <div>_____________________<br>Received By</div>
-                </div>
-            </div>`;
+        <div style="font-family: Arial, sans-serif; padding: 30px; color:#000;">
+            <div style="text-align:center; margin-bottom: 20px;">
+                <h4 style="margin:0;">${store.store_name || 'Store'}</h4>
+                <p style="margin:0; font-size:11px;">${store.store_address || ''}</p>
+                <p style="margin:0; font-size:11px;">TIN: ${store.store_tin || 'N/A'} | ${store.store_phone_1 || ''}</p>
+            </div>
+            <hr>
+            <h5 style="text-align:center;">SALES INVOICE</h5>
+            <table style="width:100%; font-size:11px; margin-bottom:15px;">
+                <tr><td><b>Invoice No:</b> ${o.invoice_number || o.order_number}</td><td style="text-align:right;"><b>Date:</b> ${o.created_at}</td></tr>
+                <tr><td><b>Order No:</b> ${o.order_number}</td><td style="text-align:right;"><b>Status:</b> ${o.status.toUpperCase()}</td></tr>
+                <tr><td colspan="2"><b>Billed To:</b> ${o.organization}${o.guest_client_id ? ' (Walk-in — No Account)' : ''}</td></tr>
+                <tr><td colspan="2">${o.client_addr || ''} ${o.phone ? '| ' + o.phone : ''}</td></tr>
+                ${fulfillmentRow}
+                <tr><td><b>Payment Method:</b> ${(o.payment_method || '').toUpperCase()}</td><td style="text-align:right;"><b>Payment Status:</b> ${o.payment_status.toUpperCase()}</td></tr>
+            </table>
+            ${discountHolderLine}
+            <table style="width:100%; border-collapse: collapse; font-size:11px;" border="1" cellpadding="6">
+                <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                    <tr><td colspan="3" style="text-align:right;">Subtotal (VAT-exclusive)</td><td style="text-align:right;">${peso(o.subtotal)}</td></tr>
+                    <tr><td colspan="3" style="text-align:right;">VAT</td><td style="text-align:right;">${peso(o.vat_amount)}</td></tr>
+                    ${discountLine}
+                    <tr><td colspan="3" style="text-align:right;"><b>TOTAL</b></td><td style="text-align:right;"><b>${peso(o.total)}</b></td></tr>
+                </tfoot>
+            </table>
+            <div style="margin-top: 60px; display:flex; justify-content:space-between; font-size:11px;">
+                <div>_____________________<br>Prepared By: ${o.encoder || 'System'}</div>
+                <div>_____________________<br>Received By</div>
+            </div>
+        </div>`;
             }
 
             function printInvoice(o, items, store) {
@@ -268,13 +268,21 @@ document.addEventListener("DOMContentLoaded", function() {
                                                     `<div class="col-12"><small class="info-label">Fulfillment</small><p class="mb-0">Store Pickup — client to claim in person</p></div>` :
                                                     `<div class="col-12"><small class="info-label">Delivery Address</small><p class="mb-0">${o.delivery_address || '—'}</p></div>`;
 
+                                                const canEditItems = o.status === 'pending';
                                                 const itemsHtml = items.map(i => `
-                        <tr>
-                            <td style="border-bottom:1px solid #eee; padding:8px;"><b>${i.name}</b><br><small>${i.barcode_value || '—'}</small></td>
-                            <td style="border-bottom:1px solid #eee; padding:8px; text-align:center;">${i.quantity}</td>
-                            <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.unit_price)}</td>
-                            <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.subtotal)}</td>
-                        </tr>`).join('');
+    <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;"><b>${i.name}</b><br><small>${i.barcode_value || '—'}</small></td>
+        <td style="border-bottom:1px solid #eee; padding:8px; text-align:center;">${i.quantity}</td>
+        <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.unit_price)}</td>
+        <td style="border-bottom:1px solid #eee; padding:8px; text-align:right;">${peso(i.subtotal)}</td>
+        ${canEditItems ? `<td style="border-bottom:1px solid #eee; padding:8px; text-align:center;">
+            <button type="button" class="btn btn-xs btn-outline-secondary btn-edit-item" data-item-id="${i.item_id}" data-qty="${i.quantity}"><i class="fas fa-edit"></i></button>
+        </td>` : ''}
+    </tr>`).join('');
+
+const tableHeader = canEditItems
+    ? `<tr class="table-dark"><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit</th><th class="text-end">Subtotal</th><th class="text-center">Edit</th></tr>`
+    : `<tr class="table-dark"><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit</th><th class="text-end">Subtotal</th></tr>`;
 
                                                 // Status progression
                                                 let statusActionHtml = '';
@@ -348,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function() {
     </form>` : '';
 
                                                 content.innerHTML = `
+                                                
                         <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
                             <h5 class="fw-bold mb-0">${o.order_number}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
@@ -362,9 +371,10 @@ document.addEventListener("DOMContentLoaded", function() {
                                 ${fulfillmentRow}
                             </div>
                             <table class="table table-sm border-bottom" style="font-size:11px">
-    <thead><tr class="table-dark"><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit</th><th class="text-end">Subtotal</th></tr></thead>
+    <thead>${tableHeader}</thead>
     <tbody>${itemsHtml}</tbody>
 </table>
+${canEditItems ? `<div id="editItemArea" class="mt-2"></div>` : ''}
 
                             ${paymentFormHtml}
                             ${statusActionHtml}
@@ -375,6 +385,52 @@ document.addEventListener("DOMContentLoaded", function() {
                         </div>`;
 
                     document.getElementById('btnPrintInvoice').addEventListener('click', () => printInvoice(o, items, store));
+                    if (canEditItems) {
+    document.querySelectorAll('.btn-edit-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const currentQty = this.getAttribute('data-qty');
+            const editArea = document.getElementById('editItemArea');
+
+            const productOptions = PRODUCTS_DATA.map(p => `<option value="${p.product_id}" data-price="${p.latest_sell_price || 0}">${p.name} (${p.total_stock ?? 0} in stock)</option>`).join('');
+
+            editArea.innerHTML = `
+                <div class="p-3 bg-light rounded-3 border">
+                    <p class="fw-bold mb-2" style="font-size:11px;">Replace Item</p>
+                    <select id="editItemProduct" class="form-select form-select-sm mb-2">${productOptions}</select>
+                    <input type="number" id="editItemQty" class="form-control form-control-sm mb-2" min="1" value="${currentQty}">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-dark flex-fill" id="btnSaveItemEdit">Save Change</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelItemEdit">Cancel</button>
+                    </div>
+                    <div id="editItemMsg" class="mt-2"></div>
+                </div>`;
+
+            document.getElementById('btnCancelItemEdit').addEventListener('click', () => editArea.innerHTML = '');
+
+            document.getElementById('btnSaveItemEdit').addEventListener('click', function() {
+                const productId = document.getElementById('editItemProduct').value;
+                const qty = document.getElementById('editItemQty').value;
+                this.disabled = true;
+
+                fetch(`${BASE_URL}/admin/sales/update-order-item`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ [CSRF_TOKEN_NAME]: CSRF_HASH, item_id: itemId, product_id: productId, qty })
+                })
+                .then(res => res.json())
+                .then(result => {
+    if (!result.success) {
+        document.getElementById('editItemMsg').innerHTML = `<div class="alert alert-danger small mb-0">${result.message}</div>`;
+        this.disabled = false;
+        return;
+    }
+    document.querySelector(`.btn-view-so[data-id="${o.order_id}"]`).click(); // refresh the drawer with fresh data
+});
+            });
+        });
+    });
+}
                 })
                 .catch(err => {
                     content.innerHTML = `<div class="alert alert-danger m-3 small text-center">Could not retrieve order data.</div>`;

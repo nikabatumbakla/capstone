@@ -72,7 +72,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         <div class="p-4">
                             <p class="fw-bold mb-3 text-start" style="font-size:12px;">Business Identity</p>
                             <div class="row g-3 mb-4 text-start">
-                                <div class="col-6"><label class="info-label">TIN</label><p class="info-value">${val(c.tin)}</p></div>
                                 <div class="col-6"><label class="info-label">Reference #</label><p class="info-value">${val(c.registration_ref)}</p></div>
                                 <div class="col-12"><label class="info-label">Business Address</label><p class="info-value">${val(c.address)}</p></div>
                             </div>

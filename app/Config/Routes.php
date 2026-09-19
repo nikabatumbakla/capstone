@@ -99,6 +99,7 @@ $routes->group('client', ['namespace' => 'App\Controllers\Client', 'filter' => '
     $routes->group('support', ['namespace' => 'App\Controllers\Client\Support'], function($routes) {
     $routes->get('chatbot', 'Chatbot::index');
     $routes->get('announcements', 'Announcements::index');
+    $routes->post('announcements/submit-testimonial', 'Announcements::submit_testimonial');
     $routes->get('profile', 'Profile::index');
     $routes->post('profile/update', 'Profile::update');
 });
@@ -139,8 +140,8 @@ $routes->group('supplier', ['namespace' => 'App\Controllers\Supplier', 'filter' 
 });
 
 // POS for Admin and Staff runs as its own full-screen module, not nested in the shared admin layout
-$routes->get('admin/pos-terminal', 'Admin\Operations\Sales::pos', ['filter' => 'auth']);
-$routes->get('staff/operations/pos', 'Admin\Operations\Sales::pos', ['filter' => 'auth']);
+$routes->get('admin/pos-terminal', 'Admin\Operations\Sales\Pos::pos', ['filter' => 'auth']);
+$routes->get('staff/operations/pos', 'Admin\Operations\Sales\Pos::pos', ['filter' => 'auth']);
 
 // --- AUTHENTICATION ---
 $routes->get('portal', 'Auth\Internal::index'); 
@@ -247,29 +248,34 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
     });
 
     // 2. OPERATIONS FOLDER - SALES
-    $routes->group('sales', ['namespace' => 'App\Controllers\Admin\Operations'], function($routes) {
-        $routes->get('institutional-clients', 'Sales::clients');
-        $routes->get('get-client-details/(:num)', 'Sales::get_client_details/$1');
-        
-        $routes->post('save-order', 'Sales::save_order'); // FIXED: Removed redundant URL segments
-        $routes->get('sales-orders', 'Sales::orders');
-        $routes->get('get-order-details/(:num)', 'Sales::get_order_details/$1');
-        $routes->post('update-order-status', 'Sales::update_order_status');
-        $routes->post('save-order', 'Sales::save_order');
-        
-        $routes->get('sales-returns', 'Sales::returns');
-        $routes->get('get-return-order-items/(:num)', 'Sales::get_return_order_items/$1');
-        $routes->get('get-return-details/(:num)', 'Sales::get_return_details/$1');
-        $routes->get('approve-return/(:num)', 'Sales::approve_return/$1');
-        $routes->get('reject-return/(:num)', 'Sales::reject_return/$1');
-        $routes->post('process-return', 'Sales::process_return');
-        $routes->post('confirm-payment', 'Sales::confirm_payment');
+    $routes->group('sales', ['namespace' => 'App\Controllers\Admin\Operations\Sales'], function($routes) {
+    // Client Directory
+    $routes->get('institutional-clients', 'Client::clients');
+    $routes->get('get-client-details/(:num)', 'Client::get_client_details/$1');
+    $routes->get('get-client-history/(:num)', 'Client::get_client_history/$1');
 
-        $routes->get('get-product-pos/(:any)', 'Sales::get_product_pos/$1'); // Added missing POS search
-        $routes->post('pos/process', 'Sales::process_pos');
-        $routes->get('pos/summary', 'Sales::pos_summary');
-        $routes->get('pos/receipt/(:num)', 'Sales::pos_receipt/$1');
-    });
+    // Sales Orders
+    $routes->get('sales-orders', 'Orders::orders');
+    $routes->post('save-order', 'Orders::save_order');
+    $routes->get('get-order-details/(:num)', 'Orders::get_order_details/$1');
+    $routes->post('update-order-item', 'Orders::update_order_item');
+    $routes->post('update-order-status', 'Orders::update_order_status');
+    $routes->post('confirm-payment', 'Orders::confirm_payment');
+
+    // Sales Returns
+    $routes->get('sales-returns', 'Returns::returns');
+    $routes->get('get-return-order-items/(:num)', 'Returns::get_return_order_items/$1');
+    $routes->get('get-return-details/(:num)', 'Returns::get_return_details/$1');
+    $routes->get('approve-return/(:num)', 'Returns::approve_return/$1');
+    $routes->get('reject-return/(:num)', 'Returns::reject_return/$1');
+    $routes->post('process-return', 'Returns::process_return');
+
+    // POS
+    $routes->get('get-product-pos/(:any)', 'Pos::get_product_pos/$1');
+    $routes->post('pos/process', 'Pos::process_pos');
+    $routes->get('pos/summary', 'Pos::pos_summary');
+    $routes->get('pos/receipt/(:num)', 'Pos::pos_receipt/$1');
+});
 
     // 3. STRATEGY FOLDER
     $routes->group('strategy', ['namespace' => 'App\Controllers\Admin\Strategy'], function($routes) {
@@ -352,6 +358,35 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'au
         $routes->get('reviews/delete/(:num)', 'Engagement::delete_review/$1');
         $routes->get('suggestions/status/(:num)/(:any)', 'Engagement::update_suggestion/$1/$2');
         
+        $routes->group('site-content', ['namespace' => 'App\Controllers\Admin\Management\PublicSite'], function($routes) {
+            $routes->get('hero', 'Hero::index');
+            $routes->post('hero/save', 'Hero::save');
+
+            $routes->get('why-us', 'WhyUs::index');
+            $routes->post('why-us/save', 'WhyUs::save');
+            $routes->get('why-us/edit/(:num)', 'WhyUs::edit/$1');
+            $routes->get('why-us/delete/(:num)', 'WhyUs::delete/$1');
+
+            $routes->get('services', 'Services::index');
+            $routes->post('services/save', 'Services::save');
+            $routes->get('services/edit/(:num)', 'Services::edit/$1');
+            $routes->get('services/delete/(:num)', 'Services::delete/$1');
+
+            $routes->get('testimonials', 'Testimonials::index');
+            $routes->get('testimonials/toggle/(:num)', 'Testimonials::toggle_publish/$1');
+            $routes->post('testimonials/order/(:num)', 'Testimonials::update_order/$1');
+            $routes->get('testimonials/delete/(:num)', 'Testimonials::delete/$1');
+
+            $routes->get('about', 'About::index');
+            $routes->post('about/save', 'About::save');
+            $routes->post('about/team/save', 'About::save_team');
+            $routes->get('about/team/edit/(:num)', 'About::get_team/$1');
+            $routes->get('about/team/delete/(:num)', 'About::delete_team/$1');
+
+            $routes->get('contact', 'Contact::index');
+            $routes->post('contact/save', 'Contact::save');
+    });
+
     });
 });
 

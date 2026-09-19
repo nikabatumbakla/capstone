@@ -5,7 +5,7 @@
     </button>
     <div id="clientChatPanel" class="bg-white rounded-4 shadow-lg border-0 overflow-hidden" style="display:none; width:350px; height:460px; position:absolute; bottom:70px; right:0; box-shadow:0 10px 40px rgba(0,0,0,0.18);">
         <div class="p-3 text-white d-flex justify-content-between align-items-center" style="background:linear-gradient(135deg,#7b1113,#4a0000);">
-            <span class="fw-bold d-flex align-items-center" style="font-size:13px;"><i class="fas fa-robot me-2"></i>PharBot Assistant</span>
+            <span class="fw-bold d-flex align-items-center" style="font-size:13px;"><i class="fas fa-robot me-2"></i>MediBot</span>
             <i class="fas fa-times" id="btnCloseClientChat" style="cursor:pointer; opacity:0.85;"></i>
         </div>
         <div id="clientChatMessages" class="p-3 d-flex flex-column" style="height:300px; overflow-y:auto; font-size:12.5px; background:#f7f7f8;">

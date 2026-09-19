@@ -20,7 +20,6 @@ public function client_save_step1()
     $data = [
         'organization_name' => $this->request->getPost('organization_name'),
         'organization_type' => $this->request->getPost('organization_type'),
-        'tin'                => $this->request->getPost('tin'),
         'complete_address'   => $this->request->getPost('complete_address'),
     ];
     if (empty($data['organization_name']) || empty($data['organization_type']) || empty($data['complete_address'])) {
@@ -110,20 +109,19 @@ public function client_submit()
     }
 
     $db->table('institutional_clients')->insert([
-        'user_id'          => $userId,
-        'organization'     => $data['organization_name'],
-        'client_type'      => $data['organization_type'],
-        'tin'              => $data['tin'] ?: null,
-        'address'          => $data['complete_address'],
-        'contact_person'   => $data['contact_person'],
-        'position'         => $data['position'] ?: null,
-        'phone'            => $data['phone'],
-        'alt_phone'        => $data['alt_phone'] ?: null,
-        'email'            => $data['official_email'],
-        'delivery_address' => $data['delivery_address'] ?: null,
-        'permit_path'      => $permitPath,
-        'is_active'        => 1,
-    ]);
+    'user_id'          => $userId,
+    'organization'     => $data['organization_name'],
+    'client_type'      => $data['organization_type'],
+    'address'          => $data['complete_address'],
+    'contact_person'   => $data['contact_person'],
+    'position'         => $data['position'] ?: null,
+    'phone'            => $data['phone'],
+    'alt_phone'        => $data['alt_phone'] ?: null,
+    'email'            => $data['official_email'],
+    'delivery_address' => $data['delivery_address'] ?: null,
+    'permit_path'      => $permitPath,
+    'is_active'        => 1,
+]);
 
     \App\Libraries\TermsAgreementService::recordAgreement($userId, $this->request->getIPAddress(), (string) $this->request->getUserAgent());
 

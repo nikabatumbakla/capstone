@@ -206,7 +206,6 @@
         <div class="col-6"><label class="formal-label">Phone</label><input type="text" name="guest_phone" class="formal-input"></div>
         <div class="col-6"><label class="formal-label">Email</label><input type="email" name="guest_email" class="formal-input"></div>
         <div class="col-6"><label class="formal-label">Address</label><input type="text" name="guest_address" class="formal-input"></div>
-        <div class="col-6"><label class="formal-label">TIN</label><input type="text" name="guest_tin" class="formal-input"></div>
     </div>
     <p class="helper-text mt-2">If this customer has ordered before under the same name, their record is reused automatically.</p>
 </div>

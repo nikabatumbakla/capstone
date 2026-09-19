@@ -46,10 +46,6 @@
                                     <label class="formal-label">Organization Name</label>
                                     <input type="text" class="formal-input read-only-input" value="<?= esc($client->organization) ?>" readonly>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="formal-label">TIN</label>
-                                    <input type="text" class="formal-input read-only-input" value="<?= esc($client->tin ?: 'N/A') ?>" readonly>
-                                </div>
                                 
                                 <div class="col-md-6">
                                     <label class="formal-label">Organization Type</label>

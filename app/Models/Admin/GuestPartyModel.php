@@ -28,7 +28,6 @@ class GuestPartyModel extends Model
             'phone'          => $data['phone'] ?: null,
             'email'          => $data['email'] ?: null,
             'address'        => $data['address'] ?: null,
-            'tin'            => $data['tin'] ?: null,
         ]);
         return (int) $this->db->insertID();
     }
@@ -45,7 +44,6 @@ class GuestPartyModel extends Model
             'phone'          => $data['phone'] ?: null,
             'email'          => $data['email'] ?: null,
             'address'        => $data['address'] ?: null,
-            'tin'            => $data['tin'] ?: null,
         ]);
         return (int) $this->db->insertID();
     }

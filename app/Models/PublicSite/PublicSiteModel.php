@@ -19,8 +19,6 @@ class PublicSiteModel extends Model
         return $this->db->table('categories')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
     }
 
-    // One row per product, using its earliest-expiring in-stock batch (FEFO) for
-    // price/stock, matching the convention used everywhere else in this app.
     public function getFeaturedProducts(int $limit = 6): array
     {
         return $this->db->table('products as p')
@@ -61,7 +59,6 @@ class PublicSiteModel extends Model
         return ['data' => $builder->get()->getResultArray(), 'total' => $total, 'total_pages' => max(1, (int) ceil($total / $perPage))];
     }
 
-    // Real announcements from the same bulletin_posts table used by the client/staff portals
     public function getAnnouncements(int $page = 1, int $perPage = 6): array
     {
         $offset = ($page - 1) * $perPage;
@@ -90,4 +87,50 @@ class PublicSiteModel extends Model
     {
         return $this->getAnnouncements(1, $limit)['data'];
     }
+
+    public function getPublishedTestimonials(int $limit = 3): array
+    {
+        return $this->db->table('client_testimonials')
+            ->where('is_published', 1)
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->get()->getResultArray();
+    }
+
+    public function getStoreRatingSummary(): array
+    {
+        $row = $this->db->table('store_ratings')->selectAvg('rating')->selectCount('rating_id', 'total')->get()->getRow();
+        return ['avg' => $row->rating ? round((float) $row->rating, 1) : null, 'count' => (int) ($row->total ?? 0)];
+    }
+
+    public function getHeroContent()
+    {
+        return $this->db->table('site_hero_content')->get()->getRow();
+    }
+
+    public function getWhyUsCards(): array
+    {
+        return $this->db->table('site_why_us_cards')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
+    }
+
+    public function getServiceCards(): array
+    {
+        return $this->db->table('site_service_cards')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
+    }
+
+    public function getAboutContent()
+{
+    return $this->db->table('site_about_content')->get()->getRow();
+}
+
+public function getTeamMembers(): array
+{
+    return $this->db->table('site_team_members')->where('is_active', 1)->orderBy('sort_order', 'ASC')->get()->getResultArray();
+}
+
+public function getContactInfo()
+{
+    return $this->db->table('site_contact_info')->get()->getRow();
+}
+
 }

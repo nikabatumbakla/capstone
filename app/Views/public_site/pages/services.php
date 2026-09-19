@@ -17,50 +17,25 @@
             <h2 class="section-title">Serving Every <span>Healthcare Need</span></h2>
             <p class="section-subtitle">From institutional bulk delivery to walk-in purchases, we make getting medical supplies easy and reliable.</p>
         </div>
-        <div class="services-grid">
 
-            <div class="service-card">
-                <div class="service-icon"><i class="fa fa-truck-fast"></i></div>
-                <h3 class="service-title">Institutional Delivery</h3>
-                <p class="service-desc">We deliver medical supplies directly to your institution anywhere in our service area. Bulk orders are welcomed for schools, hospitals, barangays, and LGUs.</p>
+        <div class="services-grid" style="display:flex; flex-wrap:wrap; justify-content:center; gap:2rem;">
+            <?php if(empty($service_cards)): ?>
+                <p class="text-center text-muted">No services listed yet.</p>
+            <?php else: foreach($service_cards as $s): ?>
+            <div class="service-card" style="flex:0 1 300px;">
+                <div class="service-icon"><i class="fa <?= esc($s['icon']) ?>"></i></div>
+                <h3 class="service-title"><?= esc($s['title']) ?></h3>
+                <p class="service-desc"><?= esc($s['description']) ?></p>
                 <ul class="service-list">
-                    <li><i class="fa fa-check-circle"></i> Hospitals &amp; Clinics</li>
-                    <li><i class="fa fa-check-circle"></i> Schools &amp; Universities</li>
-                    <li><i class="fa fa-check-circle"></i> Barangay Health Centers</li>
-                    <li><i class="fa fa-check-circle"></i> Local Government Units (LGU)</li>
-                    <li><i class="fa fa-check-circle"></i> Reliable &amp; On-Time Delivery</li>
-                    <li><i class="fa fa-check-circle"></i> Official Receipts Provided</li>
+                    <?php foreach(explode("\n", $s['feature_list']) as $item): ?>
+                        <?php if(trim($item) !== ''): ?><li><i class="fa fa-check-circle"></i> <?= esc(trim($item)) ?></li><?php endif; ?>
+                    <?php endforeach; ?>
                 </ul>
             </div>
-
-            <div class="service-card">
-                <div class="service-icon"><i class="fa fa-store"></i></div>
-                <h3 class="service-title">In-Store Shopping</h3>
-                <p class="service-desc">Visit our physical store at Ortega St. to browse our complete catalog in person. Our staff will assist you in selecting the right products for your needs.</p>
-                <ul class="service-list">
-                    <li><i class="fa fa-check-circle"></i> Full product catalog available in-store</li>
-                    <li><i class="fa fa-check-circle"></i> Knowledgeable staff assistance</li>
-                    <li><i class="fa fa-check-circle"></i> Walk-in welcome, no appointment needed</li>
-                    <li><i class="fa fa-check-circle"></i> Instant purchase &amp; payment options</li>
-                    <li><i class="fa fa-check-circle"></i> iScan barcode product lookup</li>
-                </ul>
-            </div>
-
-            <div class="service-card">
-                <div class="service-icon"><i class="fa fa-box-archive"></i></div>
-                <h3 class="service-title">In-Store Pick Up</h3>
-                <p class="service-desc">Order online or by phone and pick up your order at our store at your convenience. Skip the queue and get your supplies faster.</p>
-                <ul class="service-list">
-                    <li><i class="fa fa-check-circle"></i> Order via phone or email</li>
-                    <li><i class="fa fa-check-circle"></i> Pick up at Ortega St. store</li>
-                    <li><i class="fa fa-check-circle"></i> Ready within 24 hours</li>
-                    <li><i class="fa fa-check-circle"></i> Pay upon pickup</li>
-                </ul>
-            </div>
-
+            <?php endforeach; endif; ?>
         </div>
 
-        <!-- Service Table -->
+        <!-- Service Comparison Table (static — factual policy details, iRent removed) -->
         <div style="margin-top:3rem;">
             <div class="section-header" style="text-align:left;">
                 <h3 style="font-family:var(--font-display);font-size:1.5rem;color:var(--blue);">Service <span style="color:var(--red)">Comparison</span></h3>
@@ -81,12 +56,11 @@
                     <tr><td>Official Receipt</td><td><i class="fa fa-check" style="color:#28a745"></i> Yes</td><td><i class="fa fa-check" style="color:#28a745"></i> Yes</td><td><i class="fa fa-check" style="color:#28a745"></i> Yes</td></tr>
                     <tr><td>Dedicated Account Manager</td><td><i class="fa fa-check" style="color:#28a745"></i> Yes</td><td><i class="fa fa-minus" style="color:#aaa"></i> Walk-in Only</td><td><i class="fa fa-minus" style="color:#aaa"></i> Walk-in Only</td></tr>
                     <tr><td>iScan Barcode Lookup</td><td><i class="fa fa-minus" style="color:#aaa"></i> N/A</td><td><i class="fa fa-check" style="color:#28a745"></i> Available In-Store</td><td><i class="fa fa-check" style="color:#28a745"></i> Available In-Store</td></tr>
-                    <tr><td>iRent Equipment</td><td><i class="fa fa-check" style="color:#28a745"></i> By Request</td><td><i class="fa fa-check" style="color:#28a745"></i> Yes</td><td><i class="fa fa-check" style="color:#28a745"></i> By Request</td></tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Client Types Table -->
+        <!-- Client Types Table (static) -->
         <div style="margin-top:3rem;">
             <div class="section-header" style="text-align:left;">
                 <h3 style="font-family:var(--font-display);font-size:1.5rem;color:var(--blue);">Who We <span style="color:var(--red)">Serve</span></h3>

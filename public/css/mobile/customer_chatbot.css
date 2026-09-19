@@ -1,36 +1,24 @@
-/* Scopes to ONLY the chatbot page, since it's the only page containing
-   .chat-frame — no PHP/view changes needed. Locks the whole page to the
-   viewport height so the body itself can never scroll; only .chat-scroll
-   scrolls internally. */
-
 body:has(.chat-frame) {
     height: 100vh;
     overflow: hidden;
 }
 
 body:has(.chat-frame) .m-content {
-    height: 100%;
+    height: calc(100vh - var(--bottom-nav-height, 60px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding-bottom: 0 !important;
 }
 
-
-/* The row with the back button + title stays fixed at its natural size */
-
 body:has(.chat-frame) .m-content>.d-flex:first-child,
 body:has(.chat-frame) .m-content>p {
     flex: 0 0 auto;
 }
 
-
-/* chat-frame takes all remaining space and becomes the scroll boundary */
-
 .chat-frame {
     flex: 1 1 auto;
     min-height: 0;
-    /* critical: lets flex children actually shrink/scroll instead of growing past the viewport */
     display: flex;
     flex-direction: column;
     overflow: hidden;

@@ -87,11 +87,12 @@
             </li>
 
             <li class="nav-label">MANAGEMENT</li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/alerts-tasks') ?>" class="nav-link-custom <?= ($page_name == 'alerts') ? 'active' : '' ?>"><i class="fas fa-tasks"></i> <span>Alerts & Tasks</span></a></li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/bulletin-board') ?>" class="nav-link-custom <?= ($page_name == 'bulletin') ? 'active' : '' ?>"><i class="fas fa-chalkboard"></i> <span>Announcements</span></a></li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/user-management') ?>" class="nav-link-custom <?= ($page_name == 'users') ? 'active' : '' ?>"><i class="fas fa-user-shield"></i> <span>User Management</span></a></li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/chatbot') ?>" class="nav-link-custom <?= ($page_name == 'chatbot') ? 'active' : '' ?>"><i class="fas fa-comment-dots"></i> <span>ChatBot</span></a></li>
-            <li class="nav-item"><a href="<?= base_url('admin/management/customer-engagement') ?>" class="nav-link-custom <?= ($page_name == 'engagement') ? 'active' : '' ?>"><i class="fas fa-heart"></i> <span>Customer Engagement</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/alerts-tasks') ?>" class="nav-link-custom <?= ($page_name == 'alerts') ? 'active' : '' ?>"><i class="fas fa-tasks"></i> <span>Alerts & Tasks</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/bulletin-board') ?>" class="nav-link-custom <?= ($page_name == 'bulletin') ? 'active' : '' ?>"><i class="fas fa-chalkboard"></i> <span>Announcements</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/user-management') ?>" class="nav-link-custom <?= ($page_name == 'users') ? 'active' : '' ?>"><i class="fas fa-user-shield"></i> <span>User Management</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/chatbot') ?>" class="nav-link-custom <?= ($page_name == 'chatbot') ? 'active' : '' ?>"><i class="fas fa-comment-dots"></i> <span>ChatBot</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/customer-engagement') ?>" class="nav-link-custom <?= ($page_name == 'engagement') ? 'active' : '' ?>"><i class="fas fa-heart"></i> <span>Customer Engagement</span></a></li>
+<li class="nav-item"><a href="<?= base_url('admin/management/site-content/hero') ?>" class="nav-link-custom <?= ($page_name == 'site-content') ? 'active' : '' ?>"><i class="fas fa-globe"></i> <span>Public Site Content</span></a></li>
         </ul>
     </div>
 

@@ -51,11 +51,6 @@
             </select>
         </div>
 
-        <div class="mb-3">
-            <label class="formal-label">TIN (TAX IDENTIFICATION NUMBER)</label>
-            <input type="text" name="tin" class="formal-input" placeholder="000-000-000-000">
-        </div>
-
         <div class="mb-4">
             <label class="formal-label">COMPLETE ADDRESS *</label>
             <textarea name="complete_address" class="formal-input" rows="2" placeholder="Full street address, City, Province" required></textarea>

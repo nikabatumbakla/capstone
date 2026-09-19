@@ -5,7 +5,7 @@
 <!-- PROMO BAR -->
 <div class="promo-bar">
     <span class="promo-pill">🎉 NEW</span>
-    <span>Introducing <strong>iRent</strong> – rent medical equipment &amp; <strong>iScan</strong> – barcode lookup in-store!</span>
+    <span><strong>iScan</strong> — barcode lookup now available in-store!</span>
     <a href="<?= base_url('announcements') ?>">Learn More →</a>
 </div>
 
@@ -14,28 +14,23 @@
     <div class="hero-bg-cross"></div>
     <div class="hero-container">
         <div class="hero-content">
-            <div class="hero-label"><i class="fa fa-circle-check"></i> FDA Certified &amp; BIR Compliant</div>
+            <div class="hero-label"><i class="fa fa-circle-check"></i> <?= esc($hero->badge_text ?? 'FDA Certified & BIR Compliant') ?></div>
             <h1 class="hero-title">
-                Your Ultimate<br>
-                <span class="accent">Healthcare</span><br>
-                <span class="italic">Partner</span>
+                <?= esc($hero->headline_line1 ?? 'Your Ultimate') ?><br>
+                <span class="accent"><?= esc($hero->headline_accent ?? 'Healthcare') ?></span><br>
+                <span class="italic"><?= esc($hero->headline_line3 ?? 'Partner') ?></span>
             </h1>
-            <p class="hero-sub">
-                Robin Rose Trading supplies quality medical equipment, PPE, diagnostics, and healthcare essentials
-                to hospitals, clinics, schools, and communities across the Philippines.
-            </p>
+            <p class="hero-sub"><?= esc($hero->subtext ?? '') ?></p>
             <div class="hero-actions">
                 <a href="<?= base_url('products') ?>" class="btn btn-red"><i class="fa fa-box-open"></i> Browse Products</a>
                 <a href="<?= base_url('contact') ?>"  class="btn btn-blue"><i class="fa fa-file-invoice"></i> Send a Quote</a>
             </div>
             <div class="hero-stats">
-                <div class="stat"><span class="num">500+</span><span class="lbl">Products</span></div>
-                <div class="stat"><span class="num">10</span><span class="lbl">Categories</span></div>
-                <div class="stat"><span class="num">200+</span><span class="lbl">Clients Served</span></div>
-                <div class="stat"><span class="num">FDA</span><span class="lbl">Certified</span></div>
+                <?php for($i=1;$i<=4;$i++): ?>
+                <div class="stat"><span class="num"><?= esc($hero->{"stat{$i}_number"} ?? '') ?></span><span class="lbl"><?= esc($hero->{"stat{$i}_label"} ?? '') ?></span></div>
+                <?php endfor; ?>
             </div>
         </div>
-
         <div class="hero-visual">
             <div class="hero-img-box">
                 <?php if (file_exists(FCPATH . 'images/hero-medkit.png')): ?>
@@ -98,7 +93,6 @@
         <div class="trust-item"><i class="fa fa-file-invoice"></i> BIR Compliant</div>
         <div class="trust-item"><i class="fa fa-truck-fast"></i> Institutional Delivery</div>
         <div class="trust-item"><i class="fa fa-store"></i> In-Store Shopping &amp; Pickup</div>
-        <div class="trust-item"><i class="fa fa-rotate"></i> iRent Available</div>
         <div class="trust-item"><i class="fa fa-barcode"></i> iScan In-Store</div>
     </div>
 </div>
@@ -168,20 +162,11 @@
             <h2 class="sec-title">Your Trusted <span>Healthcare Partner</span></h2>
         </div>
         <div class="why-grid">
-            <?php
-            $reasons = [
-                ['icon'=>'fa-certificate',  'title'=>'FDA Certified Products', 'desc'=>'All products sourced from FDA-certified manufacturers ensuring safety and quality for every patient.'],
-                ['icon'=>'fa-truck-fast',    'title'=>'Institutional Delivery', 'desc'=>'Direct delivery to hospitals, schools, barangays, and LGUs with reliable, on-time service.'],
-                ['icon'=>'fa-rotate',        'title'=>'iRent Program',          'desc'=>'Rent medical equipment flexibly — ideal for post-surgery recovery and temporary institutional needs.'],
-                ['icon'=>'fa-barcode',       'title'=>'iScan In-Store',         'desc'=>'Scan product barcodes in-store for instant pricing, specs, and availability info.'],
-                ['icon'=>'fa-boxes-stacked', 'title'=>'500+ Products',          'desc'=>'Wide range across 10 categories — from basic PPE to specialized diagnostic equipment.'],
-                ['icon'=>'fa-headset',       'title'=>'Dedicated Support',      'desc'=>'Personalized assistance for quotes, orders, and after-sales support from our knowledgeable team.'],
-            ];
-            foreach ($reasons as $r): ?>
+            <?php foreach ($why_us_cards as $r): ?>
             <div class="why-card reveal">
-                <div class="why-ico"><i class="fa <?= $r['icon'] ?>"></i></div>
-                <div class="why-title"><?= $r['title'] ?></div>
-                <div class="why-desc"><?= $r['desc'] ?></div>
+                <div class="why-ico"><i class="fa <?= esc($r['icon']) ?>"></i></div>
+                <div class="why-title"><?= esc($r['title']) ?></div>
+                <div class="why-desc"><?= esc($r['description']) ?></div>
             </div>
             <?php endforeach; ?>
         </div>
@@ -197,20 +182,14 @@
             <p class="sec-sub">Flexible options to get healthcare supplies where they're needed most.</p>
         </div>
         <div class="svc-grid">
-            <?php
-            $services = [
-                ['icon'=>'fa-truck-fast',  'title'=>'Institutional Delivery','desc'=>'We deliver directly to your institution. Bulk orders welcome for healthcare facilities across the Philippines.','list'=>['Hospitals &amp; Clinics','Schools &amp; Universities','Barangay Health Centers','Local Government Units']],
-                ['icon'=>'fa-store',       'title'=>'In-Store Shopping',     'desc'=>'Visit our store at Ortega St. to browse the full catalog with the help of our knowledgeable staff.','list'=>['Full catalog in-store','Walk-in, no appointment','iScan barcode lookup','Multiple payment options']],
-                ['icon'=>'fa-box-archive', 'title'=>'In-Store Pick Up',      'desc'=>'Order by phone or email and pick up at your convenience — ready within 24 hours.','list'=>['Order via phone/email','Ready within 24 hours','Pay upon pickup','Official receipt provided']],
-            ];
-            foreach ($services as $s): ?>
+            <?php foreach ($service_cards as $s): ?>
             <div class="svc-card reveal">
-                <div class="svc-ico"><i class="fa <?= $s['icon'] ?>"></i></div>
-                <h3 class="svc-title"><?= $s['title'] ?></h3>
-                <p class="svc-desc"><?= $s['desc'] ?></p>
+                <div class="svc-ico"><i class="fa <?= esc($s['icon']) ?>"></i></div>
+                <h3 class="svc-title"><?= esc($s['title']) ?></h3>
+                <p class="svc-desc"><?= esc($s['description']) ?></p>
                 <ul class="svc-list">
-                    <?php foreach ($s['list'] as $item): ?>
-                    <li><i class="fa fa-check-circle"></i> <?= $item ?></li>
+                    <?php foreach (explode("\n", $s['feature_list']) as $item): ?>
+                        <?php if (trim($item) !== ''): ?><li><i class="fa fa-check-circle"></i> <?= esc(trim($item)) ?></li><?php endif; ?>
                     <?php endforeach; ?>
                 </ul>
             </div>
@@ -257,24 +236,26 @@
         <div class="sec-head reveal">
             <div class="sec-tag">Testimonials</div>
             <h2 class="sec-title">What Our <span>Clients Say</span></h2>
+            <?php if($store_rating['count'] > 0): ?>
+            <div class="mt-2" style="font-size:14px;">
+                <?php for($i=1;$i<=5;$i++): ?><i class="fa<?= $i <= round($store_rating['avg']) ? 's' : 'r' ?> fa-star" style="color:#f1c40f;"></i><?php endfor; ?>
+                <span class="text-muted ms-2"><?= $store_rating['avg'] ?> out of 5 (<?= $store_rating['count'] ?> rating<?= $store_rating['count'] != 1 ? 's' : '' ?> from our client portal)</span>
+            </div>
+            <?php endif; ?>
         </div>
         <div class="test-grid">
-            <?php
-            $tests = [
-                ['i'=>'R','name'=>'Dr. Reyes',           'org'=>'Iriga City Health Center',  'text'=>'"Robin Rose Trading has been our go-to supplier for medical consumables. Delivery is always on time and products are genuinely FDA certified."'],
-                ['i'=>'M','name'=>'Kagawad Macaraeg',    'org'=>'Barangay Health Worker',     'text'=>'"Ordering PPE and wound care supplies for our barangay health station has never been easier. Very responsive team and competitive pricing!"'],
-                ['i'=>'S','name'=>'School Nurse Santos', 'org'=>'Private Elementary School', 'text'=>'"The iRent service is a game-changer. We rent a nebulizer during flu season without buying one outright — saves our school clinic budget!"'],
-            ];
-            foreach ($tests as $t): ?>
+            <?php if(empty($testimonials)): ?>
+                <p class="text-center text-muted">No testimonials yet.</p>
+            <?php else: foreach ($testimonials as $t): ?>
             <div class="test-card reveal">
-                <div class="stars">★★★★★</div>
-                <div class="test-text"><?= $t['text'] ?></div>
+                <div class="stars"><?= str_repeat('★', $t['rating']) . str_repeat('☆', 5 - $t['rating']) ?></div>
+                <div class="test-text">"<?= esc($t['quote']) ?>"</div>
                 <div class="test-author">
-                    <div class="test-av"><?= $t['i'] ?></div>
-                    <div class="test-info"><strong><?= $t['name'] ?></strong><span><?= $t['org'] ?></span></div>
+                    <div class="test-av"><?= strtoupper(substr($t['client_name'], 0, 1)) ?></div>
+                    <div class="test-info"><strong><?= esc($t['client_name']) ?></strong><?php if($t['client_role']): ?><span><?= esc($t['client_role']) ?></span><?php endif; ?></div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php endforeach; endif; ?>
         </div>
     </div>
 </section>
@@ -307,7 +288,6 @@
                         <option value="">-- Select --</option>
                         <option>Request a Quote</option>
                         <option>Bulk Order</option>
-                        <option>iRent Service</option>
                         <option>iScan Inquiry</option>
                         <option>General Inquiry</option>
                     </select>
@@ -326,7 +306,7 @@
     <h2>Ready to Partner with Robin Rose Trading?</h2>
     <p>Join 200+ hospitals, clinics, schools, and barangays who trust us for their healthcare supply needs.</p>
     <div class="btns">
-        <a href="tel:09292379053"            class="btn btn-white"><i class="fa fa-phone"></i> Call Now</a>
+        <a href="tel:09292379053" class="btn btn-white"><i class="fa fa-phone"></i> Call Now</a>
         <a href="<?= base_url('contact') ?>" class="btn btn-outline-w"><i class="fa fa-envelope"></i> Full Inquiry Form</a>
     </div>
 </div>
